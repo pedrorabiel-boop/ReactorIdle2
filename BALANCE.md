@@ -15,6 +15,8 @@
 
 Una planta inicial de diez eólicas alcanza la ingeniería térmica en menos de 40 ciclos. Un circuito estable de núcleo, turbina y enfriador recupera holgadamente construcción y combustible durante una carga completa. El mantenimiento conserva rendimiento total durante los primeros 1.000 ciclos de uso.
 
+La ruta automatizada de diez eólicas con mantenimiento preventivo alcanza los 50.000 MW y puede construir fusión sin deuda. Tras desbloquear el desierto, ambas grillas simulan en paralelo dentro de un único ciclo económico.
+
 ## Límites de seguridad
 
 - La simulación offline se limita a cuatro horas por regreso.

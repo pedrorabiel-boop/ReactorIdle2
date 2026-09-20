@@ -443,6 +443,23 @@ describe('reactor simulation', () => {
     expect(result.report.directEnergy).toBe(5)
   })
 
+  it('keeps every unlocked sector producing while another grid is visible', () => {
+    let state = { ...createInitialState(), totalEnergy: 25000, credits: 2000 }
+    state = placeTile(state, 0, 'wind')
+    state = switchSector(state, 'desert')
+    state = placeTile(state, 0, 'solar')
+    state = switchSector(state, 'coast')
+    const result = simulateTick(state)
+
+    expect(result.report.directEnergy).toBe(7)
+    expect(result.state.totalEnergy).toBe(25007)
+    expect(result.state.activeContract.progress).toBe(7)
+    expect(result.state.tiles[0]).toMatchObject({ kind: 'wind', condition: 99.95 })
+    expect(result.state.sectorLayouts.desert[0]).toMatchObject({ kind: 'solar', condition: 99.95 })
+    expect(result.state.activeSector).toBe('coast')
+    expect(result.state.tick).toBe(1)
+  })
+
   it('reinvests voluntarily for a permanent production bonus', () => {
     const locked = createInitialState()
     expect(reinvestPlant(locked)).toBe(locked)
@@ -474,6 +491,21 @@ describe('reactor simulation', () => {
     expect(state.totalEnergy).toBe(760)
     expect(state.credits).toBeGreaterThan(1600)
     expect(isComponentUnlocked(state, 'core')).toBe(true)
+  })
+
+  it('can progress from a new renewable plant all the way to fusion', () => {
+    let state = createInitialState()
+    for (let index = 0; index < 10; index += 1) {
+      state = placeTile(state, index, 'wind')
+      state = toggleAutoMaintenance(state, index)
+    }
+    state = simulateMany(state, 2600)
+
+    expect(state.totalEnergy).toBeGreaterThanOrEqual(50000)
+    expect(isComponentUnlocked(state, 'fusion')).toBe(true)
+    state = placeTile(state, 10, 'fusion')
+    expect(state.tiles[10]?.kind).toBe('fusion')
+    expect(simulateTick(state).state.tiles[10]?.heat).toBe(72)
   })
 
   it('keeps a stable nuclear circuit profitable through a fuel load', () => {

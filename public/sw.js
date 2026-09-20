@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nucleus-idle-v14'
+const CACHE_NAME = 'nucleus-idle-v15'
 const STATIC_FILES = ['./manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png']
 
 self.addEventListener('install', (event) => {

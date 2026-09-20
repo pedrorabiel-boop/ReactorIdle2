@@ -48,6 +48,8 @@ Al alcanzar 1.500 MW se desbloquean baterías: almacenan una parte real de la pr
 
 A los 25.000 MW se abre un segundo sector con grilla independiente. La costa acelera las baterías un 20 % y el desierto aumenta la producción solar un 25 %. Desde 100.000 MW puede reinvertirse voluntariamente la planta: reinicia la progresión y concede un 10 % permanente adicional a la generación renovable y al valor de la energía por nivel.
 
+Todos los sectores desbloqueados continúan operando en paralelo aunque estés observando otra grilla. Producción, combustible, mantenimiento, contratos y protección offline se contabilizan en el mismo ciclo global.
+
 Las partidas creadas con prototipos anteriores se migran automáticamente. Las del prototipo 01 también reciben la ciencia correspondiente a la energía que ya habían generado.
 
 El tutorial comienza construyendo eólica y solar. Una vez alcanzados 750 MW se desbloquea el primer núcleo; para crear un circuito térmico estable, colócalo junto a una turbina y un enfriador.

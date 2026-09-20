@@ -213,7 +213,7 @@ function pullHeat(tiles: Array<Tile | null>, sources: number[], requested: numbe
   return moved
 }
 
-export function simulateTick(state: GameState): { state: GameState; report: TickReport } {
+function simulateSectorTick(state: GameState): { state: GameState; report: TickReport } {
   const tiles = state.tiles.map((tile) => (tile ? { ...tile, flow: 0 } : null))
   let credits = state.credits
   let refuelCost = 0
@@ -353,6 +353,52 @@ export function simulateTick(state: GameState): { state: GameState; report: Tick
       sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles },
     },
     report: { generatedEnergy, generatedScience, cooledHeat, explosions, refuelCost, maintenanceCost, directEnergy, thermalEnergy, batteryEnergy, storedEnergy },
+  }
+}
+
+function emptyTickReport(): TickReport {
+  return { generatedEnergy: 0, generatedScience: 0, cooledHeat: 0, explosions: 0, refuelCost: 0, maintenanceCost: 0, directEnergy: 0, thermalEnergy: 0, batteryEnergy: 0, storedEnergy: 0 }
+}
+
+function addTickReports(total: TickReport, report: TickReport): TickReport {
+  return {
+    generatedEnergy: total.generatedEnergy + report.generatedEnergy,
+    generatedScience: total.generatedScience + report.generatedScience,
+    cooledHeat: total.cooledHeat + report.cooledHeat,
+    explosions: total.explosions + report.explosions,
+    refuelCost: total.refuelCost + report.refuelCost,
+    maintenanceCost: total.maintenanceCost + report.maintenanceCost,
+    directEnergy: total.directEnergy + report.directEnergy,
+    thermalEnergy: total.thermalEnergy + report.thermalEnergy,
+    batteryEnergy: total.batteryEnergy + report.batteryEnergy,
+    storedEnergy: total.storedEnergy + report.storedEnergy,
+  }
+}
+
+export function simulateTick(state: GameState): { state: GameState; report: TickReport } {
+  const originalSector = state.activeSector
+  let next: GameState = {
+    ...state,
+    sectorLayouts: { ...state.sectorLayouts, [originalSector]: state.tiles },
+  }
+  let report = emptyTickReport()
+  const sectors: SectorKey[] = isSectorUnlocked(state, 'desert') ? ['coast', 'desert'] : ['coast']
+
+  for (const sector of sectors) {
+    const sectorState = { ...next, activeSector: sector, tiles: next.sectorLayouts[sector] }
+    const result = simulateSectorTick(sectorState)
+    next = result.state
+    report = addTickReports(report, result.report)
+  }
+
+  return {
+    state: {
+      ...next,
+      activeSector: originalSector,
+      tiles: next.sectorLayouts[originalSector],
+      tick: state.tick + 1,
+    },
+    report,
   }
 }
 
