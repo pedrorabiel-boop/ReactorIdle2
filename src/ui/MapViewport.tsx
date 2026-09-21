@@ -105,13 +105,15 @@ const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, sele
 export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(1)
+  const previousZoomRef = useRef(zoom)
   const changeZoom = (delta: number) => setZoom((current) => Math.max(0.6, Math.min(1.6, Math.round((current + delta) * 10) / 10)))
   const terrainTiles = useMemo(
     () => island.tiles.map((tile) => ({ x: tile.x, y: tile.y, kind: tile.kind, neighbors: tile.neighbors, decor: tile.decor === 'ambient' ? decoration : tile.decor })),
     [island, decoration],
   )
 
-  // Centrar la grilla al montar y al cambiar de sector.
+  // Centrar solo al montar o al cambiar realmente de sector. Construir una
+  // pieza no debe alterar el scroll del jugador.
   useLayoutEffect(() => {
     const viewport = viewportRef.current
     if (!viewport) return
@@ -119,7 +121,22 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     const gridCenterY = (island.grid.y + island.grid.rows / 2) * TILE * zoom
     viewport.scrollLeft = gridCenterX - viewport.clientWidth / 2
     viewport.scrollTop = gridCenterY - viewport.clientHeight / 2 + 40
-  }, [island, game.activeSector, zoom])
+  }, [game.activeSector])
+
+  // Mantener bajo el centro de la pantalla el mismo punto del mapa cuando
+  // cambia la escala, en vez de volver a centrar toda la isla.
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const previousZoom = previousZoomRef.current
+    if (!viewport || previousZoom === zoom) return
+    const marginLeft = 16
+    const marginTop = 110
+    const worldX = (viewport.scrollLeft + viewport.clientWidth / 2 - marginLeft) / previousZoom
+    const worldY = (viewport.scrollTop + viewport.clientHeight / 2 - marginTop) / previousZoom
+    viewport.scrollLeft = marginLeft + worldX * zoom - viewport.clientWidth / 2
+    viewport.scrollTop = marginTop + worldY * zoom - viewport.clientHeight / 2
+    previousZoomRef.current = zoom
+  }, [zoom])
 
   // Al inspeccionar, asegurar que la pieza quede visible por encima del panel inferior.
   useEffect(() => {
@@ -141,7 +158,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
 
   return (
     <div className={`viewport ${armed ? 'armed' : ''} mode-${toolMode}`} ref={viewportRef}>
-      {!minimalUi && <div className="zoom-controls frame" role="group" aria-label="Zoom del mapa"><button onClick={() => changeZoom(-0.1)} disabled={zoom <= 0.6}>−</button><span>{Math.round(zoom * 100)}%</span><button onClick={() => changeZoom(0.1)} disabled={zoom >= 1.6}>+</button></div>}
+      <div className={`zoom-controls frame ${minimalUi ? 'hidden' : ''}`} role="group" aria-label="Zoom del mapa"><button onClick={() => changeZoom(-0.1)} disabled={zoom <= 0.6}>−</button><span>{Math.round(zoom * 100)}%</span><button onClick={() => changeZoom(0.1)} disabled={zoom >= 1.6}>+</button></div>
       <div className="world-stage" style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
       <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${zoom})` }} onPointerMove={onGridPointerMove}>
         <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} />

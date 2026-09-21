@@ -4,6 +4,7 @@ import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { buyDesertSector, claimContract, countKind, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { canUnlockTech, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
+import { COAST_BUILDABLE_SET } from './game/terrain'
 import type { ComponentKind, GameState, SectorKey, TechKey, ToolMode, UpgradeTrack } from './game/types'
 import { Dock, type DockTab } from './ui/Dock'
 import { formatDecimal, formatNumber } from './ui/format'
@@ -48,8 +49,9 @@ function App() {
   useEffect(() => { const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as BeforeInstallPromptEvent) }; window.addEventListener('beforeinstallprompt', handler); return () => window.removeEventListener('beforeinstallprompt', handler) }, [])
 
   const environment = environmentFor(game)
-  const occupiedSignature = game.tiles.map((tile) => tile ? '1' : '0').join('')
-  const island = useMemo(() => buildIsland(game.rows, game.cols, game.activeSector, game.tiles.flatMap((tile, index) => tile ? [index] : [])), [game.rows, game.cols, game.activeSector, occupiedSignature])
+  const extraOccupiedIndices = game.activeSector === 'coast' ? game.tiles.flatMap((tile, index) => tile && !COAST_BUILDABLE_SET.has(index) ? [index] : []) : []
+  const extraOccupiedSignature = extraOccupiedIndices.join(',')
+  const island = useMemo(() => buildIsland(game.rows, game.cols, game.activeSector, extraOccupiedIndices), [game.rows, game.cols, game.activeSector, extraOccupiedSignature])
   const heat = totalHeat(game)
   const inspectedRefuel = inspectedIndex === null ? 0 : refuelPrice(game, inspectedIndex) ?? 0
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
