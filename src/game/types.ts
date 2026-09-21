@@ -15,13 +15,20 @@ export interface ComponentDefinition {
 
 export interface Tile { id: string; kind: ComponentKind; heat: number; enabled: boolean; damaged: boolean; flow: number; fuel: number; autoRefuel: boolean }
 
+export interface SectorEconomy {
+  energyStored: number
+  buildingLevels: Record<ComponentKind, number>
+  capacityLevels: Record<ComponentKind, number>
+  autonomyLevels: Record<ComponentKind, number>
+}
+
 export interface GameState {
-  version: 12; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; energyStored: number; totalEnergy: number
+  version: 13; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
-  buildingLevels: Record<ComponentKind, number>; capacityLevels: Record<ComponentKind, number>; autonomyLevels: Record<ComponentKind, number>
   autoRebuilds: Record<ComponentKind, boolean>
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
   activeContract: EnergyContract; contractsCompleted: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
+  sectorEconomies: Record<SectorKey, SectorEconomy>; sectorReports: Record<SectorKey, TickReport>
   ownedSectors: Record<SectorKey, boolean>; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
 }
 

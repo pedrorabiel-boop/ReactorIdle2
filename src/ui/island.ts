@@ -1,4 +1,5 @@
 import type { GameState, SectorKey } from '../game/types'
+import { COAST_BUILDABLE_SET } from '../game/terrain'
 import type { EnvironmentKey, Neighbors, TerrainKind } from './pixel/sprites'
 
 export const TILE = 48 // 16 px lógicos × 3
@@ -44,22 +45,28 @@ function hash(x: number, y: number): number {
   return Math.abs(h ^ (h >>> 15))
 }
 
-export function buildIsland(rows: number, cols: number, sector: SectorKey): Island {
+export function buildIsland(rows: number, cols: number, sector: SectorKey, occupiedIndices: number[] = []): Island {
   const shape = SHAPES[sector]
   const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols, rows }
   const totalCols = cols + 2 + WATER_MARGIN * 2
   const totalRows = rows + 2 + WATER_MARGIN * 2
   const decorLand = new Set([...shape.bumps, ...shape.islets].map(([x, y]) => `${x},${y}`))
+  const occupied = new Set(occupiedIndices)
 
-  const inGrid = (x: number, y: number) => x >= grid.x && x < grid.x + cols && y >= grid.y && y < grid.y + rows
-  const isLand = (x: number, y: number): boolean => inGrid(x, y) || decorLand.has(`${x - grid.x},${y - grid.y}`)
+  const inGridBounds = (x: number, y: number) => x >= grid.x && x < grid.x + cols && y >= grid.y && y < grid.y + rows
+  const isBuildable = (x: number, y: number) => {
+    if (!inGridBounds(x, y)) return false
+    const index = (y - grid.y) * cols + (x - grid.x)
+    return sector === 'desert' || COAST_BUILDABLE_SET.has(index) || occupied.has(index)
+  }
+  const isLand = (x: number, y: number): boolean => isBuildable(x, y) || decorLand.has(`${x - grid.x},${y - grid.y}`)
   const kindAt = (x: number, y: number): TerrainKind => (isLand(x, y) ? 'land' : 'water')
 
   const tiles: IslandTile[] = []
   for (let y = 0; y < totalRows; y++) {
     for (let x = 0; x < totalCols; x++) {
       const kind = kindAt(x, y)
-      const gridIndex = inGrid(x, y) ? (y - grid.y) * cols + (x - grid.x) : null
+      const gridIndex = isBuildable(x, y) ? (y - grid.y) * cols + (x - grid.x) : null
       let decor: IslandTile['decor'] = null
       if (kind === 'land' && gridIndex === null) decor = hash(x, y) % 4 === 0 ? 'rock' : 'ambient'
       const neighbors: Neighbors = kind === 'water'

@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, type PointerEvent } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { COMPONENTS } from '../game/catalog'
 import { usesAutonomy } from '../game/engine'
 import { componentCapacity, directEnergyRate, fuelCapacity } from '../game/research'
@@ -15,6 +15,7 @@ interface MapViewportProps {
   toolMode: ToolMode
   selectedKind: ComponentKind
   inspectedIndex: number | null
+  minimalUi?: boolean
   onCellPointerDown: (event: PointerEvent<HTMLButtonElement>, index: number) => void
   onCellClick: (index: number) => void
   onGridPointerMove: (event: PointerEvent<HTMLDivElement>) => void
@@ -101,8 +102,10 @@ const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, sele
   )
 })
 
-export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
+export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
+  const [zoom, setZoom] = useState(1)
+  const changeZoom = (delta: number) => setZoom((current) => Math.max(0.6, Math.min(1.6, Math.round((current + delta) * 10) / 10)))
   const terrainTiles = useMemo(
     () => island.tiles.map((tile) => ({ x: tile.x, y: tile.y, kind: tile.kind, neighbors: tile.neighbors, decor: tile.decor === 'ambient' ? decoration : tile.decor })),
     [island, decoration],
@@ -112,11 +115,11 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   useLayoutEffect(() => {
     const viewport = viewportRef.current
     if (!viewport) return
-    const gridCenterX = (island.grid.x + island.grid.cols / 2) * TILE
-    const gridCenterY = (island.grid.y + island.grid.rows / 2) * TILE
+    const gridCenterX = (island.grid.x + island.grid.cols / 2) * TILE * zoom
+    const gridCenterY = (island.grid.y + island.grid.rows / 2) * TILE * zoom
     viewport.scrollLeft = gridCenterX - viewport.clientWidth / 2
     viewport.scrollTop = gridCenterY - viewport.clientHeight / 2 + 40
-  }, [island, game.activeSector])
+  }, [island, game.activeSector, zoom])
 
   // Al inspeccionar, asegurar que la pieza quede visible por encima del panel inferior.
   useEffect(() => {
@@ -138,11 +141,10 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
 
   return (
     <div className={`viewport ${armed ? 'armed' : ''} mode-${toolMode}`} ref={viewportRef}>
-      <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE }} onPointerMove={onGridPointerMove}>
+      {!minimalUi && <div className="zoom-controls frame" role="group" aria-label="Zoom del mapa"><button onClick={() => changeZoom(-0.1)} disabled={zoom <= 0.6}>−</button><span>{Math.round(zoom * 100)}%</span><button onClick={() => changeZoom(0.1)} disabled={zoom >= 1.6}>+</button></div>}
+      <div className="world-stage" style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
+      <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${zoom})` }} onPointerMove={onGridPointerMove}>
         <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} />
-        {armed && toolMode !== 'inspect' && (
-          <div className="grid-outline" aria-hidden="true" style={{ left: island.grid.x * TILE, top: island.grid.y * TILE, width: island.grid.cols * TILE, height: island.grid.rows * TILE }} />
-        )}
         {island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => {
           const index = tile.gridIndex as number
           return (
@@ -162,6 +164,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
             />
           )
         })}
+      </div>
       </div>
     </div>
   )

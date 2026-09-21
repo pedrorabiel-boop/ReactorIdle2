@@ -36,7 +36,7 @@ export function Dock({ game, activeTab, onTab, onChooseComponent, onChooseTool, 
         <section className="tray frame" aria-label="Bandeja de construcción">
           <div className="tray-head">
             <strong>{game.toolMode === 'demolish' ? 'DEMOLER' : 'CONSTRUIR'}</strong>
-            <span>{game.toolMode === 'demolish' ? 'Toca una pieza · recuperas la mitad' : 'Toca una casilla · arrastra para trazar'}</span>
+            <span>{game.toolMode === 'demolish' ? 'Productores 0 % · otras piezas 85 %' : 'Elige una pieza · luego toca o desliza'}</span>
             <button className="tray-undo frame" disabled={undoDepth === 0} onClick={onUndo} aria-label={undoDepth ? `Deshacer, ${undoDepth} disponibles` : 'Nada que deshacer'}>
               <Sprite name="icon-undo" size={16} />{undoDepth > 0 && <small>{undoDepth}</small>}
             </button>

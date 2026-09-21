@@ -2,9 +2,10 @@ import { AUTO_REBUILD_COSTS, ECONOMY, levelMultiplier, TECHNOLOGIES } from './ba
 import { COMPONENTS } from './catalog'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
 
-export const componentLevel = (state: GameState, kind: ComponentKind) => state.buildingLevels[kind] ?? 1
-export const capacityLevel = (state: GameState, kind: ComponentKind) => state.capacityLevels[kind] ?? 1
-export const autonomyLevel = (state: GameState, kind: ComponentKind) => state.autonomyLevels[kind] ?? 1
+const economy = (state: GameState) => state.sectorEconomies[state.activeSector]
+export const componentLevel = (state: GameState, kind: ComponentKind) => economy(state).buildingLevels[kind] ?? 1
+export const capacityLevel = (state: GameState, kind: ComponentKind) => economy(state).capacityLevels[kind] ?? 1
+export const autonomyLevel = (state: GameState, kind: ComponentKind) => economy(state).autonomyLevels[kind] ?? 1
 export const componentMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(componentLevel(state, kind))
 export const capacityMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(capacityLevel(state, kind))
 export const autonomyMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(autonomyLevel(state, kind))
@@ -32,23 +33,25 @@ export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
 export function upgradeLevel(state: GameState, kind: ComponentKind, track: UpgradeTrack): number { return track === 'output' ? componentLevel(state, kind) : track === 'capacity' ? capacityLevel(state, kind) : autonomyLevel(state, kind) }
 export function upgradeCost(state: GameState, kind: ComponentKind, track: UpgradeTrack = 'output'): number {
   const factor = track === 'output' ? 1 : track === 'capacity' ? 0.85 : 0.75
-  return Math.round(Math.max(5, COMPONENTS[kind].cost * 2) * factor * Math.pow(ECONOMY.upgradeGrowth, upgradeLevel(state, kind, track) - 1))
+  return Math.round(Math.max(5, COMPONENTS[kind].cost * ECONOMY.upgradeBaseMultiplier) * factor * Math.pow(ECONOMY.upgradeGrowth, upgradeLevel(state, kind, track) - 1))
 }
 export function upgradeBuildingTrack(state: GameState, kind: ComponentKind, track: UpgradeTrack): GameState {
   if (!upgradeTracks(kind).includes(track)) return state
   const level = upgradeLevel(state, kind, track); const cost = upgradeCost(state, kind, track)
   if (level >= ECONOMY.maxBuildingLevel || state.credits < cost) return state
-  if (track === 'output') return { ...state, credits: state.credits - cost, buildingLevels: { ...state.buildingLevels, [kind]: level + 1 } }
-  if (track === 'capacity') return { ...state, credits: state.credits - cost, capacityLevels: { ...state.capacityLevels, [kind]: level + 1 } }
+  const currentEconomy = economy(state)
+  if (track === 'output') return { ...state, credits: state.credits - cost, sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...currentEconomy, buildingLevels: { ...currentEconomy.buildingLevels, [kind]: level + 1 } } } }
+  if (track === 'capacity') return { ...state, credits: state.credits - cost, sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...currentEconomy, capacityLevels: { ...currentEconomy.capacityLevels, [kind]: level + 1 } } } }
   const oldCapacity = fuelCapacity(state, kind)
-  const autonomyLevels = { ...state.autonomyLevels, [kind]: level + 1 }
-  const upgraded = { ...state, autonomyLevels }
+  const autonomyLevels = { ...currentEconomy.autonomyLevels, [kind]: level + 1 }
+  const upgraded = { ...state, sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...currentEconomy, autonomyLevels } } }
   const newCapacity = fuelCapacity(upgraded, kind)
   const currentLayouts = { ...state.sectorLayouts, [state.activeSector]: state.tiles }
-  const sectorLayouts = Object.fromEntries(Object.entries(currentLayouts).map(([sector, tiles]) => [sector, tiles.map((tile) => tile?.kind === kind ? { ...tile, fuel: oldCapacity > 0 ? tile.fuel / oldCapacity * newCapacity : newCapacity } : tile)])) as GameState['sectorLayouts']
-  return { ...upgraded, credits: state.credits - cost, sectorLayouts, tiles: sectorLayouts[state.activeSector] }
+  const activeTiles = currentLayouts[state.activeSector].map((tile) => tile?.kind === kind ? { ...tile, fuel: oldCapacity > 0 ? tile.fuel / oldCapacity * newCapacity : newCapacity } : tile)
+  const sectorLayouts = { ...currentLayouts, [state.activeSector]: activeTiles }
+  return { ...upgraded, credits: state.credits - cost, sectorLayouts, tiles: activeTiles }
 }
-/** Compatibilidad interna para simuladores antiguos: mejora la producción global del tipo. */
+/** Compatibilidad interna para simuladores: mejora la producción del tipo en el mapa activo. */
 export const upgradeBuildingType = (state: GameState, kind: ComponentKind) => upgradeBuildingTrack(state, kind, 'output')
 export function canUnlockTech(state: GameState, key: TechKey): boolean { const tech = TECHNOLOGIES[key]; return !state.unlockedTechs[key] && (!tech.requires || state.unlockedTechs[tech.requires]) && state.researchPoints >= tech.cost }
 export function unlockTech(state: GameState, key: TechKey): GameState { return canUnlockTech(state, key) ? { ...state, researchPoints: state.researchPoints - TECHNOLOGIES[key].cost, unlockedTechs: { ...state.unlockedTechs, [key]: true } } : state }

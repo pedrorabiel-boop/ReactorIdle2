@@ -1,7 +1,8 @@
 import { ECONOMY, emptyAutoRebuilds, emptyBuildingLevels, levelMultiplier } from './balance'
 import { COMPONENTS } from './catalog'
 import { createInitialState, emptyTickReport, isComponentUnlocked, simulateTick } from './engine'
-import type { GameState, SectorKey, Tile } from './types'
+import type { GameState, SectorEconomy, SectorKey, Tile } from './types'
+import { COAST_BUILDABLE_INDICES, COAST_BUILDABLE_SET } from './terrain'
 
 const SAVE_KEY = 'nucleus-idle-save-v2'
 const CORRUPT_BACKUP_KEY = 'nucleus-idle-v2-corrupt-backup'
@@ -17,22 +18,43 @@ export function simulateOffline(state: GameState, requestedSeconds: number): { s
 
 export function normalizeGameState(value: unknown): GameState | null {
   if (!value || typeof value !== 'object') return null
-  const source = value as Omit<GameState, 'version' | 'capacityLevels' | 'autonomyLevels' | 'autoRebuilds'> & { version: number; capacityLevels?: GameState['capacityLevels']; autonomyLevels?: GameState['autonomyLevels']; autoRebuilds?: GameState['autoRebuilds'] }
-  if (![10, 11, 12].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.buildingLevels || !source.sectorLayouts || !source.ownedSectors) return null
+  const source = value as Record<string, any>
+  if (![10, 11, 12, 13].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
+  if (source.version < 13 && !source.buildingLevels) return null
   const oldCycles: Partial<Record<Tile['kind'], number>> = { wind: 300, solar: 600, core: 600, thorium: 900, fusion: 1_200 }
-  const autonomyLevels = source.autonomyLevels ?? emptyBuildingLevels()
+  const legacyAutonomyLevels = source.autonomyLevels ?? emptyBuildingLevels()
   const migrateTile = (tile: Tile | null): Tile | null => {
-    if (!tile || source.version === 12 || !COMPONENTS[tile.kind].fuelCycles) return tile
-    const oldMax = (oldCycles[tile.kind] ?? COMPONENTS[tile.kind].fuelCycles ?? 0) * levelMultiplier(autonomyLevels[tile.kind] ?? 1)
-    const newMax = (COMPONENTS[tile.kind].fuelCycles ?? 0) * levelMultiplier(autonomyLevels[tile.kind] ?? 1)
+    if (!tile || source.version >= 12 || !COMPONENTS[tile.kind].fuelCycles) return tile
+    const oldMax = (oldCycles[tile.kind] ?? COMPONENTS[tile.kind].fuelCycles ?? 0) * levelMultiplier(legacyAutonomyLevels[tile.kind] ?? 1)
+    const newMax = (COMPONENTS[tile.kind].fuelCycles ?? 0) * levelMultiplier(legacyAutonomyLevels[tile.kind] ?? 1)
     const ratio = source.version === 10 && (tile.kind === 'wind' || tile.kind === 'solar') ? 1 : oldMax > 0 ? Math.min(1, tile.fuel / oldMax) : 1
     return { ...tile, fuel: newMax * ratio, autoRefuel: false }
   }
-  const sectorLayouts = Object.fromEntries(Object.entries(source.sectorLayouts).map(([sector, tiles]) => [sector, tiles.map(migrateTile)])) as GameState['sectorLayouts']
+  const sectorLayouts = Object.fromEntries(Object.entries(source.sectorLayouts as Record<string, Array<Tile | null>>).map(([sector, tiles]) => [sector, tiles.map(migrateTile)])) as GameState['sectorLayouts']
+  const coast = [...sectorLayouts.coast]
+  const overflow = coast.flatMap((tile, index) => tile && !COAST_BUILDABLE_SET.has(index) ? [{ tile, index }] : [])
+  for (const { index } of overflow) coast[index] = null
+  for (const { tile, index } of overflow) { const target = COAST_BUILDABLE_INDICES.find((candidate) => !coast[candidate]); if (target === undefined) { coast[index] = tile; continue } coast[target] = tile }
+  sectorLayouts.coast = coast
   const activeSector = source.activeSector as SectorKey
-  const activeTiles = source.tiles.map(migrateTile)
+  const activeTiles = (activeSector === 'coast' ? coast : source.tiles.map(migrateTile))
   sectorLayouts[activeSector] = activeTiles
-  return { ...source, version: 12, tiles: activeTiles, sectorLayouts, capacityLevels: source.capacityLevels ?? emptyBuildingLevels(), autonomyLevels, autoRebuilds: source.autoRebuilds ?? emptyAutoRebuilds(), credits: Math.max(0, Number(source.credits) || 0), energyStored: Math.max(0, Number(source.energyStored) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport() }
+  const normalizeLevels = (levels: Record<string, number> | undefined) => Object.fromEntries(Object.entries({ ...emptyBuildingLevels(), ...(levels ?? {}) }).map(([kind, level]) => [kind, Math.max(1, Math.min(ECONOMY.maxBuildingLevel, Math.floor(Number(level) || 1)))])) as SectorEconomy['buildingLevels']
+  const makeLegacyEconomy = (sector: SectorKey): SectorEconomy => ({
+    energyStored: sector === activeSector ? Math.max(0, Number(source.energyStored) || 0) : 0,
+    buildingLevels: normalizeLevels(source.buildingLevels),
+    capacityLevels: normalizeLevels(source.capacityLevels),
+    autonomyLevels: normalizeLevels(legacyAutonomyLevels),
+  })
+  const sourceEconomies = source.sectorEconomies as GameState['sectorEconomies'] | undefined
+  if (source.version === 13 && (!sourceEconomies?.coast || !sourceEconomies?.desert)) return null
+  const normalizeEconomy = (entry: SectorEconomy): SectorEconomy => ({ energyStored: Math.max(0, Number(entry.energyStored) || 0), buildingLevels: normalizeLevels(entry.buildingLevels), capacityLevels: normalizeLevels(entry.capacityLevels), autonomyLevels: normalizeLevels(entry.autonomyLevels) })
+  const sectorEconomies: GameState['sectorEconomies'] = sourceEconomies ? { coast: normalizeEconomy(sourceEconomies.coast), desert: normalizeEconomy(sourceEconomies.desert) } : { coast: makeLegacyEconomy('coast'), desert: makeLegacyEconomy('desert') }
+  const sectorReports: GameState['sectorReports'] = source.sectorReports ?? { coast: emptyTickReport(), desert: emptyTickReport() }
+  const normalized = { ...source, version: 13, tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, autoRebuilds: source.autoRebuilds ?? emptyAutoRebuilds(), credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport() }
+  const clean = normalized as Record<string, any>
+  delete clean.energyStored; delete clean.buildingLevels; delete clean.capacityLevels; delete clean.autonomyLevels
+  return normalized as GameState
 }
 
 export function loadGame(): LoadedGame {
