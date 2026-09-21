@@ -1,166 +1,54 @@
+import { AUTO_REBUILD_COSTS, ECONOMY, levelMultiplier, TECHNOLOGIES } from './balance'
 import { COMPONENTS } from './catalog'
-import type { ComponentKind, GameState, UpgradeKey } from './types'
+import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
 
-export interface UpgradeDefinition {
-  key: UpgradeKey
-  name: string
-  description: string
-  icon: string
-  baseCost: number
-  maxLevel: number
+export const componentLevel = (state: GameState, kind: ComponentKind) => state.buildingLevels[kind] ?? 1
+export const capacityLevel = (state: GameState, kind: ComponentKind) => state.capacityLevels[kind] ?? 1
+export const autonomyLevel = (state: GameState, kind: ComponentKind) => state.autonomyLevels[kind] ?? 1
+export const componentMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(componentLevel(state, kind))
+export const capacityMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(capacityLevel(state, kind))
+export const autonomyMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(autonomyLevel(state, kind))
+export const componentCapacity = (state: GameState, kind: ComponentKind) => COMPONENTS[kind].capacity * capacityMultiplier(state, kind)
+export const fuelCapacity = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].fuelCycles ?? 0) * autonomyMultiplier(state, kind)
+export const directEnergyRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].directEnergy ?? 0) * componentMultiplier(state, kind) * (state.activeSector === 'desert' && kind === 'solar' ? 1.25 : 1)
+export const productionRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].production ?? 0) * componentMultiplier(state, kind)
+export const conversionRate = (state: GameState) => (COMPONENTS.generator.conversionRate ?? 0) * componentMultiplier(state, 'generator')
+export const coolingRate = (state: GameState) => (COMPONENTS.cooler.coolingRate ?? 0) * componentMultiplier(state, 'cooler')
+export const transferRate = (state: GameState, kind: 'exchanger' | 'pipe' | 'accumulator') => (COMPONENTS[kind].transferRate ?? 0) * componentMultiplier(state, kind)
+export const storagePerBattery = (state: GameState) => (COMPONENTS.battery.storageCapacity ?? 0) * componentMultiplier(state, 'battery')
+export const salesPerOffice = (state: GameState) => (COMPONENTS.sales.salesRate ?? 0) * componentMultiplier(state, 'sales')
+export const researchPerFacility = (state: GameState) => (COMPONENTS.research.researchRate ?? 0) * componentMultiplier(state, 'research')
+export const autoRebuildCost = (kind: ComponentKind) => AUTO_REBUILD_COSTS[kind] ?? Number.POSITIVE_INFINITY
+export function canUnlockAutoRebuild(state: GameState, kind: ComponentKind): boolean { return Boolean(COMPONENTS[kind].fuelCycles) && !state.autoRebuilds[kind] && state.researchPoints >= autoRebuildCost(kind) }
+export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameState { const cost = autoRebuildCost(kind); return canUnlockAutoRebuild(state, kind) ? { ...state, researchPoints: state.researchPoints - cost, autoRebuilds: { ...state.autoRebuilds, [kind]: true } } : state }
+export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
+  const def = COMPONENTS[kind]
+  const tracks: UpgradeTrack[] = []
+  if (def.directEnergy || def.production || def.transferRate || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate || def.controllerBonus) tracks.push('output')
+  if (def.capacity > 0) tracks.push('capacity')
+  if (def.fuelCycles) tracks.push('autonomy')
+  return tracks
 }
-
-export const EMPTY_UPGRADES: Record<UpgradeKey, number> = {
-  renewable: 0,
-  storage: 0,
-  maintenance: 0,
-  containment: 0,
-  transfer: 0,
-  turbine: 0,
-  cooling: 0,
-  market: 0,
-  fuel: 0,
+export function upgradeLevel(state: GameState, kind: ComponentKind, track: UpgradeTrack): number { return track === 'output' ? componentLevel(state, kind) : track === 'capacity' ? capacityLevel(state, kind) : autonomyLevel(state, kind) }
+export function upgradeCost(state: GameState, kind: ComponentKind, track: UpgradeTrack = 'output'): number {
+  const factor = track === 'output' ? 1 : track === 'capacity' ? 0.85 : 0.75
+  return Math.round(Math.max(5, COMPONENTS[kind].cost * 2) * factor * Math.pow(ECONOMY.upgradeGrowth, upgradeLevel(state, kind, track) - 1))
 }
-
-export const UPGRADES: Record<UpgradeKey, UpgradeDefinition> = {
-  renewable: {
-    key: 'renewable',
-    name: 'Aerodinámica avanzada',
-    description: '+15 % de producción eólica y solar por nivel.',
-    icon: '≋',
-    baseCost: 10,
-    maxLevel: 5,
-  },
-  storage: {
-    key: 'storage',
-    name: 'Celdas de alta densidad',
-    description: '+25 % de capacidad y velocidad para las baterías.',
-    icon: '▤',
-    baseCost: 18,
-    maxLevel: 5,
-  },
-  maintenance: {
-    key: 'maintenance',
-    name: 'Diagnóstico preventivo',
-    description: '-12 % al coste de mantenimiento por nivel.',
-    icon: '⚙',
-    baseCost: 16,
-    maxLevel: 5,
-  },
-  containment: {
-    key: 'containment',
-    name: 'Contención reforzada',
-    description: '+50 de capacidad térmica para cada reactor.',
-    icon: '⬡',
-    baseCost: 18,
-    maxLevel: 5,
-  },
-  transfer: {
-    key: 'transfer',
-    name: 'Aleación conductora',
-    description: '+3 de transferencia para intercambiadores, tuberías y depósitos.',
-    icon: '⇶',
-    baseCost: 12,
-    maxLevel: 5,
-  },
-  turbine: {
-    key: 'turbine',
-    name: 'Álabes de precisión',
-    description: '+2 de conversión por turbina y ciclo.',
-    icon: '⌁',
-    baseCost: 14,
-    maxLevel: 5,
-  },
-  cooling: {
-    key: 'cooling',
-    name: 'Circuito criogénico',
-    description: '+3 de disipación por enfriador y ciclo.',
-    icon: '❉',
-    baseCost: 16,
-    maxLevel: 5,
-  },
-  market: {
-    key: 'market',
-    name: 'Contratos energéticos',
-    description: '+20 % de créditos obtenidos por cada MW generado.',
-    icon: '₡',
-    baseCost: 20,
-    maxLevel: 5,
-  },
-  fuel: {
-    key: 'fuel',
-    name: 'Combustible enriquecido',
-    description: '+25 % de duración para cada carga de combustible.',
-    icon: '◉',
-    baseCost: 24,
-    maxLevel: 5,
-  },
+export function upgradeBuildingTrack(state: GameState, kind: ComponentKind, track: UpgradeTrack): GameState {
+  if (!upgradeTracks(kind).includes(track)) return state
+  const level = upgradeLevel(state, kind, track); const cost = upgradeCost(state, kind, track)
+  if (level >= ECONOMY.maxBuildingLevel || state.credits < cost) return state
+  if (track === 'output') return { ...state, credits: state.credits - cost, buildingLevels: { ...state.buildingLevels, [kind]: level + 1 } }
+  if (track === 'capacity') return { ...state, credits: state.credits - cost, capacityLevels: { ...state.capacityLevels, [kind]: level + 1 } }
+  const oldCapacity = fuelCapacity(state, kind)
+  const autonomyLevels = { ...state.autonomyLevels, [kind]: level + 1 }
+  const upgraded = { ...state, autonomyLevels }
+  const newCapacity = fuelCapacity(upgraded, kind)
+  const currentLayouts = { ...state.sectorLayouts, [state.activeSector]: state.tiles }
+  const sectorLayouts = Object.fromEntries(Object.entries(currentLayouts).map(([sector, tiles]) => [sector, tiles.map((tile) => tile?.kind === kind ? { ...tile, fuel: oldCapacity > 0 ? tile.fuel / oldCapacity * newCapacity : newCapacity } : tile)])) as GameState['sectorLayouts']
+  return { ...upgraded, credits: state.credits - cost, sectorLayouts, tiles: sectorLayouts[state.activeSector] }
 }
-
-export const UPGRADE_ORDER: UpgradeKey[] = ['renewable', 'storage', 'maintenance', 'containment', 'transfer', 'turbine', 'cooling', 'market', 'fuel']
-
-export function upgradeCost(state: GameState, key: UpgradeKey): number {
-  const level = state.upgrades[key]
-  return Math.round(UPGRADES[key].baseCost * Math.pow(1.75, level))
-}
-
-export function buyUpgrade(state: GameState, key: UpgradeKey): GameState {
-  const definition = UPGRADES[key]
-  const level = state.upgrades[key]
-  const cost = upgradeCost(state, key)
-  if (level >= definition.maxLevel || state.science < cost) return state
-
-  return {
-    ...state,
-    science: state.science - cost,
-    upgrades: { ...state.upgrades, [key]: level + 1 },
-  }
-}
-
-export function componentCapacity(state: GameState, kind: ComponentKind): number {
-  const isReactor = kind === 'core' || kind === 'thorium' || kind === 'fusion'
-  return COMPONENTS[kind].capacity + (isReactor ? state.upgrades.containment * 50 : 0)
-}
-
-export function energyCreditValue(state: GameState): number {
-  return 2 * (1 + state.upgrades.market * 0.2) * (1 + state.prestige * 0.1)
-}
-
-export function renewableMultiplier(state: GameState, kind: ComponentKind): number {
-  const sectorBonus = state.activeSector === 'desert' && kind === 'solar' ? 1.25 : 1
-  return (1 + state.upgrades.renewable * 0.15) * (1 + state.prestige * 0.1) * sectorBonus
-}
-
-export function storageCapacity(state: GameState): number {
-  return (COMPONENTS.battery.storageCapacity ?? 0) * (1 + state.upgrades.storage * 0.25)
-}
-
-export function storageRate(state: GameState): number {
-  const coastBonus = state.activeSector === 'coast' ? 1.2 : 1
-  return (COMPONENTS.battery.storageRate ?? 0) * (1 + state.upgrades.storage * 0.25) * coastBonus
-}
-
-export function maintenanceCostMultiplier(state: GameState): number {
-  return Math.max(0.4, 1 - state.upgrades.maintenance * 0.12)
-}
-
-export function fuelCapacity(state: GameState, kind: ComponentKind): number {
-  const base = COMPONENTS[kind].fuelCycles ?? 0
-  return Math.round(base * (1 + state.upgrades.fuel * 0.25))
-}
-
-export function transferRate(state: GameState, kind: 'exchanger' | 'pipe' | 'accumulator'): number {
-  return (COMPONENTS[kind].transferRate ?? 0) + state.upgrades.transfer * 3
-}
-
-export function conversionRate(state: GameState): number {
-  return (COMPONENTS.generator.conversionRate ?? 0) + state.upgrades.turbine * 2
-}
-
-export function coolingRate(state: GameState): number {
-  return (COMPONENTS.cooler.coolingRate ?? 0) + state.upgrades.cooling * 3
-}
-
-export function totalUpgradeLevels(state: GameState): number {
-  return UPGRADE_ORDER.reduce((total, key) => total + state.upgrades[key], 0)
-}
+/** Compatibilidad interna para simuladores antiguos: mejora la producción global del tipo. */
+export const upgradeBuildingType = (state: GameState, kind: ComponentKind) => upgradeBuildingTrack(state, kind, 'output')
+export function canUnlockTech(state: GameState, key: TechKey): boolean { const tech = TECHNOLOGIES[key]; return !state.unlockedTechs[key] && (!tech.requires || state.unlockedTechs[tech.requires]) && state.researchPoints >= tech.cost }
+export function unlockTech(state: GameState, key: TechKey): GameState { return canUnlockTech(state, key) ? { ...state, researchPoints: state.researchPoints - TECHNOLOGIES[key].cost, unlockedTechs: { ...state.unlockedTechs, [key]: true } } : state }

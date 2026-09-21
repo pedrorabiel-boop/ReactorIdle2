@@ -1,14 +1,16 @@
 {
   "name": "nucleus-idle-lab",
   "private": true,
-  "version": "0.13.1",
+  "version": "0.17.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.app.json && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "balance": "vitest run src/game/balance.sim.test.ts --reporter=verbose",
+    "mockup": "node tools/pixel/mockup.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

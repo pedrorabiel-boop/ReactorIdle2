@@ -1,86 +1,32 @@
-export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'accumulator' | 'generator' | 'cooler'
+export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'research' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'accumulator' | 'generator' | 'cooler'
 export type ToolMode = 'build' | 'demolish' | 'inspect'
-export type UpgradeKey = 'renewable' | 'storage' | 'maintenance' | 'containment' | 'transfer' | 'turbine' | 'cooling' | 'market' | 'fuel'
-export type ContractKind = 'renewable' | 'energy' | 'thermal'
+export type TechKey = 'solar' | 'thermal' | 'logistics' | 'automation' | 'thorium' | 'fusion' | 'expansion'
+export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
 export type SectorKey = 'coast' | 'desert'
+export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
 
-export interface EnergyContract {
-  id: string
-  kind: ContractKind
-  title: string
-  description: string
-  target: number
-  progress: number
-  rewardCredits: number
-  rewardScience: number
-}
+export interface EnergyContract { id: string; kind: ContractKind; title: string; description: string; target: number; progress: number; rewardCredits: number; rewardResearch: number }
 
 export interface ComponentDefinition {
-  kind: ComponentKind
-  name: string
-  shortName: string
-  description: string
-  icon: string
-  cost: number
-  capacity: number
-  production?: number
-  transferRate?: number
-  conversionRate?: number
-  coolingRate?: number
-  unlockEnergy?: number
-  fuelCycles?: number
-  refuelCost?: number
-  directEnergy?: number
-  storageCapacity?: number
-  storageRate?: number
+  kind: ComponentKind; name: string; shortName: string; description: string; icon: string; cost: number; capacity: number; tech?: TechKey
+  directEnergy?: number; production?: number; transferRate?: number; conversionRate?: number; coolingRate?: number; fuelCycles?: number
+  refuelCost?: number; storageCapacity?: number; salesRate?: number; researchRate?: number; controllerBonus?: number
 }
 
-export interface Tile {
-  id: string
-  kind: ComponentKind
-  heat: number
-  enabled: boolean
-  flow: number
-  fuel: number
-  autoRefuel: boolean
-  condition: number
-  autoMaintain: boolean
-  charge: number
-}
+export interface Tile { id: string; kind: ComponentKind; heat: number; enabled: boolean; damaged: boolean; flow: number; fuel: number; autoRefuel: boolean }
 
 export interface GameState {
-  version: 9
-  rows: number
-  cols: number
-  tiles: Array<Tile | null>
-  credits: number
-  totalEnergy: number
-  science: number
-  upgrades: Record<UpgradeKey, number>
-  tick: number
-  explosions: number
-  totalFuelSpent: number
-  totalMaintenanceSpent: number
-  activeContract: EnergyContract
-  contractsCompleted: number
-  activeSector: SectorKey
-  sectorLayouts: Record<SectorKey, Array<Tile | null>>
-  prestige: number
-  selectedKind: ComponentKind
-  toolMode: ToolMode
-  paused: boolean
-  speed: 1 | 2 | 4
+  version: 12; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; energyStored: number; totalEnergy: number
+  totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
+  buildingLevels: Record<ComponentKind, number>; capacityLevels: Record<ComponentKind, number>; autonomyLevels: Record<ComponentKind, number>
+  autoRebuilds: Record<ComponentKind, boolean>
+  tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
+  activeContract: EnergyContract; contractsCompleted: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
+  ownedSectors: Record<SectorKey, boolean>; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
 }
 
 export interface TickReport {
-  generatedEnergy: number
-  generatedScience: number
-  cooledHeat: number
-  explosions: number
-  refuelCost: number
-  maintenanceCost: number
-  directEnergy: number
-  thermalEnergy: number
-  batteryEnergy: number
-  storedEnergy: number
+  producedEnergy: number; directEnergy: number; thermalEnergy: number; storedEnergy: number; wastedEnergy: number; soldEnergy: number
+  earnedCredits: number; generatedResearch: number; cooledHeat: number; incidents: number; refuelCost: number; repairCost: number
+  storageCapacity: number; salesCapacity: number; conversionCapacity: number; heatProduction: number
 }

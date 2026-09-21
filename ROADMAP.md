@@ -67,6 +67,26 @@ Este documento es el checklist vivo para llevar el prototipo a una versión juga
 - [ ] Publicar en GitHub Pages.
 - [ ] Ejecutar smoke test de la URL publicada.
 
+## 10. Estética de juego móvil (pixel art)
+
+- [x] Referencias visuales guardadas y mockup navegable con tres ambientes.
+- [x] Sprites 16×16 para las 12 piezas, iconos de interfaz y decoración por ambiente.
+- [x] Autotiling de costa: playa en los tiles de agua, esquinas redondeadas, espuma.
+- [x] Mapa a pantalla completa con desplazamiento XY, HUD y dock con pestañas y sheets.
+- [x] Grilla visible solo con una pieza lista para construir.
+- [ ] Sonido y vibración táctil al construir, reclamar y en incidentes.
+- [ ] Piezas nuevas propuestas (oficina de ventas, I+D, aislante) en el motor.
+- [ ] Minimapa opcional y transición animada al cambiar de ambiente.
+
+## 11. Economía y progresión v2
+
+- [x] Energía global almacenada, excedente desperdiciado y venta limitada por oficinas.
+- [x] I+D como única fuente pasiva de RP y árbol tecnológico independiente del dinero.
+- [x] Mejoras monetarias por tipo con niveles 10, 25 y 50.
+- [x] Combustible simplificado como autonomía y sobrecalentamiento como avería reparable.
+- [x] Compra territorial, guardado v2 y simulación offline adaptados.
+- [x] Simulador determinista con hitos desde I+D hasta la segunda isla.
+
 ## Definición de terminado
 
 La primera versión se considera completa cuando una partida nueva puede progresar desde eólica hasta fusión sin bloqueos, todos los sistemas tienen explicación táctil, guardado y offline sobreviven a migraciones, la suite automatizada pasa y existe una URL instalable como PWA.
