@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nucleus-idle-v27-wind-autobuild-cost'
+const CACHE_NAME = 'nucleus-idle-v28-tier-progression'
 const STATIC_FILES = ['./manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './fonts/pixelify-sans-latin.woff2', './fonts/pixelify-sans-latin-ext.woff2', './fonts/press-start-2p-latin.woff2', './fonts/press-start-2p-latin-ext.woff2']
 
 self.addEventListener('install', (event) => {

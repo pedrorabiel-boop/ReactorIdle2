@@ -10,7 +10,9 @@ export function formatCompact(value: number): string {
   if (abs < 10000) return integer.format(value)
   if (abs < 1_000_000) return `${decimal.format(value / 1000)}k`
   if (abs < 1_000_000_000) return `${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 }).format(value / 1_000_000)}M`
-  return `${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 }).format(value / 1_000_000_000)}G`
+  if (abs < 1_000_000_000_000) return `${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 }).format(value / 1_000_000_000)}G`
+  if (abs < 1_000_000_000_000_000) return `${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 }).format(value / 1_000_000_000_000)}T`
+  return `${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 }).format(value / 1_000_000_000_000_000)}P`
 }
 
 export function formatRate(perMinute: number): string {

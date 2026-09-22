@@ -1,60 +1,101 @@
 import { describe, expect, it } from 'vitest'
-import { LIFETIME_ORDER, TECH_ORDER } from './balance'
+import { ECONOMY, TECHNOLOGIES, levelMultiplier } from './balance'
 import { COMPONENTS } from './catalog'
-import { buyDesertSector, createInitialState, globalSalesCapacity, placeTile, refuelTile, sectorEnergyStored, sellStoredEnergy, simulateTick } from './engine'
-import { canUnlockAutoRebuild, canUnlockTech, unlockAutoRebuild, unlockTech, upgradeBuildingType, upgradeCost } from './research'
-import type { ComponentKind, GameState } from './types'
+import { createInitialState, isComponentUnlocked } from './engine'
+import { nextUpgradeGainPercent, upgradeCost } from './research'
+import type { ComponentKind } from './types'
 
-interface Milestones { research?: number; solar?: number; thermal?: number; logistics?: number; automation?: number; thorium?: number; fusion?: number; expansion?: number; island?: number }
-const RESERVED = new Set([27, 34, 35, 36, 43])
-function count(state: GameState, kind: ComponentKind) { return state.tiles.filter((tile) => tile?.kind === kind).length }
-function placeNext(state: GameState, kind: ComponentKind, range: number[]): GameState { const index = range.find((candidate) => !state.tiles[candidate] && !RESERVED.has(candidate)); return index === undefined ? state : placeTile(state, index, kind) }
-
-function runBalancedOpening(maxSeconds = 18_000): { state: GameState; milestones: Milestones } {
-  let state = createInitialState()
-  const milestones: Milestones = {}
-  const ranges = { wind: [11, 12, 18, 19, 20, 21], solar: [25, 26, 28, 29, 30, 32], sales: [33, 37, 38], research: [41, 42, 44, 45, 46, 47], battery: [49, 50], controller: [51] }
-  for (let second = 0; second <= maxSeconds; second += 1) {
-    if (sectorEnergyStored(state) > 0 && count(state, 'sales') === 0) state = sellStoredEnergy(state)
-    for (let index = 0; index < state.tiles.length; index += 1) if (state.tiles[index] && state.tiles[index]!.fuel <= 0 && COMPONENTS[state.tiles[index]!.kind].fuelCycles) state = refuelTile(state, index)
-    if (count(state, 'wind') < 6 && state.credits >= 1) state = placeNext(state, 'wind', ranges.wind)
-    if (state.totalEnergySold >= 5 && globalSalesCapacity(state) < Math.max(5, state.lastReport.producedEnergy) && state.credits >= 25) state = placeNext(state, 'sales', ranges.sales)
-    if (state.totalCreditsEarned >= 50 && count(state, 'research') < 6 && state.credits >= COMPONENTS.research.cost) { state = placeNext(state, 'research', ranges.research); milestones.research ??= second }
-    for (const key of TECH_ORDER) if (canUnlockTech(state, key)) { state = unlockTech(state, key); milestones[key as keyof Milestones] ??= second }
-    for (const kind of LIFETIME_ORDER) if (canUnlockAutoRebuild(state, kind)) state = unlockAutoRebuild(state, kind)
-    if (state.unlockedTechs.solar && count(state, 'solar') < 6 && state.credits >= 20) state = placeNext(state, 'solar', ranges.solar)
-    if (state.unlockedTechs.solar && count(state, 'battery') < 2 && state.credits >= 100) state = placeNext(state, 'battery', ranges.battery)
-    if (state.unlockedTechs.thermal && !state.tiles[35] && state.credits >= 1_000) { state = placeTile(state, 35, 'core'); for (const index of [27, 34, 36, 43]) state = placeTile(state, index, 'generator') }
-    if (state.unlockedTechs.automation && count(state, 'controller') < 1 && state.credits >= 800) state = placeNext(state, 'controller', ranges.controller)
-    if (count(state, 'research') >= 3 && state.sectorEconomies.coast.buildingLevels.research < 10 && state.credits >= upgradeCost(state, 'research') * 1.5) state = upgradeBuildingType(state, 'research')
-    if (count(state, 'solar') >= 4 && state.sectorEconomies.coast.buildingLevels.solar < 10 && state.credits >= upgradeCost(state, 'solar') * 1.5) state = upgradeBuildingType(state, 'solar')
-    if (count(state, 'sales') >= 2 && state.sectorEconomies.coast.buildingLevels.sales < 10 && state.credits >= upgradeCost(state, 'sales') * 1.5) state = upgradeBuildingType(state, 'sales')
-    if (state.unlockedTechs.expansion && !state.ownedSectors.desert && state.credits >= 500_000) { state = buyDesertSector(state); milestones.island = second; break }
-    state = simulateTick(state).state
-  }
-  return { state, milestones }
+interface TierStep {
+  previous: 'wind' | 'solar' | 'core' | 'thorium'
+  next: 'solar' | 'core' | 'thorium' | 'fusion'
+  previousUnits: number
 }
 
-describe('deterministic balance simulation', () => {
-  it('prints and validates the seed progression', () => {
-    const result = runBalancedOpening()
-    console.table(Object.entries(result.milestones).map(([milestone, seconds]) => ({ milestone, minutes: Math.round((seconds as number) / 6) / 10 })))
-    console.log('final', { credits: Math.round(result.state.credits), earned: Math.round(result.state.totalCreditsEarned), solarLevel: result.state.sectorEconomies.coast.buildingLevels.solar, salesLevel: result.state.sectorEconomies.coast.buildingLevels.sales, researchLevel: result.state.sectorEconomies.coast.buildingLevels.research })
-    expect(result.milestones.research).toBeGreaterThanOrEqual(180)
-    expect(result.milestones.research).toBeLessThanOrEqual(360)
-    expect(result.milestones.solar).toBeGreaterThanOrEqual(600)
-    expect(result.milestones.solar).toBeLessThanOrEqual(1_200)
-    expect(result.milestones.thermal).toBeGreaterThanOrEqual(1_800)
-    expect(result.milestones.thermal).toBeLessThanOrEqual(3_000)
-    expect(result.milestones.logistics).toBeGreaterThanOrEqual(2_700)
-    expect(result.milestones.logistics).toBeLessThanOrEqual(4_500)
-    expect(result.milestones.automation).toBeGreaterThanOrEqual(3_600)
-    expect(result.milestones.automation).toBeLessThanOrEqual(6_000)
-    expect(result.milestones.thorium).toBeGreaterThanOrEqual(4_500)
-    expect(result.milestones.thorium).toBeLessThanOrEqual(7_200)
-    expect(result.milestones.fusion).toBeGreaterThanOrEqual(9_600)
-    expect(result.milestones.fusion).toBeLessThanOrEqual(13_800)
-    expect(result.milestones.island).toBeGreaterThanOrEqual(13_200)
-    expect(result.milestones.island).toBeLessThanOrEqual(18_000)
-  }, 30_000)
+const TIER_STEPS: TierStep[] = [
+  { previous: 'wind', next: 'solar', previousUnits: 16 },
+  { previous: 'solar', next: 'core', previousUnits: 16 },
+  { previous: 'core', next: 'thorium', previousUnits: 5 },
+  { previous: 'thorium', next: 'fusion', previousUnits: 2.5 },
+]
+
+const baseOutput = (kind: ComponentKind) => COMPONENTS[kind].directEnergy ?? COMPONENTS[kind].production ?? 0
+const maxOutput = (kind: ComponentKind) => baseOutput(kind) * levelMultiplier(ECONOMY.maxBuildingLevel)
+
+describe('tier progression balance', () => {
+  it('makes every new generator 10 to 15 times stronger than the previous maxed tier', () => {
+    const rows = TIER_STEPS.map(({ previous, next, previousUnits }) => {
+      const previousMax = maxOutput(previous)
+      const outputJump = baseOutput(next) / previousMax
+      const minutesToBuy = COMPONENTS[next].cost / (previousMax * previousUnits * 60)
+      return { previous, next, previousMax, outputJump, minutesToBuy }
+    })
+
+    console.table(rows.map(({ previous, next, outputJump, minutesToBuy }) => ({
+      tier: `${previous} -> ${next}`,
+      salto: `${outputJump.toFixed(2)}x`,
+      minutos: minutesToBuy.toFixed(2),
+    })))
+
+    for (const row of rows) {
+      expect(row.outputJump).toBeGreaterThanOrEqual(10)
+      expect(row.outputJump).toBeLessThanOrEqual(15)
+      expect(row.minutesToBuy).toBeGreaterThanOrEqual(1)
+      expect(row.minutesToBuy).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('gives each paid producer a 150 to 200 percent gross lifetime return', () => {
+    for (const kind of ['wind', 'solar', 'core', 'thorium', 'fusion'] as const) {
+      const definition = COMPONENTS[kind]
+      const grossReturn = baseOutput(kind) * (definition.fuelCycles ?? 0) / definition.cost
+      expect(grossReturn).toBeGreaterThanOrEqual(1.5)
+      expect(grossReturn).toBeLessThanOrEqual(2)
+    }
+  })
+
+  it('starts production upgrades at thirty tower prices and keeps their impact at 35 percent', () => {
+    const state = createInitialState()
+    for (const kind of ['wind', 'solar', 'core', 'thorium', 'fusion'] as const) {
+      expect(upgradeCost(state, kind, 'output')).toBe(COMPONENTS[kind].cost * 30)
+      expect(nextUpgradeGainPercent(state, kind, 'output')).toBeCloseTo(35)
+    }
+  })
+
+  it('raises each consecutive upgrade by 2.25 times to prevent bulk purchases', () => {
+    const state = createInitialState()
+    const first = upgradeCost(state, 'solar')
+    const levelTwo = {
+      ...state,
+      sectorEconomies: {
+        ...state.sectorEconomies,
+        coast: {
+          ...state.sectorEconomies.coast,
+          buildingLevels: { ...state.sectorEconomies.coast.buildingLevels, solar: 2 },
+        },
+      },
+    }
+    expect(upgradeCost(levelTwo, 'solar') / first).toBeCloseTo(ECONOMY.upgradeGrowth)
+  })
+
+  it('unlocks only core and generator with thermal research', () => {
+    const state = createInitialState()
+    const thermalOnly = {
+      ...state,
+      unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true },
+    }
+    expect(isComponentUnlocked(thermalOnly, 'core')).toBe(true)
+    expect(isComponentUnlocked(thermalOnly, 'generator')).toBe(true)
+    expect(isComponentUnlocked(thermalOnly, 'cooler')).toBe(false)
+    expect(isComponentUnlocked(thermalOnly, 'pipe')).toBe(false)
+    expect(isComponentUnlocked(thermalOnly, 'exchanger')).toBe(false)
+    expect(isComponentUnlocked(thermalOnly, 'accumulator')).toBe(false)
+  })
+
+  it('places thermal logistics one hundred times beyond basic thermal research', () => {
+    expect(TECHNOLOGIES.logistics.cost).toBeGreaterThanOrEqual(TECHNOLOGIES.thermal.cost * 100)
+  })
+
+  it('starts each generator turbine at exactly one quarter of a base core', () => {
+    expect(COMPONENTS.generator.conversionRate).toBe(COMPONENTS.core.production! / 4)
+  })
 })

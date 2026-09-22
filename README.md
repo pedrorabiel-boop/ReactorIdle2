@@ -17,7 +17,7 @@ Abre la dirección indicada por Vite. La partida se guarda automáticamente en e
 
 La energía ya no se convierte inmediatamente en dinero: las oficinas venden primero hasta la potencia comercial del mapa y solo el excedente entra a su banco local. El jugador también puede vender todo ese banco manualmente. Producción, oficinas, baterías, controladores y mejoras son independientes en cada isla. Sin oficina no existe venta automática. Las instalaciones de I+D generan RP pasivamente y el árbol tecnológico usa exclusivamente esos puntos. Eólica, solar y reactores tienen una vida útil corta: al caducar se reconstruyen por su costo completo. Su ciclo inicial produce entre 200 % y 150 % de ese costo, con margen decreciente en tecnologías posteriores. El Laboratorio permite investigar `Auto rebuild` por separado para cada tipo.
 
-Los diez niveles se compran con créditos por tipo de edificio, cuestan más que una copia nueva y benefician a todas sus unidades dentro del mapa activo. `npm run balance` ejecuta la estrategia determinista de referencia y muestra los tiempos hasta cada hito tecnológico y territorial.
+Los diez niveles se compran con créditos por tipo de edificio, parten entre 22,5 y 30 veces el costo de una copia y benefician a todas sus unidades dentro del mapa activo. Cada tier productor nuevo entrega 13,43 veces la potencia del anterior maximizado y cuesta aproximadamente 1–3 minutos de producción de una planta anterior completa. `npm run balance` valida estas proporciones, el retorno de vida útil y las barreras de investigación.
 
 ## Interfaz pixel art
 
