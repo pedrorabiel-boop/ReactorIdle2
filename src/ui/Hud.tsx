@@ -1,4 +1,5 @@
 import { sectorEnergyStored, sectorSalesCapacity, sectorStorageCapacity } from '../game/engine'
+import { hasInfiniteMoney } from '../game/debug'
 import type { GameState } from '../game/types'
 import { formatCompact, formatDecimal, formatNumber } from './format'
 import { Sprite } from './pixel/Sprite'
@@ -11,9 +12,10 @@ export function Hud({ game, heat, showHeat, onSellEnergy, onOpenMenu }: HudProps
   const capacity = sectorStorageCapacity(game)
   const fill = capacity > 0 ? stored / capacity : 0
   const bankState = report.wastedEnergy > 0 || fill >= 1 ? 'danger' : fill >= 0.75 ? 'warning' : ''
+  const credits = hasInfiniteMoney(game) ? '∞' : formatCompact(game.credits)
   return <header className="hud">
     <div className="hud-row">
-      <div className="res frame" aria-label={`Créditos ${formatCompact(game.credits)}`}><Sprite name="icon-coin" size={18} /><span className="val">{formatCompact(game.credits)}</span><span className="rate">+{formatDecimal(report.earnedCredits)}/s</span></div>
+      <div className="res frame" aria-label={`Créditos ${credits}`}><Sprite name="icon-coin" size={18} /><span className="val">{credits}</span><span className="rate">+{formatDecimal(report.earnedCredits)}/s</span></div>
       <div className={`res energy-bank frame ${bankState}`} aria-label={`Energía ${Math.floor(stored)} de ${Math.floor(capacity)}`}><Sprite name="icon-bolt" size={18} /><span className="val">{formatNumber(Math.floor(stored))}/{formatNumber(Math.floor(capacity))}</span><span className="rate">{formatDecimal(report.producedEnergy)} prod · {formatDecimal(report.soldEnergy)}/{formatDecimal(sectorSalesCapacity(game))} venta</span></div>
       <div className="res frame" aria-label={`Research ${formatDecimal(game.researchPoints)} RP`}><Sprite name="icon-flask" size={18} /><span className="val">{formatDecimal(game.researchPoints)} RP</span><span className="rate">+{formatDecimal(report.generatedResearch)}/s</span></div>
       <button className="icon-btn frame" onClick={onOpenMenu} aria-label="Abrir menú"><Sprite name="icon-menu" size={20} /></button>

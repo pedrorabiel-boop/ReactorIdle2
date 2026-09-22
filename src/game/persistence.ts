@@ -1,5 +1,6 @@
 import { ECONOMY, emptyAutoRebuilds, emptyBuildingLevels, levelMultiplier } from './balance'
 import { COMPONENTS } from './catalog'
+import { applyDebugSettings, normalizeDebugSettings } from './debug'
 import { createInitialState, emptyTickReport, isComponentUnlocked, simulateTick } from './engine'
 import type { GameState, SectorEconomy, SectorKey, Tile } from './types'
 import { COAST_BUILDABLE_INDICES, COAST_BUILDABLE_SET } from './terrain'
@@ -19,8 +20,12 @@ export function simulateOffline(state: GameState, requestedSeconds: number): { s
 export function normalizeGameState(value: unknown): GameState | null {
   if (!value || typeof value !== 'object') return null
   const source = value as Record<string, any>
-  if (![10, 11, 12, 13].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
+  if (![10, 11, 12, 13, 14].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
   if (source.version < 13 && !source.buildingLevels) return null
+  const sourceEconomies = source.sectorEconomies as GameState['sectorEconomies'] | undefined
+  if (source.version >= 13 && (!sourceEconomies?.coast || !sourceEconomies?.desert)) return null
+  const debug = normalizeDebugSettings(source.debug)
+  applyDebugSettings(debug)
   const oldCycles: Partial<Record<Tile['kind'], number>> = { wind: 300, solar: 600, core: 600, thorium: 900, fusion: 1_200 }
   const legacyAutonomyLevels = source.autonomyLevels ?? emptyBuildingLevels()
   const migrateTile = (tile: Tile | null): Tile | null => {
@@ -46,12 +51,10 @@ export function normalizeGameState(value: unknown): GameState | null {
     capacityLevels: normalizeLevels(source.capacityLevels),
     autonomyLevels: normalizeLevels(legacyAutonomyLevels),
   })
-  const sourceEconomies = source.sectorEconomies as GameState['sectorEconomies'] | undefined
-  if (source.version === 13 && (!sourceEconomies?.coast || !sourceEconomies?.desert)) return null
   const normalizeEconomy = (entry: SectorEconomy): SectorEconomy => ({ energyStored: Math.max(0, Number(entry.energyStored) || 0), buildingLevels: normalizeLevels(entry.buildingLevels), capacityLevels: normalizeLevels(entry.capacityLevels), autonomyLevels: normalizeLevels(entry.autonomyLevels) })
   const sectorEconomies: GameState['sectorEconomies'] = sourceEconomies ? { coast: normalizeEconomy(sourceEconomies.coast), desert: normalizeEconomy(sourceEconomies.desert) } : { coast: makeLegacyEconomy('coast'), desert: makeLegacyEconomy('desert') }
   const sectorReports: GameState['sectorReports'] = source.sectorReports ?? { coast: emptyTickReport(), desert: emptyTickReport() }
-  const normalized = { ...source, version: 13, tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, autoRebuilds: source.autoRebuilds ?? emptyAutoRebuilds(), credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport() }
+  const normalized = { ...source, version: 14, tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, autoRebuilds: source.autoRebuilds ?? emptyAutoRebuilds(), credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
   const clean = normalized as Record<string, any>
   delete clean.energyStored; delete clean.buildingLevels; delete clean.capacityLevels; delete clean.autonomyLevels
   return normalized as GameState

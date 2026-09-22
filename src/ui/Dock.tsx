@@ -1,12 +1,13 @@
 import { COMPONENT_ORDER, COMPONENTS } from '../game/catalog'
 import { isComponentUnlocked, isComponentVisible } from '../game/engine'
+import { canAfford } from '../game/debug'
 import { TECHNOLOGIES } from '../game/balance'
 import type { ComponentKind, GameState, ToolMode } from '../game/types'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../game/research'
 import { formatCompact, formatDecimal, formatShort } from './format'
 import { Sprite } from './pixel/Sprite'
 
-export type DockTab = 'build' | 'inspector' | 'upgrades' | 'lab' | 'contracts' | 'menu'
+export type DockTab = 'build' | 'inspector' | 'upgrades' | 'lab' | 'contracts' | 'menu' | 'debug'
 
 interface DockProps {
   game: GameState
@@ -65,7 +66,7 @@ export function Dock({ game, activeTab, buildFocus, onTab, onCloseBuild, onChoos
               const definition = COMPONENTS[kind]
               const unlocked = isComponentUnlocked(game, kind)
               const selected = buildFocus && building && game.selectedKind === kind
-              const affordable = game.credits >= definition.cost
+              const affordable = canAfford(game, definition.cost)
               return (
                 <button
                   key={kind}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { TECH_ORDER } from './game/balance'
+import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
+import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
 import { buyDesertSector, claimContract, countKind, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { canUnlockTech, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
@@ -14,6 +15,7 @@ import { MapViewport } from './ui/MapViewport'
 import { environmentStyle, Sprite, SpriteDefs } from './ui/pixel/Sprite'
 import { ENVIRONMENTS } from './ui/pixel/sprites'
 import { ContractsSheet } from './ui/sheets/ContractsSheet'
+import { DebugSheet } from './ui/sheets/DebugSheet'
 import { InspectorSheet } from './ui/sheets/InspectorSheet'
 import { MenuSheet } from './ui/sheets/MenuSheet'
 import { ResearchSheet } from './ui/sheets/ResearchSheet'
@@ -60,7 +62,7 @@ function App() {
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
   const contractComplete = game.activeContract.progress >= game.activeContract.target
   const affordableTechs = TECH_ORDER.filter((key) => canUnlockTech(game, key)).length
-  const affordableUpgrades = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind)).flatMap((kind) => upgradeTracks(kind).map((track) => ({ kind, track }))).filter(({ kind, track }) => upgradeLevel(game, kind, track) < 10 && game.credits >= upgradeCost(game, kind, track)).length
+  const affordableUpgrades = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind)).flatMap((kind) => upgradeTracks(kind).map((track) => ({ kind, track }))).filter(({ kind, track }) => upgradeLevel(game, kind, track) < ECONOMY.maxBuildingLevel && canAfford(game, upgradeCost(game, kind, track))).length
   const missionSteps = [
     { label: 'Instala una turbina eólica', done: countKind(game, 'wind') > 0 },
     { label: 'Vende 5 E', done: game.totalEnergySold >= 5 },
@@ -82,8 +84,8 @@ function App() {
   function inspect(index: number) { setInspectedIndex(index); setActiveTab('inspector') }
   function chooseComponent(kind: ComponentKind) { if (!isComponentUnlocked(gameRef.current, kind)) { setToast('Esta pieza requiere investigación previa.'); return } setGame((current) => ({ ...current, selectedKind: kind, toolMode: 'build' })); setBuildFocus(true) }
   function chooseTool(toolMode: ToolMode) { setGame((current) => ({ ...current, toolMode })) }
-  function interact(index: number) { const current = gameRef.current; const tile = current.tiles[index]; if (!buildPanelOpenRef.current) { if (tile) inspect(index); return } if (!armedRef.current) return; if (current.toolMode === 'demolish') { if (tile) commit((state) => sellTile(state, index), 'Demolición'); return } if (tile) { const expired = usesAutonomy(tile.kind) && tile.fuel <= 0; if (!expired) return; if (tile.kind !== current.selectedKind) { setToast(`La casilla contiene ${COMPONENTS[tile.kind].shortName} caducada. Reconstruye el mismo tipo o demuélela.`); return } if (current.credits < COMPONENTS[tile.kind].cost) { setToast('Créditos insuficientes para reconstruir.'); return } commit((state) => placeTile(state, index, state.selectedKind), 'Reconstrucción'); return } const def = COMPONENTS[current.selectedKind]; if (!isComponentUnlocked(current, current.selectedKind)) return; if (current.credits < def.cost) { setToast('Créditos insuficientes.'); return } commit((state) => placeTile(state, index, state.selectedKind), 'Construcción') }
-  function placeDuringStroke(index: number) { const stroke = strokeRef.current; if (!stroke || stroke.visited.has(index)) return; stroke.visited.add(index); const current = gameRef.current; const def = COMPONENTS[current.selectedKind]; const existing = current.tiles[index]; const rebuildable = existing?.kind === current.selectedKind && usesAutonomy(existing.kind) && existing.fuel <= 0; if ((existing && !rebuildable) || !isComponentUnlocked(current, current.selectedKind) || current.credits < def.cost) return; const next = placeTile(current, index, current.selectedKind); if (next === current) return; stroke.spent += def.cost; stroke.placed += 1; replaceGame(next) }
+  function interact(index: number) { const current = gameRef.current; const tile = current.tiles[index]; if (!buildPanelOpenRef.current) { if (tile) inspect(index); return } if (!armedRef.current) return; if (current.toolMode === 'demolish') { if (tile) commit((state) => sellTile(state, index), 'Demolición'); return } if (tile) { const expired = usesAutonomy(tile.kind) && tile.fuel <= 0; if (!expired) return; if (tile.kind !== current.selectedKind) { setToast(`La casilla contiene ${COMPONENTS[tile.kind].shortName} caducada. Reconstruye el mismo tipo o demuélela.`); return } if (!canAfford(current, COMPONENTS[tile.kind].cost)) { setToast('Créditos insuficientes para reconstruir.'); return } commit((state) => placeTile(state, index, state.selectedKind), 'Reconstrucción'); return } const def = COMPONENTS[current.selectedKind]; if (!isComponentUnlocked(current, current.selectedKind)) return; if (!canAfford(current, def.cost)) { setToast('Créditos insuficientes.'); return } commit((state) => placeTile(state, index, state.selectedKind), 'Construcción') }
+  function placeDuringStroke(index: number) { const stroke = strokeRef.current; if (!stroke || stroke.visited.has(index)) return; stroke.visited.add(index); const current = gameRef.current; const def = COMPONENTS[current.selectedKind]; const existing = current.tiles[index]; const rebuildable = existing?.kind === current.selectedKind && usesAutonomy(existing.kind) && existing.fuel <= 0; if ((existing && !rebuildable) || !isComponentUnlocked(current, current.selectedKind) || !canAfford(current, def.cost)) return; const next = placeTile(current, index, current.selectedKind); if (next === current) return; stroke.spent += hasInfiniteMoney(current) ? 0 : def.cost; stroke.placed += 1; replaceGame(next) }
   function startBuildStroke(event: ReactPointerEvent<HTMLButtonElement>, index: number) { const current = gameRef.current; if (!buildFocusRef.current || !armedRef.current || current.toolMode !== 'build' || event.button !== 0) return; ignoreClickRef.current = true; event.preventDefault(); strokeRef.current = { pointerId: event.pointerId, visited: new Set(), beforeTiles: current.tiles, spent: 0, placed: 0 }; placeDuringStroke(index) }
   function continueBuildStroke(event: ReactPointerEvent<HTMLDivElement>) { const stroke = strokeRef.current; if (!stroke || stroke.pointerId !== event.pointerId) return; event.preventDefault(); const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-cell-index]'); const index = Number(target?.dataset.cellIndex); if (Number.isInteger(index)) placeDuringStroke(index) }
   function finishBuildStroke(pointerId: number) { const stroke = strokeRef.current; if (!stroke || stroke.pointerId !== pointerId) return; strokeRef.current = null; if (stroke.placed) pushHistory({ tiles: stroke.beforeTiles, creditAdjustment: stroke.spent, label: stroke.placed > 1 ? 'Trazado' : 'Construcción' }); setTimeout(() => { ignoreClickRef.current = false }, 0) }
@@ -92,7 +94,10 @@ function App() {
   async function installApp() { if (!installPrompt) { setToast('En iPhone: Compartir → Agregar a inicio. En Android: menú → Instalar app.'); return } await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null) }
   async function copySave() { await navigator.clipboard.writeText(exportGame(game)); setToast('Partida v2 copiada.') }
   function restoreSave() { const restored = importGame(importRef.current?.value ?? ''); if (!restored) { setToast('Código incompatible o inválido; solo se admiten partidas v2.'); return } replaceGame(restored); clearHistory(); closeSheet(); setToast('Partida importada.') }
-  function resetGame() { if (!window.confirm('¿Reiniciar toda la planta v2?')) return; clearGame(); replaceGame(createInitialState()); clearHistory(); closeSheet() }
+  function resetGame() { if (!window.confirm('¿Reiniciar toda la planta v2?')) return; const debug = gameRef.current.debug; clearGame(); replaceGame(createInitialState(debug)); clearHistory(); closeSheet() }
+  function changeDebug(settings: GameState['debug']) { replaceGame(withDebugSettings(gameRef.current, settings)) }
+  function toggleDebug() { const current = gameRef.current.debug; changeDebug({ ...current, enabled: !current.enabled }) }
+  function resetDebug() { changeDebug(resetDebugTuning(gameRef.current.debug)); setToast('Valores Debug restaurados al balance oficial.') }
   function research(key: TechKey) { const next = unlockTech(gameRef.current, key); if (next === gameRef.current) return; replaceGame(next); setToast('Tecnología desbloqueada.') }
   function upgrade(kind: ComponentKind, track: UpgradeTrack) { const price = upgradeCost(gameRef.current, kind, track); const next = upgradeBuildingTrack(gameRef.current, kind, track); if (next === gameRef.current) { setToast('Créditos insuficientes o nivel máximo.'); return } replaceGame(next); setToast(`${COMPONENTS[kind].name}: mejora aplicada a este mapa por ₡ ${formatNumber(price)}.`) }
   function sellEnergy() { const stored = sectorEnergyStored(gameRef.current); const next = sellStoredEnergy(gameRef.current); if (next === gameRef.current) return; replaceGame(next); setToast(`${formatDecimal(stored)} E vendidas por ₡ ${formatDecimal(stored)}.`) }
@@ -110,17 +115,18 @@ function App() {
     {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} onSellEnergy={sellEnergy} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
-      <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${formatNumber(game.credits)} créditos`}>
+      <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`}>
         <span><small>PRECIO</small><strong><Sprite name="icon-coin" size={13} />{formatNumber(COMPONENTS[game.selectedKind].cost)}</strong></span>
         <i aria-hidden="true" />
-        <span><small>SALDO</small><strong><Sprite name="icon-coin" size={13} />{formatNumber(game.credits)}</strong></span>
+        <span><small>SALDO</small><strong><Sprite name="icon-coin" size={13} />{hasInfiniteMoney(game) ? '∞' : formatNumber(game.credits)}</strong></span>
       </div>
     </div>}
     {activeTab === 'inspector' && <InspectorSheet game={game} index={inspectedIndex} refuelPrice={inspectedRefuel} repairPrice={inspectedRepair} onClose={closeSheet} onToggle={toggleInspected} onRefuel={refuelInspected} onRepair={repairInspected} onSell={sellInspected} />}
     {activeTab === 'upgrades' && <UpgradesSheet game={game} onClose={closeSheet} onUpgrade={upgrade} />}
     {activeTab === 'lab' && <ResearchSheet game={game} onClose={closeSheet} onResearch={research} onAutoRebuild={researchAutoRebuild} />}
     {activeTab === 'contracts' && <ContractsSheet game={game} missions={missionSteps} missionHint={missionHint} onClose={closeSheet} onClaim={claimActiveContract} />}
-    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} />}
+    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
+    {activeTab === 'debug' && <DebugSheet game={game} onClose={closeSheet} onChange={changeDebug} onSetCredits={(credits) => replaceGame({ ...gameRef.current, credits })} onSetResearch={(researchPoints) => replaceGame({ ...gameRef.current, researchPoints })} onReset={resetDebug} />}
     {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} contractReady={contractComplete} />}
     {toast && <div className="toast frame" role="status">{toast}</div>}
   </div>

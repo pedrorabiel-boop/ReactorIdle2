@@ -4,6 +4,19 @@ export type TechKey = 'solar' | 'thermal' | 'logistics' | 'automation' | 'thoriu
 export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
 export type SectorKey = 'coast' | 'desert'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
+export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus'
+export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier'
+
+export interface DebugSettings {
+  enabled: boolean
+  infiniteMoney: boolean
+  initialCredits: number
+  componentValues: Record<ComponentKind, Partial<Record<ComponentNumericKey, number>>>
+  technologyCosts: Record<TechKey, number>
+  autoRebuildCosts: Partial<Record<ComponentKind, number>>
+  economy: Record<DebugEconomyKey, number>
+  upgradeBaseCosts: Record<ComponentKind, Record<UpgradeTrack, number>>
+}
 
 export interface EnergyContract { id: string; kind: ContractKind; title: string; description: string; target: number; progress: number; rewardCredits: number; rewardResearch: number }
 
@@ -23,13 +36,14 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 13; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 14; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
   activeContract: EnergyContract; contractsCompleted: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
   sectorEconomies: Record<SectorKey, SectorEconomy>; sectorReports: Record<SectorKey, TickReport>
   ownedSectors: Record<SectorKey, boolean>; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
+  debug: DebugSettings
 }
 
 export interface TickReport {

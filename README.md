@@ -31,6 +31,10 @@ La planta es una isla pixel art que ocupa toda la pantalla, se desplaza en horiz
 - Las piezas caducadas quedan transparentes y conservan su casilla: se reconstruyen desde el inspector o colocando nuevamente el mismo tipo. Para usar la casilla con otro edificio primero hay que demolerla. Los productores con vida útil no tienen reembolso; las demás piezas recuperan el 85 %.
 - **Lab** contiene el árbol tecnológico; **Contratos** los bonos opcionales y el protocolo de arranque; el **Menú** superior derecho contiene pausa, velocidad, sectores, telemetría y guardado.
 
+## Modo Debug
+
+Desde el **Menú** se puede activar un sandbox de balance guardado junto con la partida. Su editor permite habilitar dinero infinito, modificar créditos y RP actuales, elegir el dinero inicial de un reinicio y ajustar costos, producción, calor, autonomía, almacenamiento, ventas, investigación, mejoras, tecnologías y `Auto rebuild`. Desactivar Debug restaura inmediatamente el balance oficial sin perder la configuración personalizada, para poder alternar entre prueba y juego normal.
+
 Los sprites (16×16) viven en `src/ui/pixel/sprites.ts` como mapas ASCII; el terreno usa autotiling para dibujar costas onduladas y playas alrededor de la tierra. Las paletas alienígena y futurista se conservan para una futura versión del prestigio. `npm run mockup` regenera `docs/mockup/index.html`.
 
 ## Verificación
