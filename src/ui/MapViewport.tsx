@@ -70,6 +70,7 @@ const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, sele
     if (tile.damaged) classes.push('damaged')
     if (tile.flow !== 0) classes.push('flowing')
     if (expired) classes.push('empty-fuel', 'expired')
+    if (hasAutonomy && !expired) classes.push('active-fuel')
     if (expired && armed && toolMode === 'build' && selectedKind === tile.kind) classes.push('rebuildable')
   } else if (armed && toolMode === 'build') classes.push('buildable')
   if (inspected) classes.push('inspected')
@@ -86,7 +87,7 @@ const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, sele
     >
       {tile ? (
         <>
-          <Sprite name={tile.kind} size={TILE} className="piece" />
+          <Sprite key={tile.id} name={tile.kind} size={TILE} className="piece" />
           {thermal && (
             <span className={`heat-bar h${level}`} aria-hidden="true"><i /><i /><i /><i /><i /></span>
           )}

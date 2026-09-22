@@ -5,7 +5,7 @@ import { buyDesertSector, createInitialState, globalSalesCapacity, placeTile, re
 import { canUnlockAutoRebuild, canUnlockTech, unlockAutoRebuild, unlockTech, upgradeBuildingType, upgradeCost } from './research'
 import type { ComponentKind, GameState } from './types'
 
-interface Milestones { research?: number; solar?: number; thermal?: number; logistics?: number; thorium?: number; fusion?: number; expansion?: number; island?: number }
+interface Milestones { research?: number; solar?: number; thermal?: number; logistics?: number; automation?: number; thorium?: number; fusion?: number; expansion?: number; island?: number }
 const RESERVED = new Set([27, 34, 35, 36, 43])
 function count(state: GameState, kind: ComponentKind) { return state.tiles.filter((tile) => tile?.kind === kind).length }
 function placeNext(state: GameState, kind: ComponentKind, range: number[]): GameState { const index = range.find((candidate) => !state.tiles[candidate] && !RESERVED.has(candidate)); return index === undefined ? state : placeTile(state, index, kind) }
@@ -42,17 +42,19 @@ describe('deterministic balance simulation', () => {
     console.log('final', { credits: Math.round(result.state.credits), earned: Math.round(result.state.totalCreditsEarned), solarLevel: result.state.sectorEconomies.coast.buildingLevels.solar, salesLevel: result.state.sectorEconomies.coast.buildingLevels.sales, researchLevel: result.state.sectorEconomies.coast.buildingLevels.research })
     expect(result.milestones.research).toBeGreaterThanOrEqual(180)
     expect(result.milestones.research).toBeLessThanOrEqual(360)
-    expect(result.milestones.solar).toBeGreaterThanOrEqual(480)
-    expect(result.milestones.solar).toBeLessThanOrEqual(900)
-    expect(result.milestones.thermal).toBeGreaterThanOrEqual(1_200)
-    expect(result.milestones.thermal).toBeLessThanOrEqual(2_100)
-    expect(result.milestones.logistics).toBeGreaterThanOrEqual(2_400)
-    expect(result.milestones.logistics).toBeLessThanOrEqual(3_600)
-    expect(result.milestones.thorium).toBeGreaterThanOrEqual(4_200)
-    expect(result.milestones.thorium).toBeLessThanOrEqual(6_600)
-    expect(result.milestones.fusion).toBeGreaterThanOrEqual(7_800)
-    expect(result.milestones.fusion).toBeLessThanOrEqual(11_400)
-    expect(result.milestones.island).toBeGreaterThanOrEqual(10_800)
+    expect(result.milestones.solar).toBeGreaterThanOrEqual(600)
+    expect(result.milestones.solar).toBeLessThanOrEqual(1_200)
+    expect(result.milestones.thermal).toBeGreaterThanOrEqual(1_800)
+    expect(result.milestones.thermal).toBeLessThanOrEqual(3_000)
+    expect(result.milestones.logistics).toBeGreaterThanOrEqual(2_700)
+    expect(result.milestones.logistics).toBeLessThanOrEqual(4_500)
+    expect(result.milestones.automation).toBeGreaterThanOrEqual(3_600)
+    expect(result.milestones.automation).toBeLessThanOrEqual(6_000)
+    expect(result.milestones.thorium).toBeGreaterThanOrEqual(4_500)
+    expect(result.milestones.thorium).toBeLessThanOrEqual(7_200)
+    expect(result.milestones.fusion).toBeGreaterThanOrEqual(9_600)
+    expect(result.milestones.fusion).toBeLessThanOrEqual(13_800)
+    expect(result.milestones.island).toBeGreaterThanOrEqual(13_200)
     expect(result.milestones.island).toBeLessThanOrEqual(18_000)
   }, 30_000)
 })

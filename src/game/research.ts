@@ -35,6 +35,11 @@ export function upgradeCost(state: GameState, kind: ComponentKind, track: Upgrad
   const factor = track === 'output' ? 1 : track === 'capacity' ? 0.85 : 0.75
   return Math.round(Math.max(5, COMPONENTS[kind].cost * ECONOMY.upgradeBaseMultiplier) * factor * Math.pow(ECONOMY.upgradeGrowth, upgradeLevel(state, kind, track) - 1))
 }
+export function nextUpgradeGainPercent(state: GameState, kind: ComponentKind, track: UpgradeTrack): number {
+  const level = upgradeLevel(state, kind, track)
+  if (level >= ECONOMY.maxBuildingLevel) return 0
+  return (levelMultiplier(level + 1) / levelMultiplier(level) - 1) * 100
+}
 export function upgradeBuildingTrack(state: GameState, kind: ComponentKind, track: UpgradeTrack): GameState {
   if (!upgradeTracks(kind).includes(track)) return state
   const level = upgradeLevel(state, kind, track); const cost = upgradeCost(state, kind, track)
