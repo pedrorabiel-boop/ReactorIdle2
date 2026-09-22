@@ -7,6 +7,9 @@ import { formatDecimal } from './format'
 import { TILE, type Island } from './island'
 import { Sprite, TerrainLayer } from './pixel/Sprite'
 
+const JOYSTICK_PAN_SPEED = 4
+const JOYSTICK_KEY_STEP = 24
+
 interface MapViewportProps {
   game: GameState
   island: Island
@@ -127,8 +130,8 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     joystickVectorRef.current = { x: position.x / radius, y: position.y / radius }
     const viewport = viewportRef.current
     if (viewport) {
-      viewport.scrollLeft += joystickVectorRef.current.x * 8
-      viewport.scrollTop += joystickVectorRef.current.y * 8
+      viewport.scrollLeft += joystickVectorRef.current.x * JOYSTICK_PAN_SPEED
+      viewport.scrollTop += joystickVectorRef.current.y * JOYSTICK_PAN_SPEED
     }
     setJoystick(position)
   }
@@ -137,8 +140,8 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     const viewport = viewportRef.current
     const vector = joystickVectorRef.current
     if (viewport) {
-      viewport.scrollLeft += vector.x * 8
-      viewport.scrollTop += vector.y * 8
+      viewport.scrollLeft += vector.x * JOYSTICK_PAN_SPEED
+      viewport.scrollTop += vector.y * JOYSTICK_PAN_SPEED
     }
     joystickFrameRef.current = requestAnimationFrame(runJoystick)
   }
@@ -161,7 +164,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   function moveWithKeyboard(event: React.KeyboardEvent<HTMLButtonElement>) {
     const viewport = viewportRef.current
     if (!viewport) return
-    const moves: Record<string, [number, number]> = { ArrowLeft: [-48, 0], ArrowRight: [48, 0], ArrowUp: [0, -48], ArrowDown: [0, 48] }
+    const moves: Record<string, [number, number]> = { ArrowLeft: [-JOYSTICK_KEY_STEP, 0], ArrowRight: [JOYSTICK_KEY_STEP, 0], ArrowUp: [0, -JOYSTICK_KEY_STEP], ArrowDown: [0, JOYSTICK_KEY_STEP] }
     const movement = moves[event.key]
     if (!movement) return
     event.preventDefault()
