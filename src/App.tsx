@@ -11,7 +11,7 @@ import { formatDecimal, formatNumber } from './ui/format'
 import { Hud } from './ui/Hud'
 import { buildIsland, environmentFor } from './ui/island'
 import { MapViewport } from './ui/MapViewport'
-import { environmentStyle, SpriteDefs } from './ui/pixel/Sprite'
+import { environmentStyle, Sprite, SpriteDefs } from './ui/pixel/Sprite'
 import { ENVIRONMENTS } from './ui/pixel/sprites'
 import { ContractsSheet } from './ui/sheets/ContractsSheet'
 import { InspectorSheet } from './ui/sheets/InspectorSheet'
@@ -77,8 +77,8 @@ function App() {
   function clearHistory() { historyRef.current = []; setUndoDepth(0) }
   function commit(update: (state: GameState) => GameState, label: string, creditAdjustment?: number) { const before = gameRef.current; const after = update(before); if (after === before) return false; pushHistory({ tiles: before.tiles, creditAdjustment: creditAdjustment ?? before.credits - after.credits, label }); replaceGame(after); return true }
   function undo() { const entry = historyRef.current.at(-1); if (!entry) return; historyRef.current = historyRef.current.slice(0, -1); setUndoDepth(historyRef.current.length); replaceGame(restorePlantLayout(gameRef.current, entry.tiles, entry.creditAdjustment)); setInspectedIndex(null); setToast(`${entry.label} deshecho.`) }
-  function openTab(tab: DockTab) { if (activeTab === tab) { setActiveTab(null); if (tab === 'inspector') setInspectedIndex(null); return } setActiveTab(tab); if (tab === 'build') setGame((current) => ({ ...current, toolMode: current.toolMode === 'inspect' ? 'build' : current.toolMode })); if (tab === 'inspector') setGame((current) => ({ ...current, toolMode: 'inspect' })) }
-  function closeSheet() { setActiveTab(null); setInspectedIndex(null); setBuildFocus(false) }
+  function openTab(tab: DockTab) { if (activeTab === tab) { setActiveTab(null); if (tab === 'inspector') setInspectedIndex(null); return } setActiveTab(tab); if (tab === 'build') setGame((current) => ({ ...current, toolMode: 'build' })); if (tab === 'inspector') setGame((current) => ({ ...current, toolMode: 'inspect' })) }
+  function closeSheet() { setActiveTab(null); setInspectedIndex(null); setBuildFocus(false); setGame((current) => current.toolMode === 'inspect' ? current : ({ ...current, toolMode: 'inspect' })) }
   function inspect(index: number) { setInspectedIndex(index); setActiveTab('inspector') }
   function chooseComponent(kind: ComponentKind) { if (!isComponentUnlocked(gameRef.current, kind)) { setToast('Esta pieza requiere investigación previa.'); return } setGame((current) => ({ ...current, selectedKind: kind, toolMode: 'build' })); setBuildFocus(true) }
   function chooseTool(toolMode: ToolMode) { setGame((current) => ({ ...current, toolMode })) }
@@ -108,13 +108,20 @@ function App() {
   return <div className={`app env-${environment}`} style={environmentStyle(environment)}><SpriteDefs />
     <MapViewport game={game} island={island} decoration={ENVIRONMENTS[environment].decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
     {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} onSellEnergy={sellEnergy} onOpenMenu={() => openTab('menu')} />}
-    {buildFocus && <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>}
+    {buildFocus && <div className="build-toolbar">
+      <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
+      <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${formatNumber(game.credits)} créditos`}>
+        <span><small>PRECIO</small><strong><Sprite name="icon-coin" size={13} />{formatNumber(COMPONENTS[game.selectedKind].cost)}</strong></span>
+        <i aria-hidden="true" />
+        <span><small>SALDO</small><strong><Sprite name="icon-coin" size={13} />{formatNumber(game.credits)}</strong></span>
+      </div>
+    </div>}
     {activeTab === 'inspector' && <InspectorSheet game={game} index={inspectedIndex} refuelPrice={inspectedRefuel} repairPrice={inspectedRepair} onClose={closeSheet} onToggle={toggleInspected} onRefuel={refuelInspected} onRepair={repairInspected} onSell={sellInspected} />}
     {activeTab === 'upgrades' && <UpgradesSheet game={game} onClose={closeSheet} onUpgrade={upgrade} />}
     {activeTab === 'lab' && <ResearchSheet game={game} onClose={closeSheet} onResearch={research} onAutoRebuild={researchAutoRebuild} />}
     {activeTab === 'contracts' && <ContractsSheet game={game} missions={missionSteps} missionHint={missionHint} onClose={closeSheet} onClaim={claimActiveContract} />}
     {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} />}
-    {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onChooseComponent={chooseComponent} onChooseTool={chooseTool} onUndo={undo} undoDepth={undoDepth} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} contractReady={contractComplete} />}
+    {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} contractReady={contractComplete} />}
     {toast && <div className="toast frame" role="status">{toast}</div>}
   </div>
 }

@@ -105,12 +105,76 @@ const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, sele
 export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(1)
+  const [joystick, setJoystick] = useState({ x: 0, y: 0 })
+  const joystickVectorRef = useRef({ x: 0, y: 0 })
+  const joystickFrameRef = useRef<number | null>(null)
   const previousZoomRef = useRef(zoom)
   const changeZoom = (delta: number) => setZoom((current) => Math.max(0.6, Math.min(1.6, Math.round((current + delta) * 10) / 10)))
   const terrainTiles = useMemo(
     () => island.tiles.map((tile) => ({ x: tile.x, y: tile.y, kind: tile.kind, neighbors: tile.neighbors, decor: tile.decor === 'ambient' ? decoration : tile.decor })),
     [island, decoration],
   )
+
+  function updateJoystick(event: PointerEvent<HTMLButtonElement>) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const radius = rect.width * 0.3
+    const rawX = event.clientX - (rect.left + rect.width / 2)
+    const rawY = event.clientY - (rect.top + rect.height / 2)
+    const distance = Math.hypot(rawX, rawY)
+    const scale = distance > radius ? radius / distance : 1
+    const position = { x: rawX * scale, y: rawY * scale }
+    joystickVectorRef.current = { x: position.x / radius, y: position.y / radius }
+    const viewport = viewportRef.current
+    if (viewport) {
+      viewport.scrollLeft += joystickVectorRef.current.x * 8
+      viewport.scrollTop += joystickVectorRef.current.y * 8
+    }
+    setJoystick(position)
+  }
+
+  function runJoystick() {
+    const viewport = viewportRef.current
+    const vector = joystickVectorRef.current
+    if (viewport) {
+      viewport.scrollLeft += vector.x * 8
+      viewport.scrollTop += vector.y * 8
+    }
+    joystickFrameRef.current = requestAnimationFrame(runJoystick)
+  }
+
+  function startJoystick(event: PointerEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    updateJoystick(event)
+    if (joystickFrameRef.current === null) joystickFrameRef.current = requestAnimationFrame(runJoystick)
+  }
+
+  function stopJoystick(event: PointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    joystickVectorRef.current = { x: 0, y: 0 }
+    setJoystick({ x: 0, y: 0 })
+    if (joystickFrameRef.current !== null) cancelAnimationFrame(joystickFrameRef.current)
+    joystickFrameRef.current = null
+  }
+
+  function moveWithKeyboard(event: React.KeyboardEvent<HTMLButtonElement>) {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    const moves: Record<string, [number, number]> = { ArrowLeft: [-48, 0], ArrowRight: [48, 0], ArrowUp: [0, -48], ArrowDown: [0, 48] }
+    const movement = moves[event.key]
+    if (!movement) return
+    event.preventDefault()
+    viewport.scrollBy({ left: movement[0], top: movement[1], behavior: 'smooth' })
+  }
+
+  useEffect(() => () => { if (joystickFrameRef.current !== null) cancelAnimationFrame(joystickFrameRef.current) }, [])
+  useEffect(() => {
+    if (minimalUi) return
+    joystickVectorRef.current = { x: 0, y: 0 }
+    setJoystick({ x: 0, y: 0 })
+    if (joystickFrameRef.current !== null) cancelAnimationFrame(joystickFrameRef.current)
+    joystickFrameRef.current = null
+  }, [minimalUi])
 
   // Centrar solo al montar o al cambiar realmente de sector. Construir una
   // pieza no debe alterar el scroll del jugador.
@@ -183,6 +247,10 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
         })}
       </div>
       </div>
+      {minimalUi && <button className="map-joystick" aria-label="Mover mapa" onPointerDown={startJoystick} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateJoystick(event) }} onPointerUp={stopJoystick} onPointerCancel={stopJoystick} onKeyDown={moveWithKeyboard}>
+        <span className="joystick-arrows" aria-hidden="true">◆</span>
+        <i style={{ transform: `translate(${joystick.x}px, ${joystick.y}px)` }} aria-hidden="true" />
+      </button>}
     </div>
   )
 }

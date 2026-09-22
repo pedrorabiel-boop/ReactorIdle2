@@ -2,7 +2,8 @@ import { COMPONENT_ORDER, COMPONENTS } from '../game/catalog'
 import { isComponentUnlocked, isComponentVisible } from '../game/engine'
 import { TECHNOLOGIES } from '../game/balance'
 import type { ComponentKind, GameState, ToolMode } from '../game/types'
-import { formatCompact, formatShort } from './format'
+import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, transferRate } from '../game/research'
+import { formatCompact, formatDecimal, formatShort } from './format'
 import { Sprite } from './pixel/Sprite'
 
 export type DockTab = 'build' | 'inspector' | 'upgrades' | 'lab' | 'contracts' | 'menu'
@@ -12,10 +13,9 @@ interface DockProps {
   activeTab: DockTab | null
   buildFocus: boolean
   onTab: (tab: DockTab) => void
+  onCloseBuild: () => void
   onChooseComponent: (kind: ComponentKind) => void
   onChooseTool: (tool: ToolMode) => void
-  onUndo: () => void
-  undoDepth: number
   labBadge: number
   upgradesBadge: number
   contractReady: boolean
@@ -29,7 +29,27 @@ const TABS: Array<{ key: DockTab; label: string; icon: string }> = [
   { key: 'menu', label: 'Menú', icon: 'icon-menu' },
 ]
 
-export function Dock({ game, activeTab, buildFocus, onTab, onChooseComponent, onChooseTool, onUndo, undoDepth, labBadge, upgradesBadge, contractReady }: DockProps) {
+interface CardStat { icon: string; value: string; label: string }
+const formatStat = (value: number) => Math.abs(value) < 10 ? formatDecimal(value) : formatShort(value)
+
+function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
+  const def = COMPONENTS[kind]
+  const stats: CardStat[] = []
+  if (def.directEnergy) stats.push({ icon: 'icon-bolt', value: `${formatStat(directEnergyRate(game, kind))} E/s`, label: 'Energía generada' })
+  if (def.production) stats.push({ icon: 'icon-flame', value: `${formatStat(productionRate(game, kind))}/s`, label: 'Calor generado' })
+  if (def.conversionRate) stats.push({ icon: 'icon-bolt', value: `${formatStat(conversionRate(game))} E/s`, label: 'Energía transformada' })
+  if (def.coolingRate) stats.push({ icon: 'icon-flame', value: `−${formatStat(coolingRate(game))}/s`, label: 'Calor disipado' })
+  if (def.transferRate) stats.push({ icon: 'icon-flame', value: `${formatStat(transferRate(game, kind as 'exchanger' | 'pipe' | 'accumulator'))}/s`, label: 'Calor transferido' })
+  if (def.storageCapacity) stats.push({ icon: 'icon-bolt', value: `+${formatStat(storagePerBattery(game))} E`, label: 'Almacenamiento' })
+  if (def.salesRate) stats.push({ icon: 'icon-handshake', value: `${formatStat(salesPerOffice(game))} E/s`, label: 'Potencia de venta' })
+  if (def.researchRate) stats.push({ icon: 'icon-flask', value: `${formatStat(researchPerFacility(game))} RP/s`, label: 'Investigación' })
+  if (def.controllerBonus) stats.push({ icon: 'icon-bolt', value: `+${formatStat(def.controllerBonus * componentMultiplier(game, kind) * 100)}%`, label: 'Amplificación de red' })
+  if (def.capacity > 0) stats.push({ icon: 'icon-health', value: formatShort(componentCapacity(game, kind)), label: 'Calor máximo' })
+  if (def.fuelCycles) stats.push({ icon: 'icon-clock', value: `${formatShort(fuelCapacity(game, kind))} s`, label: 'Vida útil' })
+  return stats
+}
+
+export function Dock({ game, activeTab, buildFocus, onTab, onCloseBuild, onChooseComponent, onChooseTool, labBadge, upgradesBadge, contractReady }: DockProps) {
   const building = game.toolMode === 'build'
   return (
     <footer className="dock">
@@ -38,9 +58,7 @@ export function Dock({ game, activeTab, buildFocus, onTab, onChooseComponent, on
           <div className="tray-head">
             <strong>{game.toolMode === 'demolish' ? 'DEMOLER' : 'CONSTRUIR'}</strong>
             <span>{game.toolMode === 'demolish' ? 'Productores 0 % · otras piezas 85 %' : 'Elige una pieza · luego toca o desliza'}</span>
-            <button className="tray-undo frame" disabled={undoDepth === 0} onClick={onUndo} aria-label={undoDepth ? `Deshacer, ${undoDepth} disponibles` : 'Nada que deshacer'}>
-              <Sprite name="icon-undo" size={16} />{undoDepth > 0 && <small>{undoDepth}</small>}
-            </button>
+            <button className="tray-close frame" onClick={onCloseBuild} aria-label="Cerrar construcción">×</button>
           </div>
           <div className="cards">
             {COMPONENT_ORDER.filter((kind) => isComponentVisible(game, kind) && isComponentUnlocked(game, kind)).map((kind) => {
@@ -61,6 +79,7 @@ export function Dock({ game, activeTab, buildFocus, onTab, onChooseComponent, on
                   {unlocked
                     ? <span className="card-cost"><Sprite name="icon-coin" size={10} />{formatCompact(definition.cost)}</span>
                     : <span className="card-cost locked"><Sprite name="icon-lock" size={10} />{formatShort(definition.tech ? TECHNOLOGIES[definition.tech].cost : 0)} RP</span>}
+                  {unlocked && <span className="card-stats">{cardStats(game, kind).map((stat) => <span className="card-stat" key={`${stat.icon}-${stat.label}`} title={stat.label} aria-label={`${stat.label}: ${stat.value}`}><Sprite name={stat.icon} size={9} /><b>{stat.value}</b></span>)}</span>}
                 </button>
               )
             })}
