@@ -19,6 +19,8 @@ La energía ya no se convierte inmediatamente en dinero: las oficinas venden pri
 
 Los diez niveles se compran con créditos por tipo de edificio, parten entre 22,5 y 30 veces el costo de una copia y benefician a todas sus unidades dentro del mapa activo. Cada tier productor nuevo entrega 13,43 veces la potencia del anterior maximizado y cuesta aproximadamente 1–3 minutos de producción de una planta anterior completa. `npm run balance` valida estas proporciones, el retorno de vida útil y las barreras de investigación.
 
+La red térmica usa difusión resistiva sobre el grafo ortogonal de reactores, tuberías, intercambiadores y acumuladores. El calor fluye desde mayor a menor potencial (`calor / capacidad`), se conserva durante la redistribución y forma gradientes reales: distancia, bifurcaciones, loops, caminos paralelos y cuellos de botella cambian el resultado. La resistencia base de cada conductor se deriva de su capacidad y del caudal de referencia del balance anterior; mejorar su conductividad reduce esa resistencia. La conectividad se almacena en caché y solo se reconstruye cuando cambia la topología.
+
 ## Interfaz pixel art
 
 La planta es una isla pixel art que ocupa toda la pantalla, se desplaza en horizontal y vertical y permite zoom de 60 % a 160 %. La costa inicial tiene 36 celdas en una silueta irregular. Sobre ella flotan el HUD superior (créditos, banco local, ciencia y calor cuando hay térmica) y la barra de pestañas inferior:

@@ -9,7 +9,7 @@ export interface EnergyContract { id: string; kind: ContractKind; title: string;
 
 export interface ComponentDefinition {
   kind: ComponentKind; name: string; shortName: string; description: string; icon: string; cost: number; capacity: number; tech?: TechKey
-  directEnergy?: number; production?: number; transferRate?: number; conversionRate?: number; coolingRate?: number; fuelCycles?: number
+  directEnergy?: number; production?: number; referenceTransferRate?: number; thermalResistance?: number; conversionRate?: number; coolingRate?: number; fuelCycles?: number
   refuelCost?: number; storageCapacity?: number; salesRate?: number; researchRate?: number; controllerBonus?: number
 }
 

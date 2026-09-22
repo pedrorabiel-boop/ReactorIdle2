@@ -1,4 +1,4 @@
-import { COMPONENT_ORDER } from './balance'
+import { COMPONENT_ORDER, resistanceFromCapacityAndFlow } from './balance'
 import type { ComponentDefinition, ComponentKind } from './types'
 
 export const COMPONENTS: Record<ComponentKind, ComponentDefinition> = {
@@ -13,8 +13,8 @@ export const COMPONENTS: Record<ComponentKind, ComponentDefinition> = {
   fusion: { kind: 'fusion', name: 'Reactor de fusión', shortName: 'Fusión', description: 'Produce 12,5 G calor/s durante 34 segundos: 425 G de calor.', icon: '✺', cost: 280_000_000_000, capacity: 75_000_000_000, production: 12_500_000_000, fuelCycles: 34, refuelCost: 280_000_000_000, tech: 'fusion' },
   generator: { kind: 'generator', name: 'Turbina generadora', shortName: 'Turbina', description: 'Convierte 12.500 calor/s; exactamente un cuarto de un núcleo base.', icon: 'ϟ', cost: 1_500_000, capacity: 0, conversionRate: 12_500, tech: 'thermal' },
   cooler: { kind: 'cooler', name: 'Torre de enfriamiento', shortName: 'Enfriador', description: 'Disipa hasta 50.000 calor/s adyacente.', icon: '❄', cost: 1_000_000, capacity: 0, coolingRate: 50_000, tech: 'logistics' },
-  exchanger: { kind: 'exchanger', name: 'Intercambiador', shortName: 'Interc.', description: 'Extrae 200.000 calor/s y escala con el tier térmico.', icon: '⇄', cost: 50_000_000, capacity: 2_000_000, transferRate: 200_000, tech: 'logistics' },
-  pipe: { kind: 'pipe', name: 'Tubería térmica', shortName: 'Tubería', description: 'Transporta 50.000 calor/s y escala con el tier térmico.', icon: '━', cost: 10_000_000, capacity: 300_000, transferRate: 50_000, tech: 'logistics' },
-  accumulator: { kind: 'accumulator', name: 'Acumulador térmico', shortName: 'Depósito', description: 'Almacena 10 M de calor y transfiere 100.000/s.', icon: '▣', cost: 250_000_000, capacity: 10_000_000, transferRate: 100_000, tech: 'logistics' },
+  exchanger: { kind: 'exchanger', name: 'Intercambiador', shortName: 'Interc.', description: 'Nodo térmico de 2 M con resistencia 2,24; escala con el tier térmico.', icon: '⇄', cost: 50_000_000, capacity: 2_000_000, referenceTransferRate: 200_000, thermalResistance: resistanceFromCapacityAndFlow(2_000_000, 200_000), tech: 'logistics' },
+  pipe: { kind: 'pipe', name: 'Tubería térmica', shortName: 'Tubería', description: 'Conductor de 300.000 de capacidad y resistencia térmica 1,23.', icon: '━', cost: 10_000_000, capacity: 300_000, referenceTransferRate: 50_000, thermalResistance: resistanceFromCapacityAndFlow(300_000, 50_000), tech: 'logistics' },
+  accumulator: { kind: 'accumulator', name: 'Acumulador térmico', shortName: 'Depósito', description: 'Almacena 10 M con resistencia térmica 24,75.', icon: '▣', cost: 250_000_000, capacity: 10_000_000, referenceTransferRate: 100_000, thermalResistance: resistanceFromCapacityAndFlow(10_000_000, 100_000), tech: 'logistics' },
 }
 export { COMPONENT_ORDER }

@@ -18,13 +18,14 @@ function trackLabel(kind: ComponentKind, track: UpgradeTrack): string {
   if (kind === 'controller') return 'Control de red'
   if (kind === 'generator') return 'Conversión'
   if (kind === 'cooler') return 'Enfriamiento'
-  if (kind === 'pipe' || kind === 'exchanger' || kind === 'accumulator') return 'Transferencia'
+  if (kind === 'pipe' || kind === 'exchanger' || kind === 'accumulator') return 'Conductividad'
   return 'Producción'
 }
 
-function impactLabel(track: UpgradeTrack): string {
+function impactLabel(track: UpgradeTrack, kind: ComponentKind): string {
   if (track === 'autonomy') return 'vida útil'
   if (track === 'capacity') return 'tolerancia'
+  if (kind === 'pipe' || kind === 'exchanger' || kind === 'accumulator') return 'conductividad'
   return 'potencia'
 }
 
@@ -34,7 +35,7 @@ export function UpgradesSheet({ game, onClose, onUpgrade }: Props) {
     <div className="balance frame"><Sprite name="icon-coin" size={22} /><div><strong>₡ {formatNumber(game.credits)}</strong><small>Afecta todas las unidades presentes y futuras del tipo, solo en este mapa.</small></div></div>
     <div className="upgrade-groups">{kinds.map((kind) => <article className="upgrade-group frame" key={kind}>
       <div className="upgrade-type"><span className="upgrade-icon frame"><Sprite name={kind} size={28} /></span><div><strong>{COMPONENTS[kind].name}</strong><small>{countKind(game, kind)} construidas</small></div></div>
-      <div className="upgrade-tracks">{upgradeTracks(kind).map((track) => { const level = upgradeLevel(game, kind, track); const cost = upgradeCost(game, kind, track); const maxed = level >= ECONOMY.maxBuildingLevel; const impact = nextUpgradeGainPercent(game, kind, track); return <button className="upgrade-track frame" key={track} disabled={maxed || game.credits < cost} onClick={() => onUpgrade(kind, track)}><span>{trackLabel(kind, track)} <b>Nv.{level}</b></span>{!maxed && <em>Próximo: +{formatDecimal(impact)}% {impactLabel(track)}</em>}<small>{maxed ? 'MÁX.' : <><Sprite name="icon-coin" size={9} />{formatNumber(cost)}</>}</small></button> })}</div>
+      <div className="upgrade-tracks">{upgradeTracks(kind).map((track) => { const level = upgradeLevel(game, kind, track); const cost = upgradeCost(game, kind, track); const maxed = level >= ECONOMY.maxBuildingLevel; const impact = nextUpgradeGainPercent(game, kind, track); return <button className="upgrade-track frame" key={track} disabled={maxed || game.credits < cost} onClick={() => onUpgrade(kind, track)}><span>{trackLabel(kind, track)} <b>Nv.{level}</b></span>{!maxed && <em>Próximo: +{formatDecimal(impact)}% {impactLabel(track, kind)}</em>}<small>{maxed ? 'MÁX.' : <><Sprite name="icon-coin" size={9} />{formatNumber(cost)}</>}</small></button> })}</div>
     </article>)}</div>
   </Sheet>
 }

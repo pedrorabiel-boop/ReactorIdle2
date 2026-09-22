@@ -17,7 +17,11 @@ export const directEnergyRate = (state: GameState, kind: ComponentKind) => (COMP
 export const productionRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].production ?? 0) * componentMultiplier(state, kind)
 export const conversionRate = (state: GameState) => (COMPONENTS.generator.conversionRate ?? 0) * componentMultiplier(state, 'generator') * thermalTierScale(state)
 export const coolingRate = (state: GameState) => (COMPONENTS.cooler.coolingRate ?? 0) * componentMultiplier(state, 'cooler') * thermalTierScale(state)
-export const transferRate = (state: GameState, kind: 'exchanger' | 'pipe' | 'accumulator') => (COMPONENTS[kind].transferRate ?? 0) * componentMultiplier(state, kind) * thermalTierScale(state)
+export const thermalResistance = (state: GameState, kind: ComponentKind) => {
+  const baseline = COMPONENTS.pipe.thermalResistance ?? 1
+  const resistance = COMPONENTS[kind].thermalResistance
+  return resistance === undefined ? baseline : resistance / componentMultiplier(state, kind)
+}
 export const storagePerBattery = (state: GameState) => (COMPONENTS.battery.storageCapacity ?? 0) * componentMultiplier(state, 'battery') * thermalTierScale(state)
 export const salesPerOffice = (state: GameState) => (COMPONENTS.sales.salesRate ?? 0) * componentMultiplier(state, 'sales') * thermalTierScale(state)
 export const researchPerFacility = (state: GameState) => (COMPONENTS.research.researchRate ?? 0) * componentMultiplier(state, 'research')
@@ -27,7 +31,7 @@ export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameSt
 export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
   const def = COMPONENTS[kind]
   const tracks: UpgradeTrack[] = []
-  if (def.directEnergy || def.production || def.transferRate || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate || def.controllerBonus) tracks.push('output')
+  if (def.directEnergy || def.production || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate || def.controllerBonus) tracks.push('output')
   if (def.capacity > 0) tracks.push('capacity')
   if (def.fuelCycles) tracks.push('autonomy')
   return tracks

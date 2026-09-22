@@ -21,6 +21,15 @@ export const AUTO_REBUILD_COSTS: Partial<Record<ComponentKind, number>> = {
   thorium: TECHNOLOGIES.thorium.cost * 3,
   fusion: TECHNOLOGIES.fusion.cost * 3,
 }
+/**
+ * Convierte la antigua relación capacidad/caudal en resistencia por nodo.
+ * Dos piezas iguales suman sus resistencias; ante un gradiente térmico completo
+ * transfieren el mismo calor por tick que permitía el balance anterior.
+ */
+export function resistanceFromCapacityAndFlow(capacity: number, referenceFlow: number): number {
+  const coupling = Math.min(0.999_999, Math.max(0.000_001, referenceFlow * 2 / capacity))
+  return -0.5 / Math.log(1 - coupling)
+}
 export function emptyBuildingLevels(): Record<ComponentKind, number> { return Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, 1])) as Record<ComponentKind, number> }
 export function emptyAutoRebuilds(): Record<ComponentKind, boolean> { return Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, false])) as Record<ComponentKind, boolean> }
 export function milestoneMultiplier(level: number): number { return level >= 10 ? 2.5 : level >= 5 ? 1.5 : 1 }

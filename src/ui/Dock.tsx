@@ -2,7 +2,7 @@ import { COMPONENT_ORDER, COMPONENTS } from '../game/catalog'
 import { isComponentUnlocked, isComponentVisible } from '../game/engine'
 import { TECHNOLOGIES } from '../game/balance'
 import type { ComponentKind, GameState, ToolMode } from '../game/types'
-import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, transferRate } from '../game/research'
+import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../game/research'
 import { formatCompact, formatDecimal, formatShort } from './format'
 import { Sprite } from './pixel/Sprite'
 
@@ -39,7 +39,7 @@ function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
   if (def.production) stats.push({ icon: 'icon-flame', value: `${formatStat(productionRate(game, kind))}/s`, label: 'Calor generado' })
   if (def.conversionRate) stats.push({ icon: 'icon-bolt', value: `${formatStat(conversionRate(game))} E/s`, label: 'Energía transformada' })
   if (def.coolingRate) stats.push({ icon: 'icon-flame', value: `−${formatStat(coolingRate(game))}/s`, label: 'Calor disipado' })
-  if (def.transferRate) stats.push({ icon: 'icon-flame', value: `${formatStat(transferRate(game, kind as 'exchanger' | 'pipe' | 'accumulator'))}/s`, label: 'Calor transferido' })
+  if (def.thermalResistance) stats.push({ icon: 'icon-flame', value: `${formatDecimal(thermalResistance(game, kind))} R`, label: 'Resistencia térmica' })
   if (def.storageCapacity) stats.push({ icon: 'icon-bolt', value: `+${formatStat(storagePerBattery(game))} E`, label: 'Almacenamiento' })
   if (def.salesRate) stats.push({ icon: 'icon-handshake', value: `${formatStat(salesPerOffice(game))} E/s`, label: 'Potencia de venta' })
   if (def.researchRate) stats.push({ icon: 'icon-flask', value: `${formatStat(researchPerFacility(game))} RP/s`, label: 'Investigación' })
