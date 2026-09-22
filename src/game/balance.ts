@@ -15,7 +15,7 @@ export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: fa
 export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'battery', 'research', 'controller', 'core', 'thorium', 'fusion', 'generator', 'cooler', 'exchanger', 'pipe', 'accumulator']
 export const LIFETIME_ORDER: ComponentKind[] = ['wind', 'solar', 'core', 'thorium', 'fusion']
 export const AUTO_REBUILD_COSTS: Partial<Record<ComponentKind, number>> = {
-  wind: TECHNOLOGIES.solar.cost * 3,
+  wind: 15,
   solar: TECHNOLOGIES.solar.cost * 3,
   core: TECHNOLOGIES.thermal.cost * 3,
   thorium: TECHNOLOGIES.thorium.cost * 3,
