@@ -10,6 +10,7 @@ export type DockTab = 'build' | 'inspector' | 'upgrades' | 'lab' | 'contracts' |
 interface DockProps {
   game: GameState
   activeTab: DockTab | null
+  buildFocus: boolean
   onTab: (tab: DockTab) => void
   onChooseComponent: (kind: ComponentKind) => void
   onChooseTool: (tool: ToolMode) => void
@@ -28,7 +29,7 @@ const TABS: Array<{ key: DockTab; label: string; icon: string }> = [
   { key: 'menu', label: 'Menú', icon: 'icon-menu' },
 ]
 
-export function Dock({ game, activeTab, onTab, onChooseComponent, onChooseTool, onUndo, undoDepth, labBadge, upgradesBadge, contractReady }: DockProps) {
+export function Dock({ game, activeTab, buildFocus, onTab, onChooseComponent, onChooseTool, onUndo, undoDepth, labBadge, upgradesBadge, contractReady }: DockProps) {
   const building = game.toolMode === 'build'
   return (
     <footer className="dock">
@@ -45,7 +46,7 @@ export function Dock({ game, activeTab, onTab, onChooseComponent, onChooseTool, 
             {COMPONENT_ORDER.filter((kind) => isComponentVisible(game, kind) && isComponentUnlocked(game, kind)).map((kind) => {
               const definition = COMPONENTS[kind]
               const unlocked = isComponentUnlocked(game, kind)
-              const selected = building && game.selectedKind === kind
+              const selected = buildFocus && building && game.selectedKind === kind
               const affordable = game.credits >= definition.cost
               return (
                 <button
