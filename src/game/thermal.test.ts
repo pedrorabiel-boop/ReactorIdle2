@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
-import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology } from './thermal'
+import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, pullHeatForConversion } from './thermal'
 import type { ComponentKind, Tile } from './types'
 
 let nextTileId = 0
@@ -87,6 +87,40 @@ describe('resistive thermal graph', () => {
     expect(absorbHeatIntoSinks(blockedReturn, [{ source: 0, sink: 1 }], capacityAt, resistanceAt)).toBe(0)
     expect(blockedReturn[0]!.heat).toBe(0)
     expect(blockedReturn[1]!.heat).toBe(100)
+  })
+
+  it('satisfies matched terminal conversion without occupying thermal buffers', () => {
+    const tiles = [makeTile('core', 1_000), ...Array.from({ length: 4 }, () => makeTile('generator'))]
+    const edges = [1, 2, 3, 4].map((sink) => ({ source: 0, sink }))
+    const result = pullHeatForConversion(tiles, edges, () => 250)
+    expect(result.totalMoved).toBeCloseTo(1_000)
+    expect(tiles[0]!.heat).toBeCloseTo(0)
+    for (const sink of [1, 2, 3, 4]) {
+      expect(result.received.get(sink)).toBeCloseTo(250)
+      expect(tiles[sink]!.heat).toBe(0)
+    }
+  })
+
+  it('shares a conversion deficit equally and conserves unreachable heat', () => {
+    const tiles = [makeTile('core', 600), ...Array.from({ length: 4 }, () => makeTile('generator'))]
+    const edges = [1, 2, 3, 4].map((sink) => ({ source: 0, sink }))
+    const result = pullHeatForConversion(tiles, edges, () => 250)
+    expect(result.totalMoved).toBeCloseTo(600)
+    for (const sink of [1, 2, 3, 4]) expect(result.received.get(sink)).toBeCloseTo(150)
+
+    const isolated = [makeTile('core', 100), null, makeTile('generator')]
+    expect(pullHeatForConversion(isolated, [], () => 250).totalMoved).toBe(0)
+    expect(totalHeat(isolated)).toBe(100)
+  })
+
+  it('reroutes active demand around constrained terminal connections', () => {
+    const tiles = [makeTile('pipe', 100), makeTile('pipe', 100), makeTile('generator'), makeTile('generator')]
+    const edges = [{ source: 0, sink: 2 }, { source: 0, sink: 3 }, { source: 1, sink: 2 }]
+    const result = pullHeatForConversion(tiles, edges, () => 100)
+    expect(result.totalMoved).toBeCloseTo(200)
+    expect(result.received.get(2)).toBeCloseTo(100)
+    expect(result.received.get(3)).toBeCloseTo(100)
+    expect(tiles[0]!.heat + tiles[1]!.heat).toBeCloseTo(0)
   })
 
   it('reuses graph structure until topology changes', () => {

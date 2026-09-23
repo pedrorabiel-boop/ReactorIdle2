@@ -24,7 +24,7 @@ describe('promoted official balance', () => {
       core: { cost: 1_000_000, capacity: 20_000, production: 7_500, fuelCycles: 200, refuelCost: 1_000_000 },
       thorium: { cost: 1_250_000_000, capacity: 150_000_000, production: 25_000_000, fuelCycles: 75, refuelCost: 1_250_000_000 },
       fusion: { cost: 280_000_000_000, capacity: 75_000_000_000, production: 12_500_000_000, fuelCycles: 34, refuelCost: 280_000_000_000 },
-      generator: { cost: 30_000, capacity: 4_000, conversionRate: 1_875 },
+      generator: { cost: 30_000, capacity: 4_000, thermalResistance: 0, conversionRate: 1_875 },
       cooler: { cost: 1_000_000, capacity: 0, coolingRate: 50_000 },
       exchanger: { cost: 50_000_000, capacity: 2_000_000 },
       pipe: { cost: 10_000_000, capacity: 300_000 },
