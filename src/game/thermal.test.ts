@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
-import { clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology } from './thermal'
+import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology } from './thermal'
 import type { ComponentKind, Tile } from './types'
 
 let nextTileId = 0
@@ -73,6 +73,20 @@ describe('resistive thermal graph', () => {
     expect(lowMoved).toBeGreaterThan(highMoved)
     expect(totalHeat(lowResistance)).toBeCloseTo(lowBefore, 8)
     expect(totalHeat(highResistance)).toBeCloseTo(highBefore, 8)
+  })
+
+  it('feeds terminal converters without ever returning their stored heat', () => {
+    const receiving = [makeTile('pipe', 100), makeTile('generator', 0)]
+    const before = totalHeat(receiving)
+    const moved = absorbHeatIntoSinks(receiving, [{ source: 0, sink: 1 }], capacityAt, resistanceAt)
+    expect(moved).toBeGreaterThan(0)
+    expect(receiving[1]!.heat).toBeGreaterThan(0)
+    expect(totalHeat(receiving)).toBeCloseTo(before, 8)
+
+    const blockedReturn = [makeTile('pipe', 0), makeTile('generator', 100)]
+    expect(absorbHeatIntoSinks(blockedReturn, [{ source: 0, sink: 1 }], capacityAt, resistanceAt)).toBe(0)
+    expect(blockedReturn[0]!.heat).toBe(0)
+    expect(blockedReturn[1]!.heat).toBe(100)
   })
 
   it('reuses graph structure until topology changes', () => {

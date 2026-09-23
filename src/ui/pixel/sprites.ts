@@ -746,7 +746,10 @@ export const SPRITES: Record<string, string[]> = {
   ]),
 }
 
-export const COMPONENT_SPRITES: string[] = ['wind', 'solar', 'battery', 'controller', 'core', 'thorium', 'fusion', 'generator', 'cooler', 'exchanger', 'pipe', 'accumulator']
+SPRITES.sales2 = SPRITES.sales
+SPRITES.research2 = SPRITES.research
+
+export const COMPONENT_SPRITES: string[] = ['wind', 'solar', 'battery', 'controller', 'sales', 'sales2', 'research', 'research2', 'core', 'thorium', 'fusion', 'generator', 'cooler', 'exchanger', 'pipe', 'accumulator']
 export const PROPOSED_SPRITES: string[] = ['sales', 'research', 'insulator']
 
 export function validate(): void {

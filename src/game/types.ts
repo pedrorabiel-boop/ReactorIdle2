@@ -1,6 +1,6 @@
-export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'research' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'accumulator' | 'generator' | 'cooler'
+export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'sales2' | 'research' | 'research2' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'accumulator' | 'generator' | 'cooler'
 export type ToolMode = 'build' | 'demolish' | 'inspect'
-export type TechKey = 'solar' | 'thermal' | 'logistics' | 'automation' | 'thorium' | 'fusion' | 'expansion'
+export type TechKey = 'solar' | 'thermal' | 'thorium' | 'fusion' | 'expansion'
 export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
 export type SectorKey = 'coast' | 'desert'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
@@ -36,7 +36,7 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 14; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 15; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number

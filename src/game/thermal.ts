@@ -7,6 +7,7 @@ const EPSILON = 0.000_000_1
 
 export interface ThermalEdge { a: number; b: number }
 export interface ThermalTopology { signature: string; nodes: number[]; edges: ThermalEdge[] }
+export interface ThermalSinkEdge { source: number; sink: number }
 
 const topologyCache = new Map<string, ThermalTopology>()
 
@@ -108,6 +109,65 @@ export function diffuseThermalNetwork(
     }
   }
 
+  return totalMoved
+}
+
+/**
+ * Diffuses heat into directional terminal nodes. Sinks receive using the same
+ * potential/resistance model as the pipe graph, but can never return heat.
+ */
+export function absorbHeatIntoSinks(
+  tiles: Array<Tile | null>,
+  edges: ThermalSinkEdge[],
+  capacityAt: (index: number) => number,
+  resistanceAt: (index: number) => number,
+  substeps = 4,
+): number {
+  let totalMoved = 0
+  const iterations = Math.max(1, Math.floor(substeps))
+
+  for (let step = 0; step < iterations; step += 1) {
+    const proposals: HeatFlow[] = []
+    const outbound = new Map<number, number>()
+    for (const edge of edges) {
+      const sourceTile = tiles[edge.source]
+      const sinkTile = tiles[edge.sink]
+      const sourceCapacity = capacityAt(edge.source)
+      const sinkCapacity = capacityAt(edge.sink)
+      if (!sourceTile || !sinkTile || sourceCapacity <= 0 || sinkCapacity <= 0) continue
+      const sourcePotential = Math.max(0, sourceTile.heat) / sourceCapacity
+      const sinkPotential = Math.max(0, sinkTile.heat) / sinkCapacity
+      if (sourcePotential <= sinkPotential + EPSILON) continue
+      const equilibriumTransfer = (sourcePotential - sinkPotential) / (1 / sourceCapacity + 1 / sinkCapacity)
+      const edgeResistance = Math.max(MIN_RESISTANCE, resistanceAt(edge.source) + resistanceAt(edge.sink))
+      const coupling = 1 - Math.exp(-1 / (edgeResistance * iterations))
+      const amount = equilibriumTransfer * coupling
+      if (amount <= EPSILON) continue
+      proposals.push({ source: edge.source, destination: edge.sink, amount })
+      outbound.set(edge.source, (outbound.get(edge.source) ?? 0) + amount)
+    }
+
+    if (proposals.length === 0) break
+    const deltas = new Map<number, number>()
+    for (const proposal of proposals) {
+      const sourceTile = tiles[proposal.source]
+      const sinkTile = tiles[proposal.destination]
+      if (!sourceTile || !sinkTile) continue
+      const requested = outbound.get(proposal.source) ?? proposal.amount
+      const scale = requested > sourceTile.heat ? Math.max(0, sourceTile.heat) / requested : 1
+      const moved = proposal.amount * scale
+      if (moved <= EPSILON) continue
+      deltas.set(proposal.source, (deltas.get(proposal.source) ?? 0) - moved)
+      deltas.set(proposal.destination, (deltas.get(proposal.destination) ?? 0) + moved)
+      sourceTile.flow += moved
+      sinkTile.flow += moved
+      totalMoved += moved
+    }
+    for (const [index, delta] of deltas) {
+      const tile = tiles[index]
+      if (tile) tile.heat = Math.max(0, tile.heat + delta)
+    }
+  }
   return totalMoved
 }
 

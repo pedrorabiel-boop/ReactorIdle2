@@ -1,8 +1,10 @@
 const integer = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 })
 const decimal = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 })
+const exact = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 6 })
 
 export const formatNumber = (value: number) => integer.format(value)
 export const formatDecimal = (value: number) => decimal.format(value)
+export const formatExact = (value: number) => exact.format(value)
 
 /** 1.234 → "1.234", 12.345 → "12,3k", 1.234.567 → "1,23M". Pensado para el HUD. */
 export function formatCompact(value: number): string {

@@ -4,7 +4,7 @@ import { canAfford, configuredUpgradeBaseCost, spendCredits } from './debug'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
 
 const economy = (state: GameState) => state.sectorEconomies[state.activeSector]
-const SCALING_THERMAL_NETWORK = new Set<ComponentKind>(['exchanger', 'pipe', 'accumulator'])
+const SCALING_THERMAL_NETWORK = new Set<ComponentKind>(['generator', 'exchanger', 'pipe', 'accumulator'])
 export const thermalTierScale = (state: GameState) => state.unlockedTechs.fusion ? 250_000 : state.unlockedTechs.thorium ? 500 : 1
 export const componentLevel = (state: GameState, kind: ComponentKind) => economy(state).buildingLevels[kind] ?? 1
 export const capacityLevel = (state: GameState, kind: ComponentKind) => economy(state).capacityLevels[kind] ?? 1
@@ -24,8 +24,8 @@ export const thermalResistance = (state: GameState, kind: ComponentKind) => {
   return resistance === undefined ? baseline : resistance / componentMultiplier(state, kind)
 }
 export const storagePerBattery = (state: GameState) => (COMPONENTS.battery.storageCapacity ?? 0) * componentMultiplier(state, 'battery') * thermalTierScale(state)
-export const salesPerOffice = (state: GameState) => (COMPONENTS.sales.salesRate ?? 0) * componentMultiplier(state, 'sales') * thermalTierScale(state)
-export const researchPerFacility = (state: GameState) => (COMPONENTS.research.researchRate ?? 0) * componentMultiplier(state, 'research')
+export const salesPerOffice = (state: GameState, kind: 'sales' | 'sales2' = 'sales') => (COMPONENTS[kind].salesRate ?? 0) * componentMultiplier(state, kind)
+export const researchPerFacility = (state: GameState, kind: 'research' | 'research2' = 'research') => (COMPONENTS[kind].researchRate ?? 0) * componentMultiplier(state, kind)
 export const autoRebuildCost = (state: GameState, kind: ComponentKind) => state.debug.enabled ? state.debug.autoRebuildCosts[kind] ?? Number.POSITIVE_INFINITY : AUTO_REBUILD_COSTS[kind] ?? Number.POSITIVE_INFINITY
 export function canUnlockAutoRebuild(state: GameState, kind: ComponentKind): boolean { return Boolean(COMPONENTS[kind].fuelCycles) && !state.autoRebuilds[kind] && state.researchPoints >= autoRebuildCost(state, kind) }
 export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameState { const cost = autoRebuildCost(state, kind); return canUnlockAutoRebuild(state, kind) ? { ...state, researchPoints: state.researchPoints - cost, autoRebuilds: { ...state.autoRebuilds, [kind]: true } } : state }

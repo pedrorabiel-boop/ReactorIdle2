@@ -1,18 +1,16 @@
 import type { ComponentKind, TechKey, UpgradeTrack } from './types'
 
 export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 } as const
-export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'logistics', 'automation', 'thorium', 'fusion', 'expansion']
+export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', 'expansion']
 export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; cost: number; requires?: TechKey }> = {
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
-  logistics: { name: 'Logística térmica', description: 'Desbloquea enfriadores, tuberías, intercambiadores y acumuladores.', cost: 100_000, requires: 'thermal' },
-  automation: { name: 'Automatización de red', description: 'Desbloquea controladores de almacenamiento y venta.', cost: 150_000, requires: 'logistics' },
-  thorium: { name: 'Ciclo de torio', description: 'Desbloquea reactores de torio y recalibra la red térmica.', cost: 300_000, requires: 'automation' },
+  thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, toda la red térmica, controlador, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
   fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea fusión y recalibra la red para su escala.', cost: 20_000_000, requires: 'thorium' },
   expansion: { name: 'Expansión territorial', description: 'Autoriza la compra de la isla desértica.', cost: 100_000_000, requires: 'fusion' },
 }
-export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, logistics: false, automation: false, thorium: false, fusion: false, expansion: false }
-export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'battery', 'research', 'controller', 'core', 'thorium', 'fusion', 'generator', 'cooler', 'exchanger', 'pipe', 'accumulator']
+export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false }
+export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'generator', 'cooler', 'exchanger', 'pipe', 'accumulator']
 export const LIFETIME_ORDER: ComponentKind[] = ['wind', 'solar', 'core', 'thorium', 'fusion']
 export const AUTO_REBUILD_COSTS: Partial<Record<ComponentKind, number>> = {
   wind: 15,
@@ -25,8 +23,10 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   wind: { output: 30, capacity: 26, autonomy: 23 },
   solar: { output: 80_000, capacity: 306_000, autonomy: 60_000 },
   sales: { output: 8_000, capacity: 25_500, autonomy: 22_500 },
+  sales2: { output: 8_000, capacity: 25_500, autonomy: 22_500 },
   battery: { output: 250_000, capacity: 1_275_000, autonomy: 1_125_000 },
   research: { output: 10_000, capacity: 12_750, autonomy: 11_250 },
+  research2: { output: 10_000, capacity: 12_750, autonomy: 11_250 },
   controller: { output: 3_000_000_000, capacity: 2_550_000_000, autonomy: 2_250_000_000 },
   core: { output: 3_500_000, capacity: 2_000_000, autonomy: 2_500_000 },
   thorium: { output: 37_500_000_000, capacity: 31_875_000_000, autonomy: 28_125_000_000 },

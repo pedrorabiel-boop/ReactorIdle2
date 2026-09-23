@@ -71,6 +71,20 @@ describe('debug balance sandbox', () => {
     expect(COMPONENTS.solar.directEnergy).toBe(4321)
   })
 
+  it('seeds tier-II tuning when loading an older debug profile', () => {
+    const legacy: any = JSON.parse(JSON.stringify(createInitialState()))
+    legacy.version = 14
+    delete legacy.debug.componentValues.sales2
+    delete legacy.debug.componentValues.research2
+    delete legacy.debug.upgradeBaseCosts.sales2
+    delete legacy.debug.upgradeBaseCosts.research2
+    const loaded = normalizeGameState(legacy)
+    expect(loaded?.debug.componentValues.sales2.salesRate).toBe(50)
+    expect(loaded?.debug.componentValues.research2.researchRate).toBe(1)
+    expect(loaded?.debug.upgradeBaseCosts.sales2.output).toBe(8_000)
+    expect(loaded?.debug.upgradeBaseCosts.research2.output).toBe(10_000)
+  })
+
   it('does not apply tuning from an invalid imported save', () => {
     const debug = createDefaultDebugSettings()
     debug.enabled = true

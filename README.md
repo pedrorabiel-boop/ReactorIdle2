@@ -19,7 +19,7 @@ La energía ya no se convierte inmediatamente en dinero: las oficinas venden pri
 
 Los diez niveles se compran con créditos por tipo de edificio y benefician a todas sus unidades dentro del mapa activo. Sus precios iniciales se balancean individualmente por edificio y luego escalan ×2,2 por nivel; la potencia escala ×1,35, además de los hitos de nivel. El balance oficial actual fue promovido desde una sesión práctica realizada con el editor Debug. `npm run balance` valida la coincidencia exacta con ese perfil, el retorno de vida útil y las relaciones esenciales del circuito térmico.
 
-La red térmica usa difusión resistiva sobre el grafo ortogonal de reactores, tuberías, intercambiadores y acumuladores. El calor fluye desde mayor a menor potencial (`calor / capacidad`), se conserva durante la redistribución y forma gradientes reales: distancia, bifurcaciones, loops, caminos paralelos y cuellos de botella cambian el resultado. La resistencia base de cada conductor se deriva de su capacidad y del caudal de referencia del balance anterior; mejorar su conductividad reduce esa resistencia. La conectividad se almacena en caché y solo se reconstruye cuando cambia la topología.
+La red térmica usa difusión resistiva sobre el grafo ortogonal de reactores, tuberías, intercambiadores y acumuladores. Las turbinas generadoras son sumideros terminales: reciben calor por la misma distribución, convierten hasta su potencia por tick, almacenan el excedente y nunca lo retransmiten. Si el calor restante supera su capacidad se averían. El calor fluye desde mayor a menor potencial (`calor / capacidad`), se conserva durante la redistribución y forma gradientes reales: distancia, bifurcaciones, loops, caminos paralelos y cuellos de botella cambian el resultado. La conectividad se almacena en caché y solo se reconstruye cuando cambia la topología.
 
 ## Interfaz pixel art
 
@@ -29,7 +29,8 @@ La planta es una isla pixel art que ocupa toda la pantalla, se desplaza en horiz
 - Tocar cualquier edificio abre su inspector directamente para consultar calor, autonomía y averías, apagar, renovar, reparar o demoler.
 - **Mejoras** permite subir por mapa la producción, capacidad térmica y autonomía de cada tipo; nunca se mejora una unidad aislada.
 - Las piezas caducadas quedan transparentes y conservan su casilla: se reconstruyen desde el inspector o colocando nuevamente el mismo tipo. Para usar la casilla con otro edificio primero hay que demolerla. Los productores con vida útil no tienen reembolso; las demás piezas recuperan el 85 %.
-- **Lab** contiene el árbol tecnológico; **Contratos** los bonos opcionales y el protocolo de arranque; el **Menú** superior derecho contiene pausa, velocidad, sectores, telemetría y guardado.
+- **Lab** contiene el árbol tecnológico. Torio desbloquea en un solo avance el reactor, la red térmica completa, el controlador, Oficina de ventas II e I+D II; estos dos edificios tienen niveles independientes y valores editables en Debug. **Contratos** contiene los bonos opcionales y el protocolo de arranque; el **Menú** superior derecho contiene pausa, velocidad, sectores, telemetría y guardado.
+- Los recursos del HUD conservan su formato compacto; al tocar Dinero, Energía o RP aparece una línea desplazable con el valor exacto.
 
 ## Modo Debug
 

@@ -121,6 +121,10 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .res { flex: 1; min-width: 0; display: grid; grid-template-columns: 18px 1fr; column-gap: 5px; align-items: center; padding: 5px 6px; }
 .res .val { font: 10px var(--font-num); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .res .rate { grid-column: 2; margin-top: 4px; font: 7px var(--font-num); color: var(--green); white-space: nowrap; overflow: hidden; }
+.resource-button { text-align: left; color: inherit; }
+.resource-button.on { border-color: var(--cyan); }
+.hud-exact { display: block; width: 100%; margin-top: 6px; padding: 7px 9px; overflow-x: auto; color: var(--cyan); text-align: left; white-space: nowrap; font: 7px var(--font-num); scrollbar-width: none; }
+.hud-exact::-webkit-scrollbar { display: none; }
 .energy-bank.warning { border-color: var(--gold); background: #3a351d; }
 .energy-bank.warning .val { color: var(--gold); }
 .energy-bank.danger { border-color: var(--red); background: #422326; animation: bank-alert .8s steps(2) infinite; }
