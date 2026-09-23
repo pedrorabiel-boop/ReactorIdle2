@@ -105,7 +105,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .fuel-bar, .charge-bar { bottom: 8px; height: 3px; background: rgba(0,0,0,.45); }
 .fuel-bar i, .charge-bar i { display: block; height: 100%; background: var(--gold); }
 .charge-bar i { background: var(--cyan); }
-.cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.cooler):not(.exchanger):not(.pipe):not(.accumulator) .fuel-bar, .cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.cooler):not(.exchanger):not(.pipe):not(.accumulator) .charge-bar { bottom: 3px; }
+.cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.generator2):not(.cooler):not(.exchanger):not(.pipe):not(.accumulator) .fuel-bar, .cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.generator2):not(.cooler):not(.exchanger):not(.pipe):not(.accumulator) .charge-bar { bottom: 3px; }
 .flow-tag { inset: 2px 3px auto auto; font: 7px var(--font-num); color: #fff; text-shadow: 1px 1px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); text-align: right; }
 .worn-tag { inset: 1px auto auto 3px; font-size: 11px; color: var(--gold); text-shadow: 1px 1px 0 var(--ink); }
 .off-tag { inset: 1px auto auto 3px; font-size: 11px; color: var(--red); text-shadow: 1px 1px 0 var(--ink); }

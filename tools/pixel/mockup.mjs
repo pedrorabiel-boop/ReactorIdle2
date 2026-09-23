@@ -12,11 +12,11 @@ const GRID = { x: 3, y: 3, cols: 8, rows: 10 } // igual que el motor: 8×10
 
 const NAMES = {
   wind: 'Eólica', solar: 'Solar', battery: 'Batería', controller: 'Control',
-  core: 'Núcleo', thorium: 'Torio', fusion: 'Fusión', generator: 'Turbina',
+  core: 'Núcleo', thorium: 'Torio', fusion: 'Fusión', generator: 'Turbina', generator2: 'Turbina II',
   cooler: 'Enfriador', exchanger: 'Interc.', pipe: 'Tubería', accumulator: 'Depósito',
-  sales: 'Ventas', research: 'I+D', insulator: 'Aislante',
+  sales: 'Ventas', sales2: 'Ventas II', research: 'I+D', research2: 'I+D II', insulator: 'Aislante',
 }
-const COSTS = { wind: 50, solar: 110, battery: 350, controller: 800, core: 180, thorium: 900, fusion: 4500, generator: 160, cooler: 90, exchanger: 60, pipe: 25, accumulator: 140, sales: 150, research: 200, insulator: 40 }
+const COSTS = { wind: 50, solar: 110, battery: 350, controller: 800, core: 180, thorium: 900, fusion: 4500, generator: 160, generator2: 1600, cooler: 90, exchanger: 60, pipe: 25, accumulator: 140, sales: 150, sales2: 1500, research: 200, research2: 2000, insulator: 40 }
 const LOCKED = new Set(['fusion', 'controller'])
 
 // Layout de ejemplo de la grilla 8×10 (w eólica, s solar, b batería, x control,

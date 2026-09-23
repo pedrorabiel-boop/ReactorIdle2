@@ -29,7 +29,7 @@ La planta es una isla pixel art que ocupa toda la pantalla, se desplaza en horiz
 - Tocar cualquier edificio abre su inspector directamente para consultar calor, autonomía y averías, apagar, renovar, reparar o demoler.
 - **Mejoras** permite subir por mapa la producción, capacidad térmica y autonomía de cada tipo; nunca se mejora una unidad aislada.
 - Las piezas caducadas quedan transparentes y conservan su casilla: se reconstruyen desde el inspector o colocando nuevamente el mismo tipo. Para usar la casilla con otro edificio primero hay que demolerla. Los productores con vida útil no tienen reembolso; las demás piezas recuperan el 85 %.
-- **Lab** contiene el árbol tecnológico. Torio desbloquea en un solo avance el reactor, la red térmica completa, el controlador, Oficina de ventas II e I+D II; estos dos edificios tienen niveles independientes y valores editables en Debug. **Contratos** contiene los bonos opcionales y el protocolo de arranque; el **Menú** superior derecho contiene pausa, velocidad, sectores, telemetría y guardado.
+- **Lab** contiene el árbol tecnológico. Torio desbloquea en un solo avance el reactor, la red térmica completa, el controlador, Turbina II, Oficina de ventas II e I+D II. Los edificios II conservan niveles y valores independientes, editables en Debug; desbloquear Torio ya no altera la potencia ni la capacidad de la Turbina I. **Contratos** contiene los bonos opcionales y el protocolo de arranque; el **Menú** superior derecho contiene pausa, velocidad, sectores, telemetría y guardado.
 - Los recursos del HUD conservan su formato compacto; al tocar Dinero, Energía o RP aparece una línea desplazable con el valor exacto.
 
 ## Modo Debug

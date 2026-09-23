@@ -218,6 +218,24 @@ export const SPRITES: Record<string, string[]> = {
     '.KDDDDDDKDKDDDK.',
     '.KKKKKKKKKKKKKK.',
   ]),
+  generator2: S([
+    '....KK....KK....',
+    '...KCCK..KCCK...',
+    '..KCCCCKKCCCCK..',
+    '.KCCKKCCCCKKCCK.',
+    '.KCKYYYYYYYYKCK.',
+    '.KCKYYOOOOYYKCK.',
+    '.KCKYOCCCCOYKCK.',
+    '.KCKYOCCCCOYKCK.',
+    '.KCKYYOOOOYYKCK.',
+    '.KCKYYYYYYYYKCK.',
+    '.KCCKKCCCCKKCCK.',
+    '.KCCCCCCCCCCCCK.',
+    '.KCbCbCbCbCbCCK.',
+    '.KCCCCKKKCCCCCK.',
+    '.KDDDDDDDDDDDDK.',
+    '.KKKKKKKKKKKKKK.',
+  ]),
   cooler: S([
     '....LL..LL......',
     '...LL....LL.....',
@@ -290,7 +308,7 @@ export const SPRITES: Record<string, string[]> = {
     '...KDK....KDK...',
     '...KKK....KKK...',
   ]),
-  // ─── Propuestas (aún no existen en el motor) ───
+  // ─── Comercio e investigación ───
   sales: S([
     '................',
     '......KKKK......',
@@ -306,6 +324,24 @@ export const SPRITES: Record<string, string[]> = {
     '.KWbbWWKKKWbbWK.',
     '.KWWWWWKTKWWWWK.',
     '.KWWWWWKTKWWWWK.',
+    '.KDDDDDDDDDDDDK.',
+    '.KKKKKKKKKKKKKK.',
+  ]),
+  sales2: S([
+    '......KKKK......',
+    '.....KYYYYK.....',
+    '....KKYYYYKK....',
+    '...KCCCCCCCCK...',
+    '..KCCCCCCCCCCK..',
+    '.KCCbbCCbbCCCCK.',
+    '.KCCbbCCbbCCCCK.',
+    '.KCCCCCCCCCCCCK.',
+    '.KCCbbCCbbCCCCK.',
+    '.KCCbbCCbbCCCCK.',
+    '.KCCCCCCCCCCCCK.',
+    '.KCCbbCCbbCCCCK.',
+    '.KCCbbCCbbCCCCK.',
+    '.KCCCCKKCCCCCCK.',
     '.KDDDDDDDDDDDDK.',
     '.KKKKKKKKKKKKKK.',
   ]),
@@ -325,6 +361,24 @@ export const SPRITES: Record<string, string[]> = {
     '.KLLLLLKKKLLLLK.',
     '.KLLLLLKDKLLLLK.',
     '.KDDDDDKDKDDDDK.',
+    '.KKKKKKKKKKKKKK.',
+  ]),
+  research2: S([
+    '.......KK.......',
+    '......KCCK......',
+    '.....KCCCCK.....',
+    '......KCCK......',
+    '..KKKKKCCKKKKK..',
+    '.KPPPPPPPPPPPPK.',
+    '.KPCCPCCPCCPCCK.',
+    '.KPCWPCWPCWPCCK.',
+    '.KPPPPPPPPPPPPK.',
+    '.KPCCPCCPCCPCCK.',
+    '.KPCWPCWPCWPCCK.',
+    '.KPPPPPPPPPPPPK.',
+    '.KPPPPKKKPPPPPK.',
+    '.KPPPPKCKPPPPPK.',
+    '.KDDDDDDDDDDDDK.',
     '.KKKKKKKKKKKKKK.',
   ]),
   insulator: S([
@@ -746,11 +800,8 @@ export const SPRITES: Record<string, string[]> = {
   ]),
 }
 
-SPRITES.sales2 = SPRITES.sales
-SPRITES.research2 = SPRITES.research
-
-export const COMPONENT_SPRITES: string[] = ['wind', 'solar', 'battery', 'controller', 'sales', 'sales2', 'research', 'research2', 'core', 'thorium', 'fusion', 'generator', 'cooler', 'exchanger', 'pipe', 'accumulator']
-export const PROPOSED_SPRITES: string[] = ['sales', 'research', 'insulator']
+export const COMPONENT_SPRITES: string[] = ['wind', 'solar', 'battery', 'controller', 'sales', 'sales2', 'research', 'research2', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'accumulator']
+export const PROPOSED_SPRITES: string[] = ['insulator']
 
 export function validate(): void {
   for (const [name, rows] of Object.entries(SPRITES)) {

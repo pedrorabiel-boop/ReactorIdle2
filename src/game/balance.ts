@@ -5,12 +5,12 @@ export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', '
 export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; cost: number; requires?: TechKey }> = {
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
-  thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, toda la red térmica, controlador, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
+  thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, Turbina II, toda la red térmica, controlador, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
   fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea fusión y recalibra la red para su escala.', cost: 20_000_000, requires: 'thorium' },
   expansion: { name: 'Expansión territorial', description: 'Autoriza la compra de la isla desértica.', cost: 100_000_000, requires: 'fusion' },
 }
 export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false }
-export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'generator', 'cooler', 'exchanger', 'pipe', 'accumulator']
+export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'accumulator']
 export const LIFETIME_ORDER: ComponentKind[] = ['wind', 'solar', 'core', 'thorium', 'fusion']
 export const AUTO_REBUILD_COSTS: Partial<Record<ComponentKind, number>> = {
   wind: 15,
@@ -32,6 +32,7 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   thorium: { output: 37_500_000_000, capacity: 31_875_000_000, autonomy: 28_125_000_000 },
   fusion: { output: 8_400_000_000_000, capacity: 7_140_000_000_000, autonomy: 6_300_000_000_000 },
   generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
+  generator2: { output: 187_500_000, capacity: 112_500_000, autonomy: 33_750_000 },
   cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
   exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
   pipe: { output: 300_000_000, capacity: 255_000_000, autonomy: 225_000_000 },

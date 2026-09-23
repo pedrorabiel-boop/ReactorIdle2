@@ -38,7 +38,7 @@ function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
   const stats: CardStat[] = []
   if (def.directEnergy) stats.push({ icon: 'icon-bolt', value: `${formatStat(directEnergyRate(game, kind))} E/s`, label: 'Energía generada' })
   if (def.production) stats.push({ icon: 'icon-flame', value: `${formatStat(productionRate(game, kind))}/s`, label: 'Calor generado' })
-  if (def.conversionRate) stats.push({ icon: 'icon-bolt', value: `${formatStat(conversionRate(game))} E/s`, label: 'Energía transformada' })
+  if (def.conversionRate) stats.push({ icon: 'icon-bolt', value: `${formatStat(conversionRate(game, kind as 'generator' | 'generator2'))} E/s`, label: 'Energía transformada' })
   if (def.coolingRate) stats.push({ icon: 'icon-flame', value: `−${formatStat(coolingRate(game))}/s`, label: 'Calor disipado' })
   if (def.thermalResistance) stats.push({ icon: 'icon-flame', value: `${formatDecimal(thermalResistance(game, kind))} R`, label: 'Resistencia térmica' })
   if (def.storageCapacity) stats.push({ icon: 'icon-bolt', value: `+${formatStat(storagePerBattery(game))} E`, label: 'Almacenamiento' })

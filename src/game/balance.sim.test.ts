@@ -25,6 +25,7 @@ describe('promoted official balance', () => {
       thorium: { cost: 1_250_000_000, capacity: 150_000_000, production: 25_000_000, fuelCycles: 75, refuelCost: 1_250_000_000 },
       fusion: { cost: 280_000_000_000, capacity: 75_000_000_000, production: 12_500_000_000, fuelCycles: 34, refuelCost: 280_000_000_000 },
       generator: { cost: 30_000, capacity: 4_000, thermalResistance: 0, conversionRate: 1_875 },
+      generator2: { cost: 37_500_000, capacity: 12_500_000, thermalResistance: 0, conversionRate: 6_250_000 },
       cooler: { cost: 1_000_000, capacity: 0, coolingRate: 50_000 },
       exchanger: { cost: 50_000_000, capacity: 2_000_000 },
       pipe: { cost: 10_000_000, capacity: 300_000 },
@@ -49,6 +50,7 @@ describe('promoted official balance', () => {
       thorium: { output: 37_500_000_000, capacity: 31_875_000_000, autonomy: 28_125_000_000 },
       fusion: { output: 8_400_000_000_000, capacity: 7_140_000_000_000, autonomy: 6_300_000_000_000 },
       generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
+      generator2: { output: 187_500_000, capacity: 112_500_000, autonomy: 33_750_000 },
       cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
       exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
       pipe: { output: 300_000_000, capacity: 255_000_000, autonomy: 225_000_000 },
@@ -78,8 +80,9 @@ describe('promoted official balance', () => {
     expect(isComponentUnlocked(thermalOnly, 'cooler')).toBe(false)
     expect(isComponentUnlocked(thermalOnly, 'sales2')).toBe(false)
     const thorium = { ...thermalOnly, unlockedTechs: { ...thermalOnly.unlockedTechs, thorium: true } }
-    for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    for (const kind of ['thorium', 'generator2', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
     expect(COMPONENTS.generator.conversionRate).toBe(COMPONENTS.core.production! / 4)
+    expect(COMPONENTS.generator2.conversionRate).toBe(COMPONENTS.thorium.production! / 4)
     expect(levelMultiplier(10)).toBeCloseTo(Math.pow(1.35, 9) * 2.5)
   })
 })

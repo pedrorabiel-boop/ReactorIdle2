@@ -6,6 +6,7 @@ import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getT
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TickReport, Tile } from './types'
 
 const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion'])
+const CONVERTERS = new Set<ComponentKind>(['generator', 'generator2'])
 const DIRECT = new Set<ComponentKind>(['wind', 'solar'])
 const LIFETIME_PRODUCERS = new Set<ComponentKind>(['wind', 'solar', 'core', 'thorium', 'fusion'])
 
@@ -28,7 +29,7 @@ export function createInitialState(debugInput = createDefaultDebugSettings()): G
   const coast = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const desert = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const makeEconomy = (): SectorEconomy => ({ energyStored: 0, buildingLevels: emptyBuildingLevels(), capacityLevels: emptyBuildingLevels(), autonomyLevels: emptyBuildingLevels() })
-  return { version: 15, rows: 10, cols: 8, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert }, sectorEconomies: { coast: makeEconomy(), desert: makeEconomy() }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport() }, ownedSectors: { coast: true, desert: false }, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
+  return { version: 16, rows: 10, cols: 8, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert }, sectorEconomies: { coast: makeEconomy(), desert: makeEconomy() }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport() }, ownedSectors: { coast: true, desert: false }, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
 }
 
 export function adjacentIndices(index: number, rows: number, cols: number): number[] { const row = Math.floor(index / cols); const col = index % cols; return [row > 0 ? index - cols : -1, row < rows - 1 ? index + cols : -1, col > 0 ? index - 1 : -1, col < cols - 1 ? index + 1 : -1].filter((value) => value >= 0) }
@@ -67,9 +68,9 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
   const resistanceAt = (index: number) => { const tile = tiles[index]; return tile ? thermalResistance(state, tile.kind) : Number.POSITIVE_INFINITY }
   diffuseThermalNetwork(tiles, getThermalTopology(tiles, state.rows, state.cols), capacityAt, resistanceAt)
   const generatorEdges: ThermalSinkEdge[] = []
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'generator' || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
   const conversionDemand = new Map<number, number>()
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'generator' || !tile.enabled || tile.damaged) continue; const rate = conversionRate(state); conversionCapacity += rate; const stored = Math.min(tile.heat, rate); tile.heat -= stored; thermalEnergy += stored; conversionDemand.set(index, rate - stored) }
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; const rate = conversionRate(state, tile.kind as 'generator' | 'generator2'); conversionCapacity += rate; const stored = Math.min(tile.heat, rate); tile.heat -= stored; thermalEnergy += stored; conversionDemand.set(index, rate - stored) }
   const pulled = pullHeatForConversion(tiles, generatorEdges, (index) => conversionDemand.get(index) ?? 0)
   thermalEnergy += pulled.totalMoved
   absorbHeatIntoSinks(tiles, generatorEdges, capacityAt, resistanceAt)

@@ -76,13 +76,17 @@ describe('debug balance sandbox', () => {
     legacy.version = 14
     delete legacy.debug.componentValues.sales2
     delete legacy.debug.componentValues.research2
+    delete legacy.debug.componentValues.generator2
     delete legacy.debug.upgradeBaseCosts.sales2
     delete legacy.debug.upgradeBaseCosts.research2
+    delete legacy.debug.upgradeBaseCosts.generator2
     const loaded = normalizeGameState(legacy)
     expect(loaded?.debug.componentValues.sales2.salesRate).toBe(50)
     expect(loaded?.debug.componentValues.research2.researchRate).toBe(1)
+    expect(loaded?.debug.componentValues.generator2.conversionRate).toBe(6_250_000)
     expect(loaded?.debug.upgradeBaseCosts.sales2.output).toBe(8_000)
     expect(loaded?.debug.upgradeBaseCosts.research2.output).toBe(10_000)
+    expect(loaded?.debug.upgradeBaseCosts.generator2.output).toBe(187_500_000)
   })
 
   it('does not apply tuning from an invalid imported save', () => {
