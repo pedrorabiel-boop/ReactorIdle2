@@ -1,4 +1,4 @@
-import { AUTO_REBUILD_COSTS, ECONOMY, levelMultiplier, TECHNOLOGIES } from './balance'
+import { AUTO_REBUILD_COSTS, ECONOMY, levelMultiplier, TECHNOLOGIES, UPGRADE_BASE_COSTS } from './balance'
 import { COMPONENTS } from './catalog'
 import { canAfford, configuredUpgradeBaseCost, spendCredits } from './debug'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
@@ -39,8 +39,7 @@ export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
 }
 export function upgradeLevel(state: GameState, kind: ComponentKind, track: UpgradeTrack): number { return track === 'output' ? componentLevel(state, kind) : track === 'capacity' ? capacityLevel(state, kind) : autonomyLevel(state, kind) }
 export function upgradeCost(state: GameState, kind: ComponentKind, track: UpgradeTrack = 'output'): number {
-  const factor = track === 'output' ? 1 : track === 'capacity' ? 0.85 : 0.75
-  const fallback = Math.round(Math.max(5, COMPONENTS[kind].cost * ECONOMY.upgradeBaseMultiplier) * factor)
+  const fallback = UPGRADE_BASE_COSTS[kind][track]
   return Math.round(configuredUpgradeBaseCost(state, kind, track, fallback) * Math.pow(ECONOMY.upgradeGrowth, upgradeLevel(state, kind, track) - 1))
 }
 export function nextUpgradeGainPercent(state: GameState, kind: ComponentKind, track: UpgradeTrack): number {

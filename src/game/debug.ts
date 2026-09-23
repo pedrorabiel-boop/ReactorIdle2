@@ -1,4 +1,4 @@
-import { AUTO_REBUILD_COSTS, COMPONENT_ORDER, ECONOMY, LIFETIME_ORDER, TECH_ORDER, TECHNOLOGIES } from './balance'
+import { AUTO_REBUILD_COSTS, COMPONENT_ORDER, ECONOMY, LIFETIME_ORDER, TECH_ORDER, TECHNOLOGIES, UPGRADE_BASE_COSTS } from './balance'
 import { COMPONENTS } from './catalog'
 import type { ComponentDefinition, ComponentKind, ComponentNumericKey, DebugEconomyKey, DebugSettings, GameState, TechKey, UpgradeTrack } from './types'
 
@@ -36,13 +36,7 @@ const BASE_COMPONENTS = Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, 
 const BASE_ECONOMY = { ...ECONOMY }
 const BASE_TECH_COSTS = Object.fromEntries(TECH_ORDER.map((key) => [key, TECHNOLOGIES[key].cost])) as Record<TechKey, number>
 const BASE_AUTO_REBUILD = { ...AUTO_REBUILD_COSTS }
-const TRACK_FACTOR: Record<UpgradeTrack, number> = { output: 1, capacity: 0.85, autonomy: 0.75 }
-
 const finite = (value: unknown, fallback: number) => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback
-
-function baseUpgradeCost(kind: ComponentKind, track: UpgradeTrack): number {
-  return Math.round(Math.max(5, BASE_COMPONENTS[kind].cost * BASE_ECONOMY.upgradeBaseMultiplier) * TRACK_FACTOR[track])
-}
 
 export function createDefaultDebugSettings(): DebugSettings {
   const componentValues = Object.fromEntries(COMPONENT_ORDER.map((kind) => {
@@ -54,7 +48,7 @@ export function createDefaultDebugSettings(): DebugSettings {
     return [kind, values]
   })) as DebugSettings['componentValues']
   const economy = Object.fromEntries(ECONOMY_DEBUG_FIELDS.map(({ key }) => [key, BASE_ECONOMY[key]])) as DebugSettings['economy']
-  const upgradeBaseCosts = Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, Object.fromEntries((['output', 'capacity', 'autonomy'] as UpgradeTrack[]).map((track) => [track, baseUpgradeCost(kind, track)]))])) as DebugSettings['upgradeBaseCosts']
+  const upgradeBaseCosts = Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, { ...UPGRADE_BASE_COSTS[kind] }])) as DebugSettings['upgradeBaseCosts']
   return { enabled: false, infiniteMoney: false, initialCredits: BASE_ECONOMY.startingCredits, componentValues, technologyCosts: { ...BASE_TECH_COSTS }, autoRebuildCosts: { ...BASE_AUTO_REBUILD }, economy, upgradeBaseCosts }
 }
 
