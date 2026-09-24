@@ -4,26 +4,24 @@ import { canAfford, configuredUpgradeBaseCost, spendCredits } from './debug'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
 
 const economy = (state: GameState) => state.sectorEconomies[state.activeSector]
-const SCALING_THERMAL_NETWORK = new Set<ComponentKind>(['exchanger', 'pipe', 'accumulator'])
-export const thermalTierScale = (state: GameState) => state.unlockedTechs.fusion ? 250_000 : state.unlockedTechs.thorium ? 500 : 1
 export const componentLevel = (state: GameState, kind: ComponentKind) => economy(state).buildingLevels[kind] ?? 1
 export const capacityLevel = (state: GameState, kind: ComponentKind) => economy(state).capacityLevels[kind] ?? 1
 export const autonomyLevel = (state: GameState, kind: ComponentKind) => economy(state).autonomyLevels[kind] ?? 1
 export const componentMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(componentLevel(state, kind))
 export const capacityMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(capacityLevel(state, kind))
 export const autonomyMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(autonomyLevel(state, kind))
-export const componentCapacity = (state: GameState, kind: ComponentKind) => COMPONENTS[kind].capacity * capacityMultiplier(state, kind) * (SCALING_THERMAL_NETWORK.has(kind) ? thermalTierScale(state) : 1)
+export const componentCapacity = (state: GameState, kind: ComponentKind) => COMPONENTS[kind].capacity * capacityMultiplier(state, kind)
 export const fuelCapacity = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].fuelCycles ?? 0) * autonomyMultiplier(state, kind)
 export const directEnergyRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].directEnergy ?? 0) * componentMultiplier(state, kind) * (state.activeSector === 'desert' && kind === 'solar' ? 1.25 : 1)
 export const productionRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].production ?? 0) * componentMultiplier(state, kind)
 export const conversionRate = (state: GameState, kind: 'generator' | 'generator2' = 'generator') => (COMPONENTS[kind].conversionRate ?? 0) * componentMultiplier(state, kind)
-export const coolingRate = (state: GameState) => (COMPONENTS.cooler.coolingRate ?? 0) * componentMultiplier(state, 'cooler') * thermalTierScale(state)
+export const coolingRate = (state: GameState) => (COMPONENTS.cooler.coolingRate ?? 0) * componentMultiplier(state, 'cooler')
 export const thermalResistance = (state: GameState, kind: ComponentKind) => {
   const baseline = COMPONENTS.pipe.thermalResistance ?? 1
   const resistance = COMPONENTS[kind].thermalResistance
   return resistance === undefined ? baseline : resistance / componentMultiplier(state, kind)
 }
-export const storagePerBattery = (state: GameState) => (COMPONENTS.battery.storageCapacity ?? 0) * componentMultiplier(state, 'battery') * thermalTierScale(state)
+export const storagePerBattery = (state: GameState) => (COMPONENTS.battery.storageCapacity ?? 0) * componentMultiplier(state, 'battery')
 export const salesPerOffice = (state: GameState, kind: 'sales' | 'sales2' = 'sales') => (COMPONENTS[kind].salesRate ?? 0) * componentMultiplier(state, kind)
 export const researchPerFacility = (state: GameState, kind: 'research' | 'research2' = 'research') => (COMPONENTS[kind].researchRate ?? 0) * componentMultiplier(state, kind)
 export const autoRebuildCost = (state: GameState, kind: ComponentKind) => state.debug.enabled ? state.debug.autoRebuildCosts[kind] ?? Number.POSITIVE_INFINITY : AUTO_REBUILD_COSTS[kind] ?? Number.POSITIVE_INFINITY

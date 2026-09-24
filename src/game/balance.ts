@@ -6,7 +6,7 @@ export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; 
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
   thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, Turbina II, toda la red térmica, controlador, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
-  fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea fusión y recalibra la red para su escala.', cost: 20_000_000, requires: 'thorium' },
+  fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea el reactor de fusión sin alterar la infraestructura existente.', cost: 20_000_000, requires: 'thorium' },
   expansion: { name: 'Expansión territorial', description: 'Autoriza la compra de la isla desértica.', cost: 100_000_000, requires: 'fusion' },
 }
 export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false }

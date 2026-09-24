@@ -3,7 +3,7 @@ import { COMPONENTS } from './catalog'
 import { applyDebugSettings, createDefaultDebugSettings, hasInfiniteMoney, withDebugSettings } from './debug'
 import { createInitialState, placeTile, simulateTick } from './engine'
 import { normalizeGameState } from './persistence'
-import { canUnlockTech, directEnergyRate, upgradeBuildingTrack, upgradeCost } from './research'
+import { canUnlockTech, componentCapacity, conversionRate, directEnergyRate, upgradeBuildingTrack, upgradeCost } from './research'
 
 afterEach(() => applyDebugSettings(createDefaultDebugSettings()))
 
@@ -48,6 +48,30 @@ describe('debug balance sandbox', () => {
     expect(canUnlockTech(state, 'solar')).toBe(true)
     state = placeTile(state, 0, 'wind')
     expect(simulateTick(state).report.directEnergy).toBe(7)
+  })
+
+  it('applies turbine and pipe tuning to existing buildings without tier multipliers', () => {
+    const debug = createDefaultDebugSettings()
+    debug.enabled = true
+    debug.infiniteMoney = true
+    let state = createInitialState(debug)
+    state = { ...state, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: false } }
+    state = placeTile(state, 0, 'generator')
+    state = placeTile(state, 1, 'pipe')
+    const tuned = {
+      ...state.debug,
+      componentValues: {
+        ...state.debug.componentValues,
+        generator: { ...state.debug.componentValues.generator, capacity: 8_765, conversionRate: 4_321 },
+        pipe: { ...state.debug.componentValues.pipe, capacity: 9_876 },
+      },
+    }
+    state = withDebugSettings(state, tuned)
+    expect(state.tiles[0]?.kind).toBe('generator')
+    expect(state.tiles[1]?.kind).toBe('pipe')
+    expect(conversionRate(state)).toBe(4_321)
+    expect(componentCapacity(state, 'generator')).toBe(8_765)
+    expect(componentCapacity(state, 'pipe')).toBe(9_876)
   })
 
   it('restores official runtime values when Debug is disabled without losing its tuning', () => {
