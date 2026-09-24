@@ -83,9 +83,11 @@ describe('promoted official balance', () => {
     expect(isComponentUnlocked(thermalOnly, 'cooler')).toBe(false)
     expect(isComponentUnlocked(thermalOnly, 'sales2')).toBe(false)
     const thorium = { ...thermalOnly, unlockedTechs: { ...thermalOnly.unlockedTechs, thorium: true } }
-    for (const kind of ['thorium', 'generator2', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    expect(isComponentUnlocked(thorium, 'generator2')).toBe(false)
     expect(isComponentUnlocked(thorium, 'pipe2')).toBe(false)
     const fusion = { ...thorium, unlockedTechs: { ...thorium.unlockedTechs, fusion: true } }
+    expect(isComponentUnlocked(fusion, 'generator2')).toBe(true)
     expect(isComponentUnlocked(fusion, 'pipe2')).toBe(true)
     expect(COMPONENTS.generator.conversionRate).toBe(COMPONENTS.core.production! / 4)
     expect(COMPONENTS.generator2.conversionRate).toBe(COMPONENTS.thorium.production! / 4)
