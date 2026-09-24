@@ -256,6 +256,24 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .missions li.done { color: var(--text); }
 .missions li.done span { background: var(--green); color: var(--ink); border-color: #2f7a26; }
 
+.manual-principles { display: grid; gap: 6px; margin-bottom: 12px; }
+.manual-principles article { padding: 8px 10px; background: rgba(0,0,0,.22); }
+.manual-principles strong { color: var(--cyan); font: 8px var(--font-num); }
+.manual-principles p { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.manual-category { margin-top: 12px; }
+.manual-category > h3 { color: var(--gold); font: 700 13px var(--font-ui); }
+.manual-category > p { margin: 2px 0 7px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.manual-list { display: grid; gap: 6px; }
+.manual-entry { padding: 8px; background: rgba(0,0,0,.2); }
+.manual-entry.locked { opacity: .66; }
+.manual-entry-head { display: flex; align-items: center; gap: 8px; }
+.manual-sprite { flex: 0 0 auto; display: grid; place-items: center; width: 42px; height: 42px; background: var(--panel-2); }
+.manual-entry-head strong { display: block; font: 600 12px var(--font-ui); }
+.manual-entry-head small { display: block; margin-top: 3px; color: var(--cyan); font-size: 9px; }
+.manual-entry > p { margin: 6px 0; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.manual-stats { display: flex; flex-wrap: wrap; gap: 4px; }
+.manual-stats span { padding: 3px 5px; border: 1px solid var(--edge); color: var(--text); background: var(--panel-2); font: 7px var(--font-num); }
+
 .menu-block { padding: 8px 0 10px; border-bottom: 2px solid rgba(0,0,0,.35); }
 .menu-block h3 { font: 700 13px var(--font-ui); color: var(--gold); margin-bottom: 6px; }
 .sector-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }

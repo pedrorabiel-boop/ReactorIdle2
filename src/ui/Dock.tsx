@@ -3,11 +3,11 @@ import { isComponentUnlocked, isComponentVisible } from '../game/engine'
 import { canAfford } from '../game/debug'
 import { TECHNOLOGIES } from '../game/balance'
 import type { ComponentKind, GameState, ToolMode } from '../game/types'
-import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../game/research'
+import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, thermalTransferRate } from '../game/research'
 import { formatCompact, formatDecimal, formatShort } from './format'
 import { Sprite } from './pixel/Sprite'
 
-export type DockTab = 'build' | 'inspector' | 'upgrades' | 'lab' | 'contracts' | 'menu' | 'debug'
+export type DockTab = 'build' | 'inspector' | 'upgrades' | 'lab' | 'manual' | 'menu' | 'debug'
 
 interface DockProps {
   game: GameState
@@ -19,14 +19,13 @@ interface DockProps {
   onChooseTool: (tool: ToolMode) => void
   labBadge: number
   upgradesBadge: number
-  contractReady: boolean
 }
 
 const TABS: Array<{ key: DockTab; label: string; icon: string }> = [
   { key: 'build', label: 'Construir', icon: 'icon-hammer' },
   { key: 'upgrades', label: 'Mejoras', icon: 'icon-magnifier' },
   { key: 'lab', label: 'Lab', icon: 'icon-flask' },
-  { key: 'contracts', label: 'Contratos', icon: 'icon-scroll' },
+  { key: 'manual', label: 'Manual', icon: 'icon-scroll' },
   { key: 'menu', label: 'Menú', icon: 'icon-menu' },
 ]
 
@@ -40,6 +39,7 @@ function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
   if (def.production) stats.push({ icon: 'icon-flame', value: `${formatStat(productionRate(game, kind))}/s`, label: 'Calor generado' })
   if (def.conversionRate) stats.push({ icon: 'icon-bolt', value: `${formatStat(conversionRate(game, kind as 'generator' | 'generator2'))} E/s`, label: 'Energía transformada' })
   if (def.coolingRate) stats.push({ icon: 'icon-flame', value: `−${formatStat(coolingRate(game))}/s`, label: 'Calor disipado' })
+  if (kind === 'pipe2' && def.referenceTransferRate) stats.push({ icon: 'icon-flame', value: `${formatStat(thermalTransferRate(game, kind))}/s`, label: 'Extracción activa' })
   if (def.thermalResistance) stats.push({ icon: 'icon-flame', value: `${formatDecimal(thermalResistance(game, kind))} R`, label: 'Resistencia térmica' })
   if (def.storageCapacity) stats.push({ icon: 'icon-bolt', value: `+${formatStat(storagePerBattery(game))} E`, label: 'Almacenamiento' })
   if (def.salesRate) stats.push({ icon: 'icon-handshake', value: `${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`, label: 'Potencia de venta' })
@@ -50,7 +50,7 @@ function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
   return stats
 }
 
-export function Dock({ game, activeTab, buildFocus, onTab, onCloseBuild, onChooseComponent, onChooseTool, labBadge, upgradesBadge, contractReady }: DockProps) {
+export function Dock({ game, activeTab, buildFocus, onTab, onCloseBuild, onChooseComponent, onChooseTool, labBadge, upgradesBadge }: DockProps) {
   const building = game.toolMode === 'build'
   return (
     <footer className="dock">
@@ -99,7 +99,6 @@ export function Dock({ game, activeTab, buildFocus, onTab, onCloseBuild, onChoos
             <span>{tab.label}</span>
             {tab.key === 'lab' && labBadge > 0 && <em className="badge">{labBadge}</em>}
             {tab.key === 'upgrades' && upgradesBadge > 0 && <em className="badge">{upgradesBadge}</em>}
-            {tab.key === 'contracts' && contractReady && <em className="badge alert">!</em>}
           </button>
         ))}
       </nav>

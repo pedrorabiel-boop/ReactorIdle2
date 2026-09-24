@@ -16,6 +16,7 @@ export const directEnergyRate = (state: GameState, kind: ComponentKind) => (COMP
 export const productionRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].production ?? 0) * componentMultiplier(state, kind)
 export const conversionRate = (state: GameState, kind: 'generator' | 'generator2' = 'generator') => (COMPONENTS[kind].conversionRate ?? 0) * componentMultiplier(state, kind)
 export const coolingRate = (state: GameState) => (COMPONENTS.cooler.coolingRate ?? 0) * componentMultiplier(state, 'cooler')
+export const thermalTransferRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].referenceTransferRate ?? 0) * componentMultiplier(state, kind)
 export const thermalResistance = (state: GameState, kind: ComponentKind) => {
   const baseline = COMPONENTS.pipe.thermalResistance ?? 1
   const resistance = COMPONENTS[kind].thermalResistance
@@ -30,7 +31,7 @@ export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameSt
 export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
   const def = COMPONENTS[kind]
   const tracks: UpgradeTrack[] = []
-  if (def.directEnergy || def.production || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate || def.controllerBonus) tracks.push('output')
+  if (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate || def.controllerBonus) tracks.push('output')
   if (def.capacity > 0) tracks.push('capacity')
   if (def.fuelCycles) tracks.push('autonomy')
   return tracks

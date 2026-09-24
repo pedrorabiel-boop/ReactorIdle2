@@ -1,8 +1,8 @@
 import { COMPONENTS } from './catalog'
 import { ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, TECHNOLOGIES, TECH_ORDER } from './balance'
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
-import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
-import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, pullHeatForConversion, type ThermalSinkEdge } from './thermal'
+import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, thermalTransferRate } from './research'
+import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, pullHeatForConversion, pumpHeatThroughActivePipes, type ThermalSinkEdge } from './thermal'
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TickReport, Tile } from './types'
 
 const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion'])
@@ -68,9 +68,12 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
   const resistanceAt = (index: number) => { const tile = tiles[index]; return tile ? thermalResistance(state, tile.kind) : Number.POSITIVE_INFINITY }
   diffuseThermalNetwork(tiles, getThermalTopology(tiles, state.rows, state.cols), capacityAt, resistanceAt)
   const generatorEdges: ThermalSinkEdge[] = []
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols)) if (isThermalCarrier(tiles[source]) && tiles[source]?.kind !== 'pipe2') generatorEdges.push({ source, sink: index }) }
   const conversionDemand = new Map<number, number>()
   for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; const rate = conversionRate(state, tile.kind as 'generator' | 'generator2'); conversionCapacity += rate; const stored = Math.min(tile.heat, rate); tile.heat -= stored; thermalEnergy += stored; conversionDemand.set(index, rate - stored) }
+  const pumped = pumpHeatThroughActivePipes(tiles, state.rows, state.cols, (index) => conversionDemand.get(index) ?? 0, capacityAt, () => thermalTransferRate(state, 'pipe2'))
+  thermalEnergy += pumped.totalMoved
+  for (const [index, amount] of pumped.received) conversionDemand.set(index, Math.max(0, (conversionDemand.get(index) ?? 0) - amount))
   const pulled = pullHeatForConversion(tiles, generatorEdges, (index) => conversionDemand.get(index) ?? 0)
   thermalEnergy += pulled.totalMoved
   absorbHeatIntoSinks(tiles, generatorEdges, capacityAt, resistanceAt)

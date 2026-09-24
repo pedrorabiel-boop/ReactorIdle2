@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
-import { buyDesertSector, claimContract, countKind, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
+import { buyDesertSector, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { canUnlockTech, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
 import { COAST_BUILDABLE_SET } from './game/terrain'
@@ -14,9 +14,9 @@ import { buildIsland, environmentFor } from './ui/island'
 import { MapViewport } from './ui/MapViewport'
 import { environmentStyle, Sprite, SpriteDefs } from './ui/pixel/Sprite'
 import { ENVIRONMENTS } from './ui/pixel/sprites'
-import { ContractsSheet } from './ui/sheets/ContractsSheet'
 import { DebugSheet } from './ui/sheets/DebugSheet'
 import { InspectorSheet } from './ui/sheets/InspectorSheet'
+import { ManualSheet } from './ui/sheets/ManualSheet'
 import { MenuSheet } from './ui/sheets/MenuSheet'
 import { ResearchSheet } from './ui/sheets/ResearchSheet'
 import { UpgradesSheet } from './ui/sheets/UpgradesSheet'
@@ -60,19 +60,8 @@ function App() {
   const heat = totalHeat(game)
   const inspectedRefuel = inspectedIndex === null ? 0 : refuelPrice(game, inspectedIndex) ?? 0
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
-  const contractComplete = game.activeContract.progress >= game.activeContract.target
   const affordableTechs = TECH_ORDER.filter((key) => canUnlockTech(game, key)).length
   const affordableUpgrades = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind)).flatMap((kind) => upgradeTracks(kind).map((track) => ({ kind, track }))).filter(({ kind, track }) => upgradeLevel(game, kind, track) < ECONOMY.maxBuildingLevel && canAfford(game, upgradeCost(game, kind, track))).length
-  const missionSteps = [
-    { label: 'Instala una turbina eólica', done: countKind(game, 'wind') > 0 },
-    { label: 'Vende 5 E', done: game.totalEnergySold >= 5 },
-    { label: 'Construye una oficina de ventas', done: countKind(game, 'sales') > 0 },
-    { label: 'Construye una instalación de I+D', done: countKind(game, 'research') > 0 },
-    { label: 'Desbloquea captación solar', done: game.unlockedTechs.solar },
-    { label: 'Desbloquea ingeniería térmica', done: game.unlockedTechs.thermal },
-  ]
-  const missionProgress = missionSteps.filter((step) => step.done).length
-  const missionHint = missionProgress === missionSteps.length ? 'La economía básica está lista: ahora optimiza sus cuellos de botella.' : game.totalEnergySold < 5 ? 'Construye eólicas, acumula energía y usa “Vender todo” para obtener tus primeros créditos.' : countKind(game, 'research') === 0 ? 'Invierte en I+D para separar la progresión tecnológica del dinero.' : 'Acumula RP y decide cuándo sacrificar espacio productivo por investigación.'
 
   function replaceGame(next: GameState) { gameRef.current = next; setGame(next) }
   function pushHistory(entry: HistoryEntry) { historyRef.current = [...historyRef.current.slice(-(MAX_UNDO_STEPS - 1)), entry]; setUndoDepth(historyRef.current.length) }
@@ -106,7 +95,6 @@ function App() {
   function researchAutoRebuild(kind: ComponentKind) { const next = unlockAutoRebuild(gameRef.current, kind); if (next === gameRef.current) { setToast('RP insuficientes o automatización ya activa.'); return } replaceGame(next); setToast(`Auto rebuild de ${COMPONENTS[kind].shortName} activado.`) }
   function repairInspected() { if (inspectedIndex === null) return; const next = repairTile(gameRef.current, inspectedIndex); if (next === gameRef.current) { setToast('Créditos insuficientes.'); return } replaceGame(next); setToast(`Pieza reparada por ₡ ${formatNumber(inspectedRepair)}.`) }
   function sellInspected() { if (inspectedIndex !== null) { commit((state) => sellTile(state, inspectedIndex), 'Demolición'); setInspectedIndex(null) } }
-  function claimActiveContract() { const reward = game.activeContract; const next = claimContract(gameRef.current); if (next === gameRef.current) return; replaceGame(next); setToast(`Contrato: +₡ ${formatNumber(reward.rewardCredits)} y +${formatDecimal(reward.rewardResearch)} RP.`) }
   function changeSector(sector: SectorKey) { const next = switchSector(gameRef.current, sector); if (next === gameRef.current) return; replaceGame(next); clearHistory(); closeSheet() }
   function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Isla desértica adquirida.') }
 
@@ -124,10 +112,10 @@ function App() {
     {activeTab === 'inspector' && <InspectorSheet game={game} index={inspectedIndex} refuelPrice={inspectedRefuel} repairPrice={inspectedRepair} onClose={closeSheet} onToggle={toggleInspected} onRefuel={refuelInspected} onRepair={repairInspected} onSell={sellInspected} />}
     {activeTab === 'upgrades' && <UpgradesSheet game={game} onClose={closeSheet} onUpgrade={upgrade} />}
     {activeTab === 'lab' && <ResearchSheet game={game} onClose={closeSheet} onResearch={research} onAutoRebuild={researchAutoRebuild} />}
-    {activeTab === 'contracts' && <ContractsSheet game={game} missions={missionSteps} missionHint={missionHint} onClose={closeSheet} onClaim={claimActiveContract} />}
+    {activeTab === 'manual' && <ManualSheet game={game} onClose={closeSheet} />}
     {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
     {activeTab === 'debug' && <DebugSheet game={game} onClose={closeSheet} onChange={changeDebug} onSetCredits={(credits) => replaceGame({ ...gameRef.current, credits })} onSetResearch={(researchPoints) => replaceGame({ ...gameRef.current, researchPoints })} onReset={resetDebug} />}
-    {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} contractReady={contractComplete} />}
+    {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} />}
     {toast && <div className="toast frame" role="status">{toast}</div>}
   </div>
 }

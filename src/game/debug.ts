@@ -7,6 +7,7 @@ export const COMPONENT_NUMERIC_FIELDS: Array<{ key: ComponentNumericKey; label: 
   { key: 'capacity', label: 'Capacidad térmica' },
   { key: 'directEnergy', label: 'Energía directa / s' },
   { key: 'production', label: 'Calor generado / s' },
+  { key: 'referenceTransferRate', label: 'Caudal térmico / s' },
   { key: 'thermalResistance', label: 'Resistencia térmica' },
   { key: 'conversionRate', label: 'Conversión / s' },
   { key: 'coolingRate', label: 'Enfriamiento / s' },

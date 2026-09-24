@@ -19,14 +19,16 @@ function trackLabel(kind: ComponentKind, track: UpgradeTrack): string {
   if (kind === 'controller') return 'Control de red'
   if (kind === 'generator' || kind === 'generator2') return 'Conversión'
   if (kind === 'cooler') return 'Enfriamiento'
-  if (kind === 'pipe' || kind === 'pipe2' || kind === 'exchanger' || kind === 'accumulator') return 'Conductividad'
+  if (kind === 'pipe2') return 'Caudal activo'
+  if (kind === 'pipe' || kind === 'exchanger' || kind === 'accumulator') return 'Conductividad'
   return 'Producción'
 }
 
 function impactLabel(track: UpgradeTrack, kind: ComponentKind): string {
   if (track === 'autonomy') return 'vida útil'
   if (track === 'capacity') return 'tolerancia'
-  if (kind === 'pipe' || kind === 'pipe2' || kind === 'exchanger' || kind === 'accumulator') return 'conductividad'
+  if (kind === 'pipe2') return 'caudal de extracción'
+  if (kind === 'pipe' || kind === 'exchanger' || kind === 'accumulator') return 'conductividad'
   return 'potencia'
 }
 

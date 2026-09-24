@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
-import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, pullHeatForConversion } from './thermal'
+import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, pullHeatForConversion, pumpHeatThroughActivePipes } from './thermal'
 import type { ComponentKind, Tile } from './types'
 
 let nextTileId = 0
@@ -13,12 +13,14 @@ describe('resistive thermal graph', () => {
   beforeEach(() => { clearThermalTopologyCache(); nextTileId = 0 })
 
   it('derives resistance from the previous capacity and throughput scale', () => {
-    for (const kind of ['pipe', 'pipe2', 'exchanger', 'accumulator'] as const) {
+    for (const kind of ['pipe', 'exchanger', 'accumulator'] as const) {
       const definition = COMPONENTS[kind]
       const resistance = definition.thermalResistance!
       const fullGradientTransfer = definition.capacity / 2 * (1 - Math.exp(-1 / (resistance * 2)))
       expect(fullGradientTransfer / definition.referenceTransferRate!).toBeCloseTo(1, 12)
     }
+    expect(COMPONENTS.pipe2.thermalResistance).toBe(0)
+    expect(COMPONENTS.pipe2.referenceTransferRate).toBe(12_500_000_000)
   })
 
   it('conserves heat exactly while redistributing it', () => {
@@ -75,6 +77,15 @@ describe('resistive thermal graph', () => {
     expect(totalHeat(highResistance)).toBeCloseTo(highBefore, 8)
   })
 
+  it('keeps Pipe II outside passive diffusion so its active throughput cannot be bypassed', () => {
+    const tiles = [makeTile('core', 100), makeTile('pipe2'), makeTile('pipe2')]
+    const topology = getThermalTopology(tiles, 1, 3)
+    expect(topology.nodes).toEqual([0])
+    expect(topology.edges).toHaveLength(0)
+    expect(diffuseThermalNetwork(tiles, topology, capacityAt, resistanceAt)).toBe(0)
+    expect(tiles[0]!.heat).toBe(100)
+  })
+
   it('feeds terminal converters without ever returning their stored heat', () => {
     const receiving = [makeTile('pipe', 100), makeTile('generator', 0)]
     const before = totalHeat(receiving)
@@ -121,6 +132,37 @@ describe('resistive thermal graph', () => {
     expect(result.received.get(2)).toBeCloseTo(100)
     expect(result.received.get(3)).toBeCloseTo(100)
     expect(tiles[0]!.heat + tiles[1]!.heat).toBeCloseTo(0)
+  })
+
+  it('pumps heat through a continuous Pipe II route without filling its buffers', () => {
+    const tiles = [makeTile('core', 1_000), makeTile('pipe2'), makeTile('pipe2'), makeTile('pipe2'), makeTile('generator')]
+    const result = pumpHeatThroughActivePipes(tiles, 1, 5, () => 250, () => 1_000, () => 250)
+    expect(result.totalMoved).toBeCloseTo(250)
+    expect(result.received.get(4)).toBeCloseTo(250)
+    expect(tiles[0]!.heat).toBeCloseTo(750)
+    expect(tiles.slice(1, 4).every((tile) => tile!.heat === 0)).toBe(true)
+    expect(totalHeat(tiles) + result.totalMoved).toBeCloseTo(1_000)
+  })
+
+  it('shares a Pipe II bottleneck fairly between demanding turbines', () => {
+    const tiles = Array.from({ length: 9 }, () => null) as Array<Tile | null>
+    tiles[3] = makeTile('core', 200)
+    for (const index of [1, 4, 7]) tiles[index] = makeTile('pipe2')
+    tiles[0] = makeTile('generator')
+    tiles[6] = makeTile('generator')
+    const result = pumpHeatThroughActivePipes(tiles, 3, 3, () => 100, () => 100, () => 100)
+    expect(result.totalMoved).toBeCloseTo(100, 5)
+    expect(result.received.get(0)).toBeCloseTo(50, 5)
+    expect(result.received.get(6)).toBeCloseTo(50, 5)
+    expect(tiles[3]!.heat).toBeCloseTo(100, 5)
+  })
+
+  it('extracts first from the source with the highest normalized thermal potential', () => {
+    const tiles = [makeTile('core', 80), makeTile('pipe2'), makeTile('accumulator', 50), null, makeTile('generator'), null]
+    const result = pumpHeatThroughActivePipes(tiles, 2, 3, () => 60, () => 100, () => 100)
+    expect(result.totalMoved).toBeCloseTo(60)
+    expect(tiles[0]!.heat).toBeCloseTo(20)
+    expect(tiles[2]!.heat).toBeCloseTo(50)
   })
 
   it('reuses graph structure until topology changes', () => {

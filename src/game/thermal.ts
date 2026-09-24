@@ -13,9 +13,10 @@ export interface ThermalDemandResult { totalMoved: number; received: Map<number,
 const topologyCache = new Map<string, ThermalTopology>()
 
 export const isThermalCarrier = (tile: Tile | null | undefined): tile is Tile => Boolean(tile && THERMAL_CARRIERS.has(tile.kind) && tile.enabled && !tile.damaged)
+const isPassiveThermalCarrier = (tile: Tile | null | undefined): tile is Tile => isThermalCarrier(tile) && tile.kind !== 'pipe2'
 
 function topologySignature(tiles: Array<Tile | null>, rows: number, cols: number): string {
-  return `${rows}x${cols}:${tiles.map((tile) => isThermalCarrier(tile) ? tile.kind : '.').join(',')}`
+  return `${rows}x${cols}:${tiles.map((tile) => isPassiveThermalCarrier(tile) ? tile.kind : '.').join(',')}`
 }
 
 /** Builds only when placement/enabled/damaged topology changes; heat changes reuse the cached graph. */
@@ -27,12 +28,12 @@ export function getThermalTopology(tiles: Array<Tile | null>, rows: number, cols
   const nodes: number[] = []
   const edges: ThermalEdge[] = []
   for (let index = 0; index < tiles.length; index += 1) {
-    if (!isThermalCarrier(tiles[index])) continue
+    if (!isPassiveThermalCarrier(tiles[index])) continue
     nodes.push(index)
     const row = Math.floor(index / cols)
     const col = index % cols
-    if (col < cols - 1 && isThermalCarrier(tiles[index + 1])) edges.push({ a: index, b: index + 1 })
-    if (row < rows - 1 && isThermalCarrier(tiles[index + cols])) edges.push({ a: index, b: index + cols })
+    if (col < cols - 1 && isPassiveThermalCarrier(tiles[index + 1])) edges.push({ a: index, b: index + 1 })
+    if (row < rows - 1 && isPassiveThermalCarrier(tiles[index + cols])) edges.push({ a: index, b: index + cols })
   }
 
   const topology = { signature, nodes, edges }
@@ -315,6 +316,240 @@ export function pullHeatForConversion(
         totalMoved += moved
       }
     }
+  }
+  return { totalMoved, received }
+}
+
+interface ActivePipeSource { index: number; entries: number[]; available: number; potential: number }
+interface ActivePipeSink { index: number; entries: number[]; demand: number }
+interface ResidualEdge { to: number; reverse: number; capacity: number; initial: number }
+interface ActiveFlowResult { totalMoved: number; sourceMoved: Map<number, number>; sinkReceived: Map<number, number>; pipeUsed: Map<number, number> }
+
+function orthogonalIndices(index: number, rows: number, cols: number): number[] {
+  const row = Math.floor(index / cols)
+  const col = index % cols
+  return [row > 0 ? index - cols : -1, row < rows - 1 ? index + cols : -1, col > 0 ? index - 1 : -1, col < cols - 1 ? index + 1 : -1].filter((value) => value >= 0)
+}
+
+function activePipeComponents(tiles: Array<Tile | null>, rows: number, cols: number): number[][] {
+  const active = new Set<number>()
+  for (let index = 0; index < tiles.length; index += 1) {
+    const tile = tiles[index]
+    if (tile?.kind === 'pipe2' && tile.enabled && !tile.damaged) active.add(index)
+  }
+  const components: number[][] = []
+  while (active.size > 0) {
+    const start = active.values().next().value!
+    const queue = [start]
+    const component: number[] = []
+    active.delete(start)
+    while (queue.length > 0) {
+      const index = queue.shift()!
+      component.push(index)
+      for (const adjacent of orthogonalIndices(index, rows, cols)) if (active.delete(adjacent)) queue.push(adjacent)
+    }
+    components.push(component)
+  }
+  return components
+}
+
+function runActiveFlow(
+  component: number[],
+  rows: number,
+  cols: number,
+  sources: ActivePipeSource[],
+  sinks: ActivePipeSink[],
+  pipeRemaining: Map<number, number>,
+  sinkCaps: Map<number, number>,
+): ActiveFlowResult {
+  const orderedSources = [...sources].filter((source) => source.available > EPSILON).sort((a, b) => b.potential - a.potential || a.index - b.index)
+  const orderedSinks = [...sinks].filter((sink) => (sinkCaps.get(sink.index) ?? 0) > EPSILON).sort((a, b) => a.index - b.index)
+  const totalAvailable = orderedSources.reduce((sum, source) => sum + source.available, 0)
+  const totalDemand = orderedSinks.reduce((sum, sink) => sum + (sinkCaps.get(sink.index) ?? 0), 0)
+  const flowLimit = Math.min(totalAvailable, totalDemand)
+  if (flowLimit <= EPSILON) return { totalMoved: 0, sourceMoved: new Map(), sinkReceived: new Map(), pipeUsed: new Map() }
+
+  const sourceNode = 0
+  let nextNode = 1
+  const sourceNodes = new Map<number, number>()
+  for (const source of orderedSources) sourceNodes.set(source.index, nextNode++)
+  const pipeNodes = new Map<number, { input: number; output: number }>()
+  for (const pipe of component) pipeNodes.set(pipe, { input: nextNode++, output: nextNode++ })
+  const sinkNodes = new Map<number, number>()
+  for (const sink of orderedSinks) sinkNodes.set(sink.index, nextNode++)
+  const sinkNode = nextNode++
+  const graph: ResidualEdge[][] = Array.from({ length: nextNode }, () => [])
+  const addEdge = (from: number, to: number, capacity: number): ResidualEdge => {
+    const forward: ResidualEdge = { to, reverse: graph[to].length, capacity, initial: capacity }
+    const reverse: ResidualEdge = { to: from, reverse: graph[from].length, capacity: 0, initial: 0 }
+    graph[from].push(forward)
+    graph[to].push(reverse)
+    return forward
+  }
+  const sourceEdges = new Map<number, ResidualEdge>()
+  const pipeEdges = new Map<number, ResidualEdge>()
+  const sinkEdges = new Map<number, ResidualEdge>()
+  for (const source of orderedSources) {
+    const node = sourceNodes.get(source.index)!
+    sourceEdges.set(source.index, addEdge(sourceNode, node, source.available))
+    for (const entry of source.entries) {
+      const pipe = pipeNodes.get(entry)
+      if (pipe) addEdge(node, pipe.input, flowLimit)
+    }
+  }
+  for (const pipeIndex of component) {
+    const pipe = pipeNodes.get(pipeIndex)!
+    pipeEdges.set(pipeIndex, addEdge(pipe.input, pipe.output, Math.max(0, pipeRemaining.get(pipeIndex) ?? 0)))
+    for (const adjacent of orthogonalIndices(pipeIndex, rows, cols)) {
+      const neighbour = pipeNodes.get(adjacent)
+      if (neighbour) addEdge(pipe.output, neighbour.input, flowLimit)
+    }
+  }
+  for (const sink of orderedSinks) {
+    const node = sinkNodes.get(sink.index)!
+    for (const entry of sink.entries) {
+      const pipe = pipeNodes.get(entry)
+      if (pipe) addEdge(pipe.output, node, flowLimit)
+    }
+    sinkEdges.set(sink.index, addEdge(node, sinkNode, sinkCaps.get(sink.index) ?? 0))
+  }
+
+  let totalMoved = 0
+  while (true) {
+    const parentNode = new Int32Array(graph.length).fill(-1)
+    const parentEdge = new Int32Array(graph.length).fill(-1)
+    parentNode[sourceNode] = sourceNode
+    const queue = [sourceNode]
+    while (queue.length > 0 && parentNode[sinkNode] === -1) {
+      const node = queue.shift()!
+      for (let edgeIndex = 0; edgeIndex < graph[node].length; edgeIndex += 1) {
+        const edge = graph[node][edgeIndex]
+        if (parentNode[edge.to] !== -1 || edge.capacity <= EPSILON) continue
+        parentNode[edge.to] = node
+        parentEdge[edge.to] = edgeIndex
+        queue.push(edge.to)
+        if (edge.to === sinkNode) break
+      }
+    }
+    if (parentNode[sinkNode] === -1) break
+    let amount = Number.POSITIVE_INFINITY
+    for (let node = sinkNode; node !== sourceNode; node = parentNode[node]) amount = Math.min(amount, graph[parentNode[node]][parentEdge[node]].capacity)
+    if (amount <= EPSILON) break
+    for (let node = sinkNode; node !== sourceNode; node = parentNode[node]) {
+      const edge = graph[parentNode[node]][parentEdge[node]]
+      edge.capacity -= amount
+      graph[node][edge.reverse].capacity += amount
+    }
+    totalMoved += amount
+  }
+
+  const used = (edge: ResidualEdge) => Math.max(0, edge.initial - edge.capacity)
+  return {
+    totalMoved,
+    sourceMoved: new Map([...sourceEdges].map(([index, edge]) => [index, used(edge)])),
+    sinkReceived: new Map([...sinkEdges].map(([index, edge]) => [index, used(edge)])),
+    pipeUsed: new Map([...pipeEdges].map(([index, edge]) => [index, used(edge)])),
+  }
+}
+
+/**
+ * Active Tier-II pipe transport. A continuous Pipe II component pulls from the
+ * highest thermal potential first and routes heat only toward converters with
+ * immediate demand. Every traversed pipe enforces its own per-tick throughput.
+ */
+export function pumpHeatThroughActivePipes(
+  tiles: Array<Tile | null>,
+  rows: number,
+  cols: number,
+  demandAt: (index: number) => number,
+  capacityAt: (index: number) => number,
+  throughputAt: (index: number) => number,
+): ThermalDemandResult {
+  const received = new Map<number, number>()
+  const remainingDemand = new Map<number, number>()
+  let totalMoved = 0
+
+  for (let index = 0; index < tiles.length; index += 1) {
+    const tile = tiles[index]
+    if (tile && (tile.kind === 'generator' || tile.kind === 'generator2') && tile.enabled && !tile.damaged) remainingDemand.set(index, Math.max(0, demandAt(index)))
+  }
+
+  for (const component of activePipeComponents(tiles, rows, cols)) {
+    const componentSet = new Set(component)
+    const externalEntries = new Map<number, Set<number>>()
+    const sinkEntries = new Map<number, Set<number>>()
+    for (const pipeIndex of component) {
+      for (const adjacent of orthogonalIndices(pipeIndex, rows, cols)) {
+        const tile = tiles[adjacent]
+        if (!tile || !tile.enabled || tile.damaged) continue
+        if ((tile.kind === 'generator' || tile.kind === 'generator2') && (remainingDemand.get(adjacent) ?? 0) > EPSILON) {
+          if (!sinkEntries.has(adjacent)) sinkEntries.set(adjacent, new Set())
+          sinkEntries.get(adjacent)!.add(pipeIndex)
+        } else if (!componentSet.has(adjacent) && isThermalCarrier(tile) && tile.heat > EPSILON) {
+          if (!externalEntries.has(adjacent)) externalEntries.set(adjacent, new Set())
+          externalEntries.get(adjacent)!.add(pipeIndex)
+        }
+      }
+    }
+    const sources: ActivePipeSource[] = []
+    for (const [index, entries] of externalEntries) {
+      const tile = tiles[index]!
+      const capacity = capacityAt(index)
+      sources.push({ index, entries: [...entries], available: Math.max(0, tile.heat), potential: capacity > 0 ? Math.max(0, tile.heat) / capacity : 0 })
+    }
+    for (const index of component) {
+      const tile = tiles[index]!
+      if (tile.heat <= EPSILON) continue
+      const capacity = capacityAt(index)
+      sources.push({ index, entries: [index], available: Math.max(0, tile.heat), potential: capacity > 0 ? Math.max(0, tile.heat) / capacity : 0 })
+    }
+    const sinks: ActivePipeSink[] = [...sinkEntries].map(([index, entries]) => ({ index, entries: [...entries], demand: remainingDemand.get(index) ?? 0 }))
+    if (sources.length === 0 || sinks.length === 0) continue
+    const pipeRemaining = new Map(component.map((index) => [index, Math.max(0, throughputAt(index))]))
+    const totalDemand = sinks.reduce((sum, sink) => sum + sink.demand, 0)
+    const totalAvailable = sources.reduce((sum, source) => sum + source.available, 0)
+    let low = 0
+    let high = Math.min(1, totalDemand > 0 ? totalAvailable / totalDemand : 0)
+    // A single sink needs no fairness search, which keeps ordinary and offline
+    // simulation cheap. Multiple sinks use max-min fairness before leftovers.
+    if (sinks.length > 1) {
+      for (let iteration = 0; iteration < 24; iteration += 1) {
+        const fraction = (low + high) / 2
+        const caps = new Map(sinks.map((sink) => [sink.index, sink.demand * fraction]))
+        const result = runActiveFlow(component, rows, cols, sources, sinks, pipeRemaining, caps)
+        const target = sinks.reduce((sum, sink) => sum + sink.demand * fraction, 0)
+        if (result.totalMoved + Math.max(EPSILON, target * 1e-9) >= target) low = fraction
+        else high = fraction
+      }
+    }
+
+    const applyResult = (result: ActiveFlowResult) => {
+      totalMoved += result.totalMoved
+      for (const source of sources) {
+        const moved = result.sourceMoved.get(source.index) ?? 0
+        source.available = Math.max(0, source.available - moved)
+        const tile = tiles[source.index]
+        if (tile) {
+          tile.heat = Math.max(0, tile.heat - moved)
+          if (tile.kind !== 'pipe2') tile.flow += moved
+        }
+      }
+      for (const [index, amount] of result.sinkReceived) {
+        remainingDemand.set(index, Math.max(0, (remainingDemand.get(index) ?? 0) - amount))
+        received.set(index, (received.get(index) ?? 0) + amount)
+        const tile = tiles[index]
+        if (tile) tile.flow += amount
+      }
+      for (const [index, amount] of result.pipeUsed) {
+        pipeRemaining.set(index, Math.max(0, (pipeRemaining.get(index) ?? 0) - amount))
+        const tile = tiles[index]
+        if (tile) tile.flow += amount
+      }
+    }
+
+    if (low > EPSILON) applyResult(runActiveFlow(component, rows, cols, sources, sinks, pipeRemaining, new Map(sinks.map((sink) => [sink.index, sink.demand * low]))))
+    const remainingCaps = new Map(sinks.map((sink) => [sink.index, remainingDemand.get(sink.index) ?? 0]))
+    applyResult(runActiveFlow(component, rows, cols, sources, sinks, pipeRemaining, remainingCaps))
   }
   return { totalMoved, received }
 }

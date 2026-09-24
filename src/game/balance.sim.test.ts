@@ -29,12 +29,12 @@ describe('promoted official balance', () => {
       cooler: { cost: 1_000_000, capacity: 0, coolingRate: 50_000 },
       exchanger: { cost: 50_000_000, capacity: 2_000_000 },
       pipe: { cost: 10_000_000, capacity: 300_000 },
-      pipe2: { cost: 2_240_000_000, capacity: 75_000_000_000 },
+      pipe2: { cost: 2_240_000_000, capacity: 75_000_000_000, referenceTransferRate: 12_500_000_000, thermalResistance: 0 },
       accumulator: { cost: 250_000_000, capacity: 10_000_000 },
     })
     expect(COMPONENTS.exchanger.thermalResistance).toBeCloseTo(2.24071005886228, 12)
     expect(COMPONENTS.pipe.thermalResistance).toBeCloseTo(1.23315173118822, 12)
-    expect(COMPONENTS.pipe2.thermalResistance).toBeCloseTo(COMPONENTS.pipe.thermalResistance!, 12)
+    expect(COMPONENTS.pipe2.thermalResistance).toBe(0)
     expect(COMPONENTS.accumulator.thermalResistance).toBeCloseTo(24.7491582262546, 12)
   })
 

@@ -4,7 +4,7 @@ export type TechKey = 'solar' | 'thermal' | 'thorium' | 'fusion' | 'expansion'
 export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
 export type SectorKey = 'coast' | 'desert'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
-export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus'
+export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus'
 export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier'
 
 export interface DebugSettings {
