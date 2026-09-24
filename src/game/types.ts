@@ -1,4 +1,4 @@
-export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'sales2' | 'research' | 'research2' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'accumulator' | 'generator' | 'generator2' | 'cooler'
+export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'sales2' | 'research' | 'research2' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'pipe2' | 'accumulator' | 'generator' | 'generator2' | 'cooler'
 export type ToolMode = 'build' | 'demolish' | 'inspect'
 export type TechKey = 'solar' | 'thermal' | 'thorium' | 'fusion' | 'expansion'
 export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
@@ -36,7 +36,7 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 16; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 17; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number

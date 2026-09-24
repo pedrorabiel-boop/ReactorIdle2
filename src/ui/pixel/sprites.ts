@@ -290,6 +290,24 @@ export const SPRITES: Record<string, string[]> = {
     '.....KGLLGK.....',
     '.....KKKKKK.....',
   ]),
+  pipe2: S([
+    '....KKKKKKKK....',
+    '....KCCCCCCK....',
+    '....KCCCCCCK....',
+    '....KCCCCCCK....',
+    'KKKKKCCCCCCKKKKK',
+    'KCCCCCCCCCCCCCCK',
+    'KCCCCCCWWCCCCCCK',
+    'KCCCCCWWWWCCCCCK',
+    'KCCCCCWWWWCCCCCK',
+    'KCCCCCCWWCCCCCCK',
+    'KCCCCCCCCCCCCCCK',
+    'KKKKKCCCCCCKKKKK',
+    '....KCCCCCCK....',
+    '....KCCCCCCK....',
+    '....KDDDDDDK....',
+    '....KKKKKKKK....',
+  ]),
   accumulator: S([
     '................',
     '....KKKKKKKK....',
@@ -800,7 +818,7 @@ export const SPRITES: Record<string, string[]> = {
   ]),
 }
 
-export const COMPONENT_SPRITES: string[] = ['wind', 'solar', 'battery', 'controller', 'sales', 'sales2', 'research', 'research2', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'accumulator']
+export const COMPONENT_SPRITES: string[] = ['wind', 'solar', 'battery', 'controller', 'sales', 'sales2', 'research', 'research2', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'pipe2', 'accumulator']
 export const PROPOSED_SPRITES: string[] = ['insulator']
 
 export function validate(): void {

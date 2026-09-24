@@ -10,5 +10,6 @@ describe('pixel sprites', () => {
     expect(SPRITES.sales2).not.toEqual(SPRITES.sales)
     expect(SPRITES.research2).not.toEqual(SPRITES.research)
     expect(SPRITES.generator2).not.toEqual(SPRITES.generator)
+    expect(SPRITES.pipe2).not.toEqual(SPRITES.pipe)
   })
 })

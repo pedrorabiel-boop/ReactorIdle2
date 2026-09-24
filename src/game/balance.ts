@@ -6,11 +6,11 @@ export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; 
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
   thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, Turbina II, toda la red térmica, controlador, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
-  fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea el reactor de fusión sin alterar la infraestructura existente.', cost: 20_000_000, requires: 'thorium' },
+  fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea el reactor de fusión y la Tubería II sin alterar la infraestructura existente.', cost: 20_000_000, requires: 'thorium' },
   expansion: { name: 'Expansión territorial', description: 'Autoriza la compra de la isla desértica.', cost: 100_000_000, requires: 'fusion' },
 }
 export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false }
-export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'accumulator']
+export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'pipe2', 'accumulator']
 export const LIFETIME_ORDER: ComponentKind[] = ['wind', 'solar', 'core', 'thorium', 'fusion']
 export const AUTO_REBUILD_COSTS: Partial<Record<ComponentKind, number>> = {
   wind: 15,
@@ -36,6 +36,7 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
   exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
   pipe: { output: 300_000_000, capacity: 255_000_000, autonomy: 225_000_000 },
+  pipe2: { output: 67_200_000_000, capacity: 57_120_000_000, autonomy: 50_400_000_000 },
   accumulator: { output: 7_500_000_000, capacity: 6_375_000_000, autonomy: 5_625_000_000 },
 }
 /**

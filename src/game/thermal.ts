@@ -1,6 +1,6 @@
 import type { ComponentKind, Tile } from './types'
 
-const THERMAL_CARRIERS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'exchanger', 'pipe', 'accumulator'])
+const THERMAL_CARRIERS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'exchanger', 'pipe', 'pipe2', 'accumulator'])
 const CACHE_LIMIT = 64
 const MIN_RESISTANCE = 0.000_001
 const EPSILON = 0.000_000_1

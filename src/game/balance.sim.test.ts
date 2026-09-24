@@ -29,10 +29,12 @@ describe('promoted official balance', () => {
       cooler: { cost: 1_000_000, capacity: 0, coolingRate: 50_000 },
       exchanger: { cost: 50_000_000, capacity: 2_000_000 },
       pipe: { cost: 10_000_000, capacity: 300_000 },
+      pipe2: { cost: 2_240_000_000, capacity: 75_000_000_000 },
       accumulator: { cost: 250_000_000, capacity: 10_000_000 },
     })
     expect(COMPONENTS.exchanger.thermalResistance).toBeCloseTo(2.24071005886228, 12)
     expect(COMPONENTS.pipe.thermalResistance).toBeCloseTo(1.23315173118822, 12)
+    expect(COMPONENTS.pipe2.thermalResistance).toBeCloseTo(COMPONENTS.pipe.thermalResistance!, 12)
     expect(COMPONENTS.accumulator.thermalResistance).toBeCloseTo(24.7491582262546, 12)
   })
 
@@ -54,6 +56,7 @@ describe('promoted official balance', () => {
       cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
       exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
       pipe: { output: 300_000_000, capacity: 255_000_000, autonomy: 225_000_000 },
+      pipe2: { output: 67_200_000_000, capacity: 57_120_000_000, autonomy: 50_400_000_000 },
       accumulator: { output: 7_500_000_000, capacity: 6_375_000_000, autonomy: 5_625_000_000 },
     })
     const state = createInitialState()
@@ -81,6 +84,9 @@ describe('promoted official balance', () => {
     expect(isComponentUnlocked(thermalOnly, 'sales2')).toBe(false)
     const thorium = { ...thermalOnly, unlockedTechs: { ...thermalOnly.unlockedTechs, thorium: true } }
     for (const kind of ['thorium', 'generator2', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    expect(isComponentUnlocked(thorium, 'pipe2')).toBe(false)
+    const fusion = { ...thorium, unlockedTechs: { ...thorium.unlockedTechs, fusion: true } }
+    expect(isComponentUnlocked(fusion, 'pipe2')).toBe(true)
     expect(COMPONENTS.generator.conversionRate).toBe(COMPONENTS.core.production! / 4)
     expect(COMPONENTS.generator2.conversionRate).toBe(COMPONENTS.thorium.production! / 4)
     expect(levelMultiplier(10)).toBeCloseTo(Math.pow(1.35, 9) * 2.5)
