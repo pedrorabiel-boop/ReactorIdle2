@@ -70,6 +70,7 @@ export function Dock({ game, activeTab, buildFocus, onTab, onCloseBuild, onChoos
               return (
                 <button
                   key={kind}
+                  data-tour={`card-${kind}`}
                   className={`card ${selected ? 'selected' : ''} ${unlocked ? '' : 'locked'} ${unlocked && !affordable ? 'poor' : ''}`}
                   aria-pressed={selected}
                   aria-label={unlocked ? `${definition.name}, ${definition.cost} créditos` : `${definition.name} requiere ${definition.tech ? TECHNOLOGIES[definition.tech].name : 'progreso'}`}
@@ -94,7 +95,7 @@ export function Dock({ game, activeTab, buildFocus, onTab, onCloseBuild, onChoos
       )}
       <nav className="tabs" aria-label="Secciones">
         {TABS.map((tab) => (
-          <button key={tab.key} className={`tab frame ${activeTab === tab.key ? 'on' : ''}`} aria-pressed={activeTab === tab.key} onClick={() => onTab(tab.key)}>
+          <button key={tab.key} data-tour={`tab-${tab.key}`} className={`tab frame ${activeTab === tab.key ? 'on' : ''}`} aria-pressed={activeTab === tab.key} onClick={() => onTab(tab.key)}>
             <Sprite name={tab.icon} size={20} />
             <span>{tab.label}</span>
             {tab.key === 'lab' && labBadge > 0 && <em className="badge">{labBadge}</em>}

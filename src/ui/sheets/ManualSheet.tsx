@@ -6,6 +6,7 @@ import type { ComponentKind, GameState } from '../../game/types'
 import { formatDecimal, formatShort } from '../format'
 import { Sprite } from '../pixel/Sprite'
 import { Sheet } from '../Sheet'
+import { WELCOME_TEXT, WELCOME_TITLE } from '../welcome'
 
 const CATEGORIES: Array<{ title: string; description: string; kinds: ComponentKind[] }> = [
   { title: 'Energía directa', description: 'Generan energía sin producir calor. Son el punto de partida de tu red nacional.', kinds: ['wind', 'solar'] },
@@ -75,8 +76,8 @@ export function ManualSheet({ game, onClose }: { game: GameState; onClose: () =>
   return (
     <Sheet title="Manual" eyebrow="GUÍA DE LA PLANTA" onClose={onClose} className="manual-sheet">
       <section className="manual-welcome frame">
-        <strong>¡BIENVENIDO!</strong>
-        <p>Has llegado a esta región como el nuevo encargado de Gestión Energética del Ministerio de Energía. Como eres un funcionario caracterizado por su eficiencia y probidad, harás un uso responsable y adecuado de los recursos públicos para desarrollar la energía a nivel nacional. ¡Los ciudadanos dependemos de ti!</p>
+        <strong>{WELCOME_TITLE}</strong>
+        <p>{WELCOME_TEXT}</p>
       </section>
       <section className="manual-principles">
         {PRINCIPLES.map((principle) => <article className="frame" key={principle.title}><span className="manual-principle-title"><Sprite name={principle.icon} size={18} /><strong>{principle.title}</strong></span><p>{principle.text}</p></article>)}

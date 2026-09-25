@@ -49,6 +49,7 @@ interface CellProps {
   game: GameState
   tile: Tile | null
   index: number
+  tour?: string
   x: number
   y: number
   armed: boolean
@@ -59,7 +60,7 @@ interface CellProps {
   onClick: (index: number) => void
 }
 
-const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, selectedKind, inspected, onPointerDown, onClick }: CellProps) {
+const Cell = memo(function Cell({ game, tile, index, tour, x, y, armed, toolMode, selectedKind, inspected, onPointerDown, onClick }: CellProps) {
   const capacity = tile ? componentCapacity(game, tile.kind) : 0
   const thermal = capacity > 0
   const level = tile && thermal ? heatLevel(tile.heat, capacity) : 0
@@ -84,6 +85,7 @@ const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, sele
       className={classes.join(' ')}
       style={{ left: x * TILE, top: y * TILE }}
       data-cell-index={index}
+      data-tour={tour}
       aria-label={cellLabel(tile, game, index)}
       onPointerDown={(event) => onPointerDown(event, index)}
       onClick={() => onClick(index)}
@@ -107,6 +109,8 @@ const Cell = memo(function Cell({ game, tile, index, x, y, armed, toolMode, sele
 })
 
 export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
+  // Ancla de la guía de inicio: la primera casilla construible que sigue vacía.
+  const firstFreeIndex = island.tiles.find((tile) => tile.gridIndex !== null && !game.tiles[tile.gridIndex])?.gridIndex ?? null
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(1)
   const [joystick, setJoystick] = useState({ x: 0, y: 0 })
@@ -258,7 +262,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   return (
     <div className={`viewport ${armed ? 'armed' : ''} mode-${toolMode}`} ref={viewportRef}>
       <div className={`zoom-controls frame ${minimalUi ? 'hidden' : ''}`} role="group" aria-label="Zoom del mapa"><button onClick={() => changeZoom(-0.1)} disabled={zoom <= 0.6}>−</button><span>{Math.round(zoom * 100)}%</span><button onClick={() => changeZoom(0.1)} disabled={zoom >= 1.6}>+</button></div>
-      <div className="world-stage" ref={stageRef} style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
+      <div className="world-stage" data-tour="map" ref={stageRef} style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
       <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${zoom})` }} onPointerMove={onGridPointerMove}>
         <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} />
         {island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => {
@@ -266,6 +270,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
           return (
             <Cell
               key={index}
+              tour={index === firstFreeIndex ? 'first-cell' : undefined}
               game={game}
               tile={game.tiles[index]}
               index={index}

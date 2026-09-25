@@ -4,6 +4,7 @@ import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
 import { buyDesertSector, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
+import { clearTutorialDone, isPristineGame } from './game/tutorial'
 import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
 import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from './game/terrain'
 import type { ComponentKind, GameState, SectorKey, TechKey, ToolMode, UpgradeTrack } from './game/types'
@@ -21,6 +22,8 @@ import { ManualSheet } from './ui/sheets/ManualSheet'
 import { MenuSheet } from './ui/sheets/MenuSheet'
 import { ResearchSheet } from './ui/sheets/ResearchSheet'
 import { UpgradesSheet } from './ui/sheets/UpgradesSheet'
+import { Tutorial, type TutorialProgress } from './ui/tutorial/Tutorial'
+import { useTutorial } from './ui/tutorial/useTutorial'
 
 interface BeforeInstallPromptEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
 interface HistoryEntry { tiles: GameState['tiles']; creditAdjustment: number; label: string }
@@ -41,11 +44,20 @@ function App() {
   const [undoDepth, setUndoDepth] = useState(0)
   const strokeRef = useRef<BuildStroke | null>(null)
   const ignoreClickRef = useRef(false)
+  const tutorial = useTutorial(useMemo(() => isPristineGame(loaded.state), [loaded.state]))
   const buildPanelOpen = activeTab === 'build'
   const armed = buildPanelOpen && (buildFocus || game.toolMode === 'demolish')
   const armedRef = useRef(armed); armedRef.current = armed
   const buildPanelOpenRef = useRef(buildPanelOpen); buildPanelOpenRef.current = buildPanelOpen
   const buildFocusRef = useRef(buildFocus); buildFocusRef.current = buildFocus
+
+  const windBuilt = game.tiles.some((tile) => tile?.kind === 'wind')
+  const tutorialProgress: TutorialProgress = { buildOpen: activeTab === 'build', windSelected: buildFocus && game.selectedKind === 'wind', windBuilt }
+  const tutorialStepRef = useRef(tutorial.step?.id)
+  tutorialStepRef.current = tutorial.step?.id
+
+  // Solo durante el tutorial: al levantar la primera turbina se sale del modo construir.
+  useEffect(() => { if (windBuilt && tutorialStepRef.current === 'place') closeSheet() }, [windBuilt])
 
   useEffect(() => { const timer = window.setInterval(() => setGame((current) => { const next = current.paused ? current : simulateMany(current, current.speed); gameRef.current = next; return next }), 1000); return () => clearInterval(timer) }, [])
   useEffect(() => { const finish = (event: PointerEvent) => finishBuildStroke(event.pointerId); window.addEventListener('pointerup', finish); window.addEventListener('pointercancel', finish); return () => { window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', finish) } }, [])
@@ -86,7 +98,7 @@ function App() {
   async function installApp() { if (!installPrompt) { setToast('En iPhone: Compartir → Agregar a inicio. En Android: menú → Instalar app.'); return } await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null) }
   async function copySave() { await navigator.clipboard.writeText(exportGame(game)); setToast('Partida v2 copiada.') }
   function restoreSave() { const restored = importGame(importRef.current?.value ?? ''); if (!restored) { setToast('Código incompatible o inválido; solo se admiten partidas v2.'); return } replaceGame(restored); clearHistory(); closeSheet(); setToast('Partida importada.') }
-  function resetGame() { if (!window.confirm('¿Reiniciar toda la planta v2?')) return; const debug = gameRef.current.debug; clearGame(); replaceGame(createInitialState(debug)); clearHistory(); closeSheet() }
+  function resetGame() { if (!window.confirm('¿Reiniciar toda la planta v2?')) return; const debug = gameRef.current.debug; clearGame(); clearTutorialDone(); replaceGame(createInitialState(debug)); clearHistory(); closeSheet(); tutorial.restart() }
   function changeDebug(settings: GameState['debug']) { const changed = withDebugSettings(gameRef.current, settings); replaceGame(isComponentUnlocked(changed, changed.selectedKind) ? changed : { ...changed, selectedKind: 'wind', toolMode: 'build' }) }
   function toggleDebug() { const current = gameRef.current.debug; changeDebug({ ...current, enabled: !current.enabled }) }
   function resetDebug() { changeDebug(resetDebugTuning(gameRef.current.debug)); setToast('Valores Debug restaurados al balance oficial.') }
@@ -119,6 +131,7 @@ function App() {
     {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
     {activeTab === 'debug' && <DebugSheet game={game} onClose={closeSheet} onChange={changeDebug} onSetCredits={(credits) => replaceGame({ ...gameRef.current, credits })} onSetResearch={(researchPoints) => replaceGame({ ...gameRef.current, researchPoints })} onReset={resetDebug} />}
     {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} />}
+    {tutorial.step && <Tutorial step={tutorial.step} game={game} progress={tutorialProgress} onNext={tutorial.next} onFinish={tutorial.finish} />}
     {toast && <div className="toast frame" role="status">{toast}</div>}
   </div>
 }
