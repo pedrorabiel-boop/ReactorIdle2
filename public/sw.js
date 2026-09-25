@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nucleus-idle-v47-promoted-tower-balance'
+const CACHE_NAME = 'nucleus-idle-v48-organic-cyberpunk-build-area'
 const STATIC_FILES = ['./manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './fonts/pixelify-sans-latin.woff2', './fonts/pixelify-sans-latin-ext.woff2', './fonts/press-start-2p-latin.woff2', './fonts/press-start-2p-latin-ext.woff2']
 
 self.addEventListener('install', (event) => {

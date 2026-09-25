@@ -34,8 +34,8 @@ const SHAPES: Record<SectorKey, { bumps: Array<[number, number]>; islets: Array<
     islets: [[-3, 11], [-2, 11], [-2, 12], [10, -3], [11, -3], [11, -2], [-3, 3], [10, 12]],
   },
   desert: {
-    bumps: [[1, -1], [2, -1], [5, -1], [-1, 1], [-1, 3], [8, 2], [8, 4], [1, 6], [5, 6], [7, 6], [4, 8], [8, 8], [2, 9], [2, 11], [11, 10], [11, 11], [3, 12], [6, 12], [9, 12], [10, 12]],
-    islets: [[-3, 7], [-2, 7], [10, 5], [11, 5], [-2, 13], [10, 15], [11, 15], [12, 14]],
+    bumps: [],
+    islets: [],
   },
 }
 
@@ -55,7 +55,7 @@ function hash(x: number, y: number): number {
 export function buildIsland(rows: number, cols: number, sector: SectorKey, occupiedIndices: number[] = []): Island {
   const shape = SHAPES[sector]
   const cyberpunk = sector === 'desert'
-  const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols: cols + (cyberpunk ? 3 : 0), rows: rows + (cyberpunk ? 2 : 0) }
+  const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols: cols + (cyberpunk ? 6 : 0), rows: rows + (cyberpunk ? 2 : 0) }
   const totalCols = grid.cols + 2 + WATER_MARGIN * 2
   const totalRows = grid.rows + 2 + WATER_MARGIN * 2
   const decorLand = new Set([...shape.bumps, ...shape.islets].map(([x, y]) => `${x},${y}`))
@@ -66,9 +66,19 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
     const row = Math.floor(index / cols)
     const col = index % cols
     if (!cyberpunk) return { x: grid.x + col, y: grid.y + row }
-    if (row >= 7) return { x: grid.x + col + 3, y: grid.y + row + 2 }
-    if (row === 6) return { x: grid.x + col + 1, y: grid.y + row + 1 }
-    return { x: grid.x + col, y: grid.y + row }
+    // La principal rota su topología 6×8 a una masa vertical 8×6 y desplaza
+    // franjas enteras para que la propia zona construible forme entrantes.
+    if (row < 6) {
+      const mainRowShift = [2, 2, 0, 0, 1, 1, 0, 0]
+      return { x: grid.x + row + mainRowShift[col], y: grid.y + col }
+    }
+    // La isla secundaria rota la topología 3×8 a una silueta vertical 8×3.
+    // Los pequeños desplazamientos laterales evitan otro rectángulo perfecto.
+    if (row >= 7) {
+      const secondaryRowShift = [1, 1, 0, 0, 0, 1, 1, 0]
+      return { x: grid.x + 11 + (row - 7) + secondaryRowShift[col], y: grid.y + 2 + col }
+    }
+    return { x: grid.x, y: grid.y + row }
   }
   const indexByPosition = new Map<string, number>()
   for (let index = 0; index < rows * cols; index += 1) {

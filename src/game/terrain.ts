@@ -14,8 +14,8 @@ export const COAST_BUILDABLE_INDICES = [
 export const COAST_BUILDABLE_SET = new Set<number>(COAST_BUILDABLE_INDICES)
 
 // Distrito Neón: 72 celdas (el doble de la costa inicial) separadas por una
-// franja completa de agua. La isla principal tiene 48 celdas y la secundaria
-// 24, desplazada en diagonal para evitar dos masas rectangulares equivalentes.
+// franja completa de agua. La presentación distribuye las 48 celdas principales
+// y las 24 secundarias en dos siluetas construibles escalonadas y no rectangulares.
 export const CYBERPUNK_BUILDABLE_INDICES = [
   0, 1, 2, 3, 4, 5, 6, 7,
   8, 9, 10, 11, 12, 13, 14, 15,
