@@ -12,6 +12,7 @@ export const CYBERPUNK_ENVIRONMENT: Environment = {
     5: '#63a8b8',
     6: '#554c6d',
     7: '#73508c',
+    8: '#63a8b8',
   },
   recolor: { B: 'P', b: 'C', E: 'C', e: 'p', O: 'R', Y: 'C', R: 'P', r: 'p', T: 'D', t: 'G' },
   decoration: 'pylon',

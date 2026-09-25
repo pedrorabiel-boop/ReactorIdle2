@@ -113,6 +113,21 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   const joystickVectorRef = useRef({ x: 0, y: 0 })
   const joystickFrameRef = useRef<number | null>(null)
   const previousZoomRef = useRef(zoom)
+  const stageRef = useRef<HTMLDivElement>(null)
+  // Desplazamiento real del escenario dentro del scroll: cambia con el zoom y
+  // con el ancho de la ventana, porque el escenario se centra cuando cabe.
+  const stageOffsetRef = useRef({ left: 16, top: 110 })
+
+  // Alinea el empapelado de mar del viewport con los tiles de agua del mundo.
+  function syncSea() {
+    const viewport = viewportRef.current
+    const stage = stageRef.current
+    if (!viewport || !stage) return
+    stageOffsetRef.current = { left: stage.offsetLeft, top: stage.offsetTop }
+    viewport.style.setProperty('--sea-x', `${stage.offsetLeft}px`)
+    viewport.style.setProperty('--sea-y', `${stage.offsetTop}px`)
+    viewport.style.setProperty('--sea-size', `${TILE * zoom}px`)
+  }
   const changeZoom = (delta: number) => setZoom((current) => Math.max(0.6, Math.min(1.6, Math.round((current + delta) * 10) / 10)))
   const terrainTiles = useMemo(
     () => island.tiles.map((tile) => {
@@ -188,8 +203,9 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   useLayoutEffect(() => {
     const viewport = viewportRef.current
     if (!viewport) return
-    const gridCenterX = (island.grid.x + island.grid.cols / 2) * TILE * zoom
-    const gridCenterY = (island.grid.y + island.grid.rows / 2) * TILE * zoom
+    const { left, top } = stageOffsetRef.current
+    const gridCenterX = left + (island.grid.x + island.grid.cols / 2) * TILE * zoom
+    const gridCenterY = top + (island.grid.y + island.grid.rows / 2) * TILE * zoom
     viewport.scrollLeft = gridCenterX - viewport.clientWidth / 2
     viewport.scrollTop = gridCenterY - viewport.clientHeight / 2 + 40
   }, [game.activeSector])
@@ -200,14 +216,26 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     const viewport = viewportRef.current
     const previousZoom = previousZoomRef.current
     if (!viewport || previousZoom === zoom) return
-    const marginLeft = 16
-    const marginTop = 110
-    const worldX = (viewport.scrollLeft + viewport.clientWidth / 2 - marginLeft) / previousZoom
-    const worldY = (viewport.scrollTop + viewport.clientHeight / 2 - marginTop) / previousZoom
-    viewport.scrollLeft = marginLeft + worldX * zoom - viewport.clientWidth / 2
-    viewport.scrollTop = marginTop + worldY * zoom - viewport.clientHeight / 2
+    const previous = stageOffsetRef.current
+    const worldX = (viewport.scrollLeft + viewport.clientWidth / 2 - previous.left) / previousZoom
+    const worldY = (viewport.scrollTop + viewport.clientHeight / 2 - previous.top) / previousZoom
+    syncSea()
+    const current = stageOffsetRef.current
+    viewport.scrollLeft = current.left + worldX * zoom - viewport.clientWidth / 2
+    viewport.scrollTop = current.top + worldY * zoom - viewport.clientHeight / 2
     previousZoomRef.current = zoom
   }, [zoom])
+
+  // Mantener el mar alineado al montar, al cambiar de isla o zoom y al
+  // redimensionar la ventana (el centrado del escenario depende del ancho).
+  useLayoutEffect(() => {
+    syncSea()
+    const viewport = viewportRef.current
+    if (!viewport || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(syncSea)
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [island, zoom])
 
   // Al inspeccionar, asegurar que la pieza quede visible por encima del panel inferior.
   useEffect(() => {
@@ -230,7 +258,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   return (
     <div className={`viewport ${armed ? 'armed' : ''} mode-${toolMode}`} ref={viewportRef}>
       <div className={`zoom-controls frame ${minimalUi ? 'hidden' : ''}`} role="group" aria-label="Zoom del mapa"><button onClick={() => changeZoom(-0.1)} disabled={zoom <= 0.6}>−</button><span>{Math.round(zoom * 100)}%</span><button onClick={() => changeZoom(0.1)} disabled={zoom >= 1.6}>+</button></div>
-      <div className="world-stage" style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
+      <div className="world-stage" ref={stageRef} style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
       <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${zoom})` }} onPointerMove={onGridPointerMove}>
         <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} />
         {island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => {

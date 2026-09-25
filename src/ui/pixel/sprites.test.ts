@@ -16,7 +16,7 @@ describe('pixel sprites', () => {
     expect(SPRITES.pipe2).not.toEqual(SPRITES.pipe)
   })
 
-  it('marks only open-water tiles so the cyberpunk texture can be dimmed independently', () => {
+  it('aisla el brillo del mar en todos los tiles de agua para poder atenuarlo por igual', () => {
     const markup = renderToStaticMarkup(createElement(TerrainLayer, {
       cols: 2,
       rows: 1,
@@ -27,6 +27,11 @@ describe('pixel sprites', () => {
       ],
     }))
 
-    expect(markup.match(/terrain-water-open/g)).toHaveLength(1)
+    // Mar abierto y transición a tierra llevan la misma capa de brillo…
+    expect(markup.match(/sea-sparkle/g)).toHaveLength(2)
+    // …y la espuma de la costa queda fuera de ella, en la capa opaca.
+    const transition = markup.slice(markup.indexOf('translate(16 0)'))
+    expect(transition).toContain('var(--px-8)')
+    expect(transition.slice(0, transition.indexOf('sea-sparkle'))).not.toContain('var(--px-5)')
   })
 })

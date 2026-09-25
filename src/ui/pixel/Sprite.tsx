@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { ENVIRONMENTS, envCssVars, rowsToRects, SPRITES, terrainRows, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
+import { ENVIRONMENTS, envCssVars, rowsToRects, SPRITES, terrainRows, toDataUri, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
 
 const SYMBOL_PREFIX = 'px-'
 
@@ -43,13 +43,23 @@ interface TerrainLayerProps {
   tileSize: number
 }
 
-const terrainCache = new Map<string, string>()
+const terrainCache = new Map<string, { base: string; sparkle: string }>()
 
-function terrainRects(kind: TerrainKind, neighbors: Neighbors): string {
+/**
+ * Separa el brillo del mar abierto (color 5) del resto del tile para poder
+ * atenuarlo por CSS en cualquier tile, también en los de transición a tierra.
+ * La espuma de la costa usa el color 8 y se queda en la capa opaca.
+ */
+function terrainRects(kind: TerrainKind, neighbors: Neighbors): { base: string; sparkle: string } {
   const key = kind === 'water' ? `water:${['n', 'e', 's', 'w', 'ne', 'nw', 'se', 'sw'].map((k) => (neighbors[k as keyof Neighbors] === 'land' ? 1 : 0)).join('')}` : kind
   let rects = terrainCache.get(key)
   if (!rects) {
-    rects = rowsToRects(terrainRows(kind, neighbors), undefined, true)
+    const rows = terrainRows(kind, neighbors)
+    const mask = (keep: boolean) => rows.map((row) => [...row].map((ch) => (ch === '5') === keep ? ch : '.').join(''))
+    rects = {
+      base: rowsToRects(mask(false), undefined, true),
+      sparkle: rowsToRects(mask(true), undefined, true),
+    }
     terrainCache.set(key, rects)
   }
   return rects
@@ -63,9 +73,9 @@ function terrainRects(kind: TerrainKind, neighbors: Neighbors): string {
 export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize }: TerrainLayerProps) {
   const markup = useMemo(() => tiles.map((tile) => {
     const decor = tile.decor ? `<use href="#${SYMBOL_PREFIX}${tile.decor}" width="16" height="16"/>` : ''
-    const isOpenWater = tile.kind === 'water' && !Object.values(tile.neighbors).includes('land')
-    const className = isOpenWater ? ' class="terrain-water-open"' : ''
-    return `<g${className} transform="translate(${tile.x * 16} ${tile.y * 16})">${terrainRects(tile.kind, tile.neighbors)}${decor}</g>`
+    const { base, sparkle } = terrainRects(tile.kind, tile.neighbors)
+    const sea = sparkle ? `<g class="sea-sparkle">${sparkle}</g>` : ''
+    return `<g transform="translate(${tile.x * 16} ${tile.y * 16})">${base}${sea}${decor}</g>`
   }).join(''), [tiles])
   return (
     <svg
@@ -89,5 +99,7 @@ export function environmentStyle(env: EnvironmentKey | Environment): Record<stri
     style[name] = value
   }
   style['--glow'] = environment.glow
+  // Tile de mar abierto para empapelar todo el viewport detrás de la isla.
+  style['--sea'] = `url("${toDataUri('water', environment)}")`
   return style
 }

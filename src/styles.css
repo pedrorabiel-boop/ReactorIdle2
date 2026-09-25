@@ -44,8 +44,9 @@ h2, h3, p { margin: 0; }
 .app { position: fixed; inset: 0; background: var(--px-4); }
 .app.env-futuristic { background: radial-gradient(circle at 50% 40%, #21133d 0, #080b22 62%, #03040f 100%); }
 .env-futuristic .world { background: var(--px-4); box-shadow: 0 0 70px var(--glow); }
+.env-futuristic .viewport { background-image: none; }
 .env-futuristic .terrain-layer { filter: drop-shadow(0 0 5px rgba(99,168,184,.12)); }
-.env-futuristic .terrain-water-open { opacity: .08; }
+.env-futuristic .sea-sparkle { opacity: .08; }
 
 /* ─── Marco pixel reutilizable ─── */
 .frame { background: var(--panel); border: 3px solid var(--edge); border-radius: 6px; box-shadow: inset -3px -3px 0 rgba(0,0,0,.35), inset 3px 3px 0 rgba(255,255,255,.06), 0 4px 0 rgba(0,0,0,.4); }
@@ -62,9 +63,12 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .text-btn { display: block; margin: 14px auto 4px; border: 0; background: transparent; font-size: 12px; text-decoration: underline; }
 
 /* ─── Mapa ─── */
-.viewport { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.viewport { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  /* El mar cubre toda la pantalla: el tile se repite alineado con el mundo y se desplaza junto a él. */
+  background-color: var(--px-4); background-image: var(--sea, none); background-repeat: repeat; background-attachment: local;
+  background-position: var(--sea-x, 0px) var(--sea-y, 0px); background-size: var(--sea-size, 48px) var(--sea-size, 48px); }
 .viewport::-webkit-scrollbar { display: none; }
-.world-stage { position: relative; margin: 110px 16px 240px; }
+.world-stage { position: relative; margin: 110px auto 240px; }
 .world { position: relative; background: var(--px-4); transform-origin: 0 0; }
 .viewport.armed:not(.mode-inspect) .world { touch-action: none; }
 .zoom-controls { position: sticky; z-index: 8; top: calc(104px + var(--safe-top)); left: calc(100% - 116px); width: 108px; height: 34px; display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; background: var(--panel-2); }

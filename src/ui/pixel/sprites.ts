@@ -39,29 +39,30 @@ export const PALETTE = {
   2: '#79d94a', // land speckle
   3: '#efe1a0', // shore
   4: '#38c3ea', // water
-  5: '#86e3f7', // water highlight / foam
+  5: '#86e3f7', // brillo del mar abierto
   6: '#a4f07a', // land edge (más claro que el pasto)
   7: '#cdb877', // shore edge
+  8: '#86e3f7', // espuma de costa (siempre opaca, aunque el mar se atenúe)
 }
 
 export const ENVIRONMENTS: Record<EnvironmentKey, Environment> = {
   terrestrial: {
     name: 'Terrícola',
-    terrain: { 1: '#5fc531', 2: '#79d94a', 3: '#efe1a0', 4: '#38c3ea', 5: '#86e3f7', 6: '#a4f07a', 7: '#cdb877' },
+    terrain: { 1: '#5fc531', 2: '#79d94a', 3: '#efe1a0', 4: '#38c3ea', 5: '#86e3f7', 6: '#a4f07a', 7: '#cdb877', 8: '#86e3f7' },
     recolor: {},
     decoration: 'tree',
     glow: 'rgba(255,255,255,.0)',
   },
   alien: {
     name: 'Alienígena',
-    terrain: { 1: '#2f7f57', 2: '#45a36e', 3: '#79f0d0', 4: '#2c2f9c', 5: '#5ff3e6', 6: '#7fd9a6', 7: '#3fbfa0' },
+    terrain: { 1: '#2f7f57', 2: '#45a36e', 3: '#79f0d0', 4: '#2c2f9c', 5: '#5ff3e6', 6: '#7fd9a6', 7: '#3fbfa0', 8: '#5ff3e6' },
     recolor: { B: 'C', b: 'p', O: 'P', Y: 'p', R: 'C', E: 'C', e: 'p' },
     decoration: 'mushroom',
     glow: 'rgba(95,243,230,.35)',
   },
   futuristic: {
     name: 'Futurista',
-    terrain: { 1: '#6f7a88', 2: '#818d9b', 3: '#63e6ff', 4: '#1e8fd8', 5: '#9df0ff', 6: '#b6c1cf', 7: '#2fb3d9' },
+    terrain: { 1: '#6f7a88', 2: '#818d9b', 3: '#63e6ff', 4: '#1e8fd8', 5: '#9df0ff', 6: '#b6c1cf', 7: '#2fb3d9', 8: '#9df0ff' },
     recolor: { E: 'C', e: 'b', R: 'O', r: 'Y' },
     decoration: 'pylon',
     glow: 'rgba(99,230,255,.35)',
@@ -933,7 +934,7 @@ export function terrainRows(kind: TerrainKind, neighbors: Neighbors = {}): strin
       const around = [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)]
       if (pixel === 'grass') row += '1'
       else if (pixel === 'sand') row += around.includes('land') || around.includes('grass') ? '6' : around.includes('water') ? '7' : '3'
-      else row += around.includes('sand') ? '5' : SPRITES.water[y][x]
+      else row += around.includes('sand') ? '8' : SPRITES.water[y][x]
     }
     rows.push(row)
   }
