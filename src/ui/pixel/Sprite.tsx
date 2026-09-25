@@ -63,7 +63,9 @@ function terrainRects(kind: TerrainKind, neighbors: Neighbors): string {
 export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize }: TerrainLayerProps) {
   const markup = useMemo(() => tiles.map((tile) => {
     const decor = tile.decor ? `<use href="#${SYMBOL_PREFIX}${tile.decor}" width="16" height="16"/>` : ''
-    return `<g transform="translate(${tile.x * 16} ${tile.y * 16})">${terrainRects(tile.kind, tile.neighbors)}${decor}</g>`
+    const isOpenWater = tile.kind === 'water' && !Object.values(tile.neighbors).includes('land')
+    const className = isOpenWater ? ' class="terrain-water-open"' : ''
+    return `<g${className} transform="translate(${tile.x * 16} ${tile.y * 16})">${terrainRects(tile.kind, tile.neighbors)}${decor}</g>`
   }).join(''), [tiles])
   return (
     <svg

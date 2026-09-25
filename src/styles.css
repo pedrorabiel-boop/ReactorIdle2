@@ -44,7 +44,8 @@ h2, h3, p { margin: 0; }
 .app { position: fixed; inset: 0; background: var(--px-4); }
 .app.env-futuristic { background: radial-gradient(circle at 50% 40%, #21133d 0, #080b22 62%, #03040f 100%); }
 .env-futuristic .world { background: var(--px-4); box-shadow: 0 0 70px var(--glow); }
-.env-futuristic .terrain-layer { filter: drop-shadow(0 0 5px rgba(32,223,243,.22)); }
+.env-futuristic .terrain-layer { filter: drop-shadow(0 0 5px rgba(99,168,184,.12)); }
+.env-futuristic .terrain-water-open { opacity: .08; }
 
 /* ─── Marco pixel reutilizable ─── */
 .frame { background: var(--panel); border: 3px solid var(--edge); border-radius: 6px; box-shadow: inset -3px -3px 0 rgba(0,0,0,.35), inset 3px 3px 0 rgba(255,255,255,.06), 0 4px 0 rgba(0,0,0,.4); }
