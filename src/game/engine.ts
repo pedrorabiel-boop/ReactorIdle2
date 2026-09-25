@@ -35,8 +35,8 @@ export function createInitialState(debugInput = createDefaultDebugSettings()): G
 export function adjacentIndices(index: number, rows: number, cols: number): number[] { const row = Math.floor(index / cols); const col = index % cols; return [row > 0 ? index - cols : -1, row < rows - 1 ? index + cols : -1, col > 0 ? index - 1 : -1, col < cols - 1 ? index + 1 : -1].filter((value) => value >= 0) }
 export const isReactorKind = (kind: ComponentKind) => REACTORS.has(kind)
 export const usesAutonomy = (kind: ComponentKind) => LIFETIME_PRODUCERS.has(kind)
-export function isComponentUnlocked(state: GameState, kind: ComponentKind): boolean { const tech = COMPONENTS[kind].tech; return !tech || state.unlockedTechs[tech] }
-export function isComponentVisible(state: GameState, kind: ComponentKind): boolean { if (kind === 'sales') return state.totalEnergySold >= 5 || state.lastReport.wastedEnergy > 0; if (kind === 'research') return state.totalCreditsEarned >= 50; return kind === 'wind' || Boolean(COMPONENTS[kind].tech) }
+export function isComponentUnlocked(state: GameState, kind: ComponentKind): boolean { if (state.debug.enabled && state.debug.unlockAllBuildings) return true; const tech = COMPONENTS[kind].tech; return !tech || state.unlockedTechs[tech] }
+export function isComponentVisible(state: GameState, kind: ComponentKind): boolean { if (state.debug.enabled && state.debug.unlockAllBuildings) return true; if (kind === 'sales') return state.totalEnergySold >= 5 || state.lastReport.wastedEnergy > 0; if (kind === 'research') return state.totalCreditsEarned >= 50; return kind === 'wind' || Boolean(COMPONENTS[kind].tech) }
 export const isSectorUnlocked = (state: GameState, sector: SectorKey) => state.ownedSectors[sector]
 
 function makeTile(state: GameState, kind: ComponentKind, index: number): Tile { return { id: `${kind}-${state.tick}-${index}`, kind, heat: 0, enabled: true, damaged: false, flow: 0, fuel: fuelCapacity(state, kind), autoRefuel: false } }

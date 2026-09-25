@@ -10,6 +10,7 @@ export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 
 export interface DebugSettings {
   enabled: boolean
   infiniteMoney: boolean
+  unlockAllBuildings: boolean
   initialCredits: number
   componentValues: Record<ComponentKind, Partial<Record<ComponentNumericKey, number>>>
   technologyCosts: Record<TechKey, number>

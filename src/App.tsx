@@ -84,7 +84,7 @@ function App() {
   async function copySave() { await navigator.clipboard.writeText(exportGame(game)); setToast('Partida v2 copiada.') }
   function restoreSave() { const restored = importGame(importRef.current?.value ?? ''); if (!restored) { setToast('Código incompatible o inválido; solo se admiten partidas v2.'); return } replaceGame(restored); clearHistory(); closeSheet(); setToast('Partida importada.') }
   function resetGame() { if (!window.confirm('¿Reiniciar toda la planta v2?')) return; const debug = gameRef.current.debug; clearGame(); replaceGame(createInitialState(debug)); clearHistory(); closeSheet() }
-  function changeDebug(settings: GameState['debug']) { replaceGame(withDebugSettings(gameRef.current, settings)) }
+  function changeDebug(settings: GameState['debug']) { const changed = withDebugSettings(gameRef.current, settings); replaceGame(isComponentUnlocked(changed, changed.selectedKind) ? changed : { ...changed, selectedKind: 'wind', toolMode: 'build' }) }
   function toggleDebug() { const current = gameRef.current.debug; changeDebug({ ...current, enabled: !current.enabled }) }
   function resetDebug() { changeDebug(resetDebugTuning(gameRef.current.debug)); setToast('Valores Debug restaurados al balance oficial.') }
   function research(key: TechKey) { const next = unlockTech(gameRef.current, key); if (next === gameRef.current) return; replaceGame(next); setToast('Tecnología desbloqueada.') }

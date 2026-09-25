@@ -50,7 +50,7 @@ export function createDefaultDebugSettings(): DebugSettings {
   })) as DebugSettings['componentValues']
   const economy = Object.fromEntries(ECONOMY_DEBUG_FIELDS.map(({ key }) => [key, BASE_ECONOMY[key]])) as DebugSettings['economy']
   const upgradeBaseCosts = Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, { ...UPGRADE_BASE_COSTS[kind] }])) as DebugSettings['upgradeBaseCosts']
-  return { enabled: false, infiniteMoney: false, initialCredits: BASE_ECONOMY.startingCredits, componentValues, technologyCosts: { ...BASE_TECH_COSTS }, autoRebuildCosts: { ...BASE_AUTO_REBUILD }, economy, upgradeBaseCosts }
+  return { enabled: false, infiniteMoney: false, unlockAllBuildings: false, initialCredits: BASE_ECONOMY.startingCredits, componentValues, technologyCosts: { ...BASE_TECH_COSTS }, autoRebuildCosts: { ...BASE_AUTO_REBUILD }, economy, upgradeBaseCosts }
 }
 
 export function normalizeDebugSettings(value: unknown): DebugSettings {
@@ -75,7 +75,7 @@ export function normalizeDebugSettings(value: unknown): DebugSettings {
     upgradeBaseCosts[kind] = { ...defaults.upgradeBaseCosts[kind] }
     for (const track of ['output', 'capacity', 'autonomy'] as UpgradeTrack[]) upgradeBaseCosts[kind][track] = finite(source.upgradeBaseCosts?.[kind]?.[track], upgradeBaseCosts[kind][track])
   }
-  return { enabled: Boolean(source.enabled), infiniteMoney: Boolean(source.infiniteMoney), initialCredits: finite(source.initialCredits, defaults.initialCredits), componentValues, technologyCosts, autoRebuildCosts, economy, upgradeBaseCosts }
+  return { enabled: Boolean(source.enabled), infiniteMoney: Boolean(source.infiniteMoney), unlockAllBuildings: Boolean(source.unlockAllBuildings), initialCredits: finite(source.initialCredits, defaults.initialCredits), componentValues, technologyCosts, autoRebuildCosts, economy, upgradeBaseCosts }
 }
 
 /** Applies a save-scoped debug balance to the runtime catalog; disabling restores official values. */
@@ -98,7 +98,7 @@ export function withDebugSettings(state: GameState, value: DebugSettings): GameS
 }
 
 export function resetDebugTuning(current: DebugSettings): DebugSettings {
-  return { ...createDefaultDebugSettings(), enabled: current.enabled, infiniteMoney: current.infiniteMoney }
+  return { ...createDefaultDebugSettings(), enabled: current.enabled, infiniteMoney: current.infiniteMoney, unlockAllBuildings: current.unlockAllBuildings }
 }
 
 export const hasInfiniteMoney = (state: GameState) => state.debug.enabled && state.debug.infiniteMoney

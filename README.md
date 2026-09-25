@@ -36,7 +36,7 @@ La planta es una isla pixel art que ocupa toda la pantalla, se desplaza en horiz
 
 ## Modo Debug
 
-Desde el **Menú** se puede activar un sandbox de balance guardado junto con la partida. Su editor permite habilitar dinero infinito, modificar créditos y RP actuales, elegir el dinero inicial de un reinicio y ajustar costos, producción, calor, autonomía, almacenamiento, ventas, investigación, mejoras, tecnologías y `Auto rebuild`. Desactivar Debug restaura inmediatamente el balance oficial sin perder la configuración personalizada, para poder alternar entre prueba y juego normal.
+Desde el **Menú** se puede activar un sandbox de balance guardado junto con la partida. Su editor permite habilitar dinero infinito, desbloquear temporalmente todas las torres, modificar créditos y RP actuales, elegir el dinero inicial de un reinicio y ajustar costos, producción, calor, autonomía, almacenamiento, ventas, investigación, mejoras, tecnologías y `Auto rebuild`. El desbloqueo Sandbox no compra investigaciones ni modifica permanentemente el árbol tecnológico. Desactivar Debug restaura inmediatamente el balance y los bloqueos oficiales sin perder la configuración personalizada, para poder alternar entre prueba y juego normal.
 
 Los sprites (16×16) viven en `src/ui/pixel/sprites.ts` como mapas ASCII; el terreno usa autotiling para dibujar costas onduladas y playas alrededor de la tierra. Las paletas alienígena y futurista se conservan para una futura versión del prestigio. `npm run mockup` regenera `docs/mockup/index.html`.
 

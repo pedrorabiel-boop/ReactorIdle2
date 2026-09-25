@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
 import { applyDebugSettings, createDefaultDebugSettings, hasInfiniteMoney, withDebugSettings } from './debug'
-import { createInitialState, placeTile, simulateTick } from './engine'
+import { createInitialState, isComponentUnlocked, isComponentVisible, placeTile, simulateTick } from './engine'
 import { normalizeGameState } from './persistence'
 import { canUnlockTech, componentCapacity, conversionRate, directEnergyRate, upgradeBuildingTrack, upgradeCost } from './research'
 
@@ -11,8 +11,29 @@ describe('debug balance sandbox', () => {
   it('is disabled by default and restores the official balance', () => {
     const state = createInitialState()
     expect(state.debug.enabled).toBe(false)
+    expect(state.debug.unlockAllBuildings).toBe(false)
     expect(hasInfiniteMoney(state)).toBe(false)
     expect(COMPONENTS.wind.directEnergy).toBe(0.2)
+  })
+
+  it('temporarily unlocks and reveals every building without purchasing technologies', () => {
+    const debug = createDefaultDebugSettings()
+    debug.enabled = true
+    debug.infiniteMoney = true
+    debug.unlockAllBuildings = true
+    let state = createInitialState(debug)
+    expect(state.unlockedTechs.fusion).toBe(false)
+    expect(isComponentUnlocked(state, 'pipe2')).toBe(true)
+    expect(isComponentVisible(state, 'research')).toBe(true)
+    state = placeTile(state, 0, 'pipe2')
+    expect(state.tiles[0]?.kind).toBe('pipe2')
+    expect(state.unlockedTechs.fusion).toBe(false)
+
+    state = withDebugSettings(state, { ...state.debug, enabled: false })
+    expect(isComponentUnlocked(state, 'pipe2')).toBe(false)
+    expect(isComponentVisible(state, 'research')).toBe(false)
+    expect(placeTile(state, 1, 'pipe2')).toBe(state)
+    expect(state.tiles[0]?.kind).toBe('pipe2')
   })
 
   it('uses the configured initial money for a new debug game', () => {
