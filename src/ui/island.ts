@@ -34,10 +34,17 @@ const SHAPES: Record<SectorKey, { bumps: Array<[number, number]>; islets: Array<
     islets: [[-3, 11], [-2, 11], [-2, 12], [10, -3], [11, -3], [11, -2], [-3, 3], [10, 12]],
   },
   desert: {
-    bumps: [[2, -1], [5, -1], [-1, 1], [-1, 3], [8, 1], [1, 5], [6, 5], [2, 7], [7, 7], [0, 9], [9, 10], [3, 12], [6, 12]],
-    islets: [[-3, 6], [-2, 6], [10, 4], [11, 4], [-2, 13], [10, 14], [11, 14], [11, 13]],
+    bumps: [[1, -1], [2, -1], [5, -1], [-1, 1], [-1, 3], [8, 2], [8, 4], [1, 6], [5, 6], [7, 6], [4, 8], [8, 8], [2, 9], [2, 11], [11, 10], [11, 11], [3, 12], [6, 12], [9, 12], [10, 12]],
+    islets: [[-3, 7], [-2, 7], [10, 5], [11, 5], [-2, 13], [10, 15], [11, 15], [12, 14]],
   },
 }
+
+const CYBERPUNK_INTERIOR_DECOR = new Map<number, IslandTile['decor']>([
+  [10, 'ambient'],
+  [29, 'rock'],
+  [43, 'ambient'],
+  [68, 'rock'],
+])
 
 function hash(x: number, y: number): number {
   let h = (x * 73856093) ^ (y * 19349663)
@@ -48,7 +55,7 @@ function hash(x: number, y: number): number {
 export function buildIsland(rows: number, cols: number, sector: SectorKey, occupiedIndices: number[] = []): Island {
   const shape = SHAPES[sector]
   const cyberpunk = sector === 'desert'
-  const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols: cols + (cyberpunk ? 1 : 0), rows: rows + (cyberpunk ? 2 : 0) }
+  const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols: cols + (cyberpunk ? 3 : 0), rows: rows + (cyberpunk ? 2 : 0) }
   const totalCols = grid.cols + 2 + WATER_MARGIN * 2
   const totalRows = grid.rows + 2 + WATER_MARGIN * 2
   const decorLand = new Set([...shape.bumps, ...shape.islets].map(([x, y]) => `${x},${y}`))
@@ -59,8 +66,8 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
     const row = Math.floor(index / cols)
     const col = index % cols
     if (!cyberpunk) return { x: grid.x + col, y: grid.y + row }
-    if (row >= 6) return { x: grid.x + col + 1, y: grid.y + row + 2 }
-    if (row === 5) return { x: grid.x + col, y: grid.y + row + 1 }
+    if (row >= 7) return { x: grid.x + col + 3, y: grid.y + row + 2 }
+    if (row === 6) return { x: grid.x + col + 1, y: grid.y + row + 1 }
     return { x: grid.x + col, y: grid.y + row }
   }
   const indexByPosition = new Map<string, number>()
@@ -80,6 +87,7 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
       const gridIndex = gridIndexAt(x, y)
       let decor: IslandTile['decor'] = null
       if (kind === 'land' && gridIndex === null) decor = hash(x, y) % 4 === 0 ? 'rock' : 'ambient'
+      else if (cyberpunk && gridIndex !== null) decor = CYBERPUNK_INTERIOR_DECOR.get(gridIndex) ?? null
       const neighbors: Neighbors = kind === 'water'
         ? {
             n: kindAt(x, y - 1), e: kindAt(x + 1, y), s: kindAt(x, y + 1), w: kindAt(x - 1, y),

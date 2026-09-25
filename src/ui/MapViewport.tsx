@@ -115,8 +115,11 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   const previousZoomRef = useRef(zoom)
   const changeZoom = (delta: number) => setZoom((current) => Math.max(0.6, Math.min(1.6, Math.round((current + delta) * 10) / 10)))
   const terrainTiles = useMemo(
-    () => island.tiles.map((tile) => ({ x: tile.x, y: tile.y, kind: tile.kind, neighbors: tile.neighbors, decor: tile.decor === 'ambient' ? decoration : tile.decor })),
-    [island, decoration],
+    () => island.tiles.map((tile) => {
+      const decor = tile.gridIndex !== null && game.tiles[tile.gridIndex] ? null : tile.decor
+      return { x: tile.x, y: tile.y, kind: tile.kind, neighbors: tile.neighbors, decor: decor === 'ambient' ? decoration : decor }
+    }),
+    [island, decoration, game.tiles],
   )
 
   function updateJoystick(event: PointerEvent<HTMLButtonElement>) {

@@ -3,7 +3,7 @@ import { COMPONENTS } from './catalog'
 import { applyDebugSettings, normalizeDebugSettings } from './debug'
 import { createInitialState, emptyTickReport, isComponentUnlocked, simulateTick } from './engine'
 import type { GameState, SectorEconomy, SectorKey, Tile } from './types'
-import { COAST_BUILDABLE_INDICES, COAST_BUILDABLE_SET } from './terrain'
+import { COAST_BUILDABLE_INDICES, COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_INDICES } from './terrain'
 
 const SAVE_KEY = 'nucleus-idle-save-v2'
 const CORRUPT_BACKUP_KEY = 'nucleus-idle-v2-corrupt-backup'
@@ -20,7 +20,7 @@ export function simulateOffline(state: GameState, requestedSeconds: number): { s
 export function normalizeGameState(value: unknown): GameState | null {
   if (!value || typeof value !== 'object') return null
   const source = value as Record<string, any>
-  if (![10, 11, 12, 13, 14, 15, 16, 17, 18].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
+  if (![10, 11, 12, 13, 14, 15, 16, 17, 18, 19].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
   if (source.version < 13 && !source.buildingLevels) return null
   const sourceEconomies = source.sectorEconomies as GameState['sectorEconomies'] | undefined
   if (source.version >= 13 && (!sourceEconomies?.coast || !sourceEconomies?.desert)) return null
@@ -43,6 +43,18 @@ export function normalizeGameState(value: unknown): GameState | null {
   sectorLayouts.coast = coast
   const activeSector = source.activeSector as SectorKey
   if (activeSector === 'desert') sectorLayouts.desert = source.tiles.map(migrateTile)
+  if (source.version < 19) {
+    for (let offset = 0; offset < 8; offset += 1) {
+      const previousIndex = 48 + offset
+      const preferredIndex = 40 + offset
+      const tile = sectorLayouts.desert[previousIndex]
+      if (!tile) continue
+      const target = sectorLayouts.desert[preferredIndex] ? CYBERPUNK_BUILDABLE_INDICES.find((index) => !sectorLayouts.desert[index]) : preferredIndex
+      if (target === undefined) continue
+      sectorLayouts.desert[target] = tile
+      sectorLayouts.desert[previousIndex] = null
+    }
+  }
   if (source.version < 18) {
     const oldDesertEconomy = sourceEconomies?.desert
     sectorLayouts.desert = sectorLayouts.desert.map((tile) => {
@@ -83,7 +95,7 @@ export function normalizeGameState(value: unknown): GameState | null {
   const sectorEconomies: GameState['sectorEconomies'] = sourceEconomies ? { coast: normalizeEconomy(sourceEconomies.coast, 'coast'), desert: normalizeEconomy(sourceEconomies.desert, 'desert') } : { coast: makeLegacyEconomy('coast'), desert: makeLegacyEconomy('desert') }
   const sectorReports: GameState['sectorReports'] = source.sectorReports ?? { coast: emptyTickReport(), desert: emptyTickReport() }
   const unlockedTechs = Object.fromEntries(TECH_ORDER.map((key) => [key, Boolean(source.unlockedTechs[key] || (key === 'thorium' && source.version < 15 && source.unlockedTechs.automation))])) as GameState['unlockedTechs']
-  const normalized = { ...source, version: 18, tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
+  const normalized = { ...source, version: 19, tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
   const clean = normalized as Record<string, any>
   delete clean.energyStored; delete clean.buildingLevels; delete clean.capacityLevels; delete clean.autonomyLevels
   return normalized as GameState

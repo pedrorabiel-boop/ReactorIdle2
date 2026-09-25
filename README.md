@@ -23,7 +23,7 @@ La red térmica usa difusión resistiva sobre el grafo ortogonal de reactores, t
 
 ## Interfaz pixel art
 
-La planta ocupa toda la pantalla, se desplaza en horizontal y vertical y permite zoom de 60 % a 160 %. La costa inicial tiene 36 celdas en una silueta irregular. El segundo sector es el Distrito Neón: una región cyberpunk nocturna de 72 celdas construibles, dividida en dos islas de 40 y 32 celdas, con agua oscura, bordes de neón, pilones urbanos y una variación cromática tenue de los edificios. Sobre el mapa flotan el HUD superior (créditos, banco local, ciencia y calor cuando hay térmica) y la barra de pestañas inferior:
+La planta ocupa toda la pantalla, se desplaza en horizontal y vertical y permite zoom de 60 % a 160 %. La costa inicial tiene 36 celdas en una silueta irregular. El segundo sector es el Distrito Neón: una región cyberpunk nocturna de 72 celdas construibles, dividida en una isla principal de 48 celdas y otra diagonal de 24, con costa irregular, obstáculos interiores, agua oscura, bordes de neón, pilones urbanos y una variación cromática tenue de los edificios. Sobre el mapa flotan el HUD superior (créditos, banco local, ciencia y calor cuando hay térmica) y la barra de pestañas inferior:
 
 - **Construir** abre la bandeja de piezas ya desbloqueadas. Al elegir una pieza, la interfaz se despeja y queda solo **Terminar**: toca una casilla o arrastra para construir y reconstruir varias torres caducadas. Desde la bandeja también se activa **Demoler** y se puede **Deshacer** hasta 20 acciones.
 - Tocar cualquier edificio abre su inspector directamente para consultar calor, autonomía y averías, apagar, renovar, reparar o demoler.

@@ -37,7 +37,7 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 18; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 19; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
