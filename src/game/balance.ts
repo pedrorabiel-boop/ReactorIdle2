@@ -7,7 +7,7 @@ export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; 
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
   thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, toda la red térmica, controlador, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
   fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea el reactor de fusión, la Turbina II y la Tubería II sin alterar la infraestructura existente.', cost: 20_000_000, requires: 'thorium' },
-  expansion: { name: 'Expansión territorial', description: 'Autoriza la compra del Distrito Neón. No requiere otras tecnologías.', cost: 100_000_000 },
+  expansion: { name: 'Expansión territorial', description: 'Autoriza la compra del Distrito Neón. No requiere otras tecnologías.', cost: 50_000_000 },
 }
 export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false }
 export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'pipe2', 'accumulator']
@@ -23,13 +23,13 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   wind: { output: 30, capacity: 26, autonomy: 23 },
   solar: { output: 80_000, capacity: 306_000, autonomy: 60_000 },
   sales: { output: 8_000, capacity: 25_500, autonomy: 22_500 },
-  sales2: { output: 8_000, capacity: 25_500, autonomy: 22_500 },
+  sales2: { output: 150_000_000, capacity: 25_500, autonomy: 22_500 },
   battery: { output: 250_000, capacity: 1_275_000, autonomy: 1_125_000 },
-  research: { output: 10_000, capacity: 12_750, autonomy: 11_250 },
-  research2: { output: 10_000, capacity: 12_750, autonomy: 11_250 },
+  research: { output: 150_000_000, capacity: 12_750, autonomy: 11_250 },
+  research2: { output: 150_000_000, capacity: 12_750, autonomy: 11_250 },
   controller: { output: 3_000_000_000, capacity: 2_550_000_000, autonomy: 2_250_000_000 },
   core: { output: 3_500_000, capacity: 2_000_000, autonomy: 2_500_000 },
-  thorium: { output: 37_500_000_000, capacity: 31_875_000_000, autonomy: 28_125_000_000 },
+  thorium: { output: 500_000_000, capacity: 100_000_000, autonomy: 400_000_000 },
   fusion: { output: 8_400_000_000_000, capacity: 7_140_000_000_000, autonomy: 6_300_000_000_000 },
   generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
   generator2: { output: 187_500_000, capacity: 112_500_000, autonomy: 33_750_000 },

@@ -12,14 +12,16 @@ const resistanceAt = () => 1
 describe('resistive thermal graph', () => {
   beforeEach(() => { clearThermalTopologyCache(); nextTileId = 0 })
 
-  it('derives resistance from the previous capacity and throughput scale', () => {
-    for (const kind of ['pipe', 'exchanger', 'accumulator'] as const) {
+  it('keeps derived storage-node resistance and the promoted pipe tuning', () => {
+    for (const kind of ['exchanger', 'accumulator'] as const) {
       const definition = COMPONENTS[kind]
       const resistance = definition.thermalResistance!
       const fullGradientTransfer = definition.capacity / 2 * (1 - Math.exp(-1 / (resistance * 2)))
       expect(fullGradientTransfer / definition.referenceTransferRate!).toBeCloseTo(1, 12)
     }
-    expect(COMPONENTS.pipe2.thermalResistance).toBe(0)
+    expect(COMPONENTS.pipe.capacity).toBe(200_000)
+    expect(COMPONENTS.pipe.thermalResistance).toBe(0.25)
+    expect(COMPONENTS.pipe2.thermalResistance).toBeCloseTo(1.233151731188216, 12)
     expect(COMPONENTS.pipe2.referenceTransferRate).toBe(12_500_000_000)
   })
 

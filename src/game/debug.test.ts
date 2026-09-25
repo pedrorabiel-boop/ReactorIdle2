@@ -128,13 +128,13 @@ describe('debug balance sandbox', () => {
     delete legacy.debug.upgradeBaseCosts.generator2
     delete legacy.debug.upgradeBaseCosts.pipe2
     const loaded = normalizeGameState(legacy)
-    expect(loaded?.debug.componentValues.sales2.salesRate).toBe(50)
-    expect(loaded?.debug.componentValues.research2.researchRate).toBe(1)
+    expect(loaded?.debug.componentValues.sales2.salesRate).toBe(30_000)
+    expect(loaded?.debug.componentValues.research2.researchRate).toBe(500)
     expect(loaded?.debug.componentValues.generator2.conversionRate).toBe(6_250_000)
     expect(loaded?.debug.componentValues.pipe2.capacity).toBe(75_000_000_000)
     expect(loaded?.debug.componentValues.pipe2.referenceTransferRate).toBe(12_500_000_000)
-    expect(loaded?.debug.upgradeBaseCosts.sales2.output).toBe(8_000)
-    expect(loaded?.debug.upgradeBaseCosts.research2.output).toBe(10_000)
+    expect(loaded?.debug.upgradeBaseCosts.sales2.output).toBe(150_000_000)
+    expect(loaded?.debug.upgradeBaseCosts.research2.output).toBe(150_000_000)
     expect(loaded?.debug.upgradeBaseCosts.generator2.output).toBe(187_500_000)
     expect(loaded?.debug.upgradeBaseCosts.pipe2.output).toBe(67_200_000_000)
   })
