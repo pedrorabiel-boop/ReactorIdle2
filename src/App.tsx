@@ -4,7 +4,7 @@ import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
 import { buyDesertSector, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
-import { canUnlockTech, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
+import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
 import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from './game/terrain'
 import type { ComponentKind, GameState, SectorKey, TechKey, ToolMode, UpgradeTrack } from './game/types'
 import { Dock, type DockTab } from './ui/Dock'
@@ -64,7 +64,7 @@ function App() {
   const inspectedRefuel = inspectedIndex === null ? 0 : refuelPrice(game, inspectedIndex) ?? 0
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
   const affordableTechs = TECH_ORDER.filter((key) => canUnlockTech(game, key)).length
-  const affordableUpgrades = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind)).flatMap((kind) => upgradeTracks(kind).map((track) => ({ kind, track }))).filter(({ kind, track }) => upgradeLevel(game, kind, track) < ECONOMY.maxBuildingLevel && canAfford(game, upgradeCost(game, kind, track))).length
+  const affordableUpgrades = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind)).flatMap((kind) => upgradeTracks(kind).map((track) => ({ kind, track }))).filter(({ kind, track }) => upgradeLevel(game, kind, track) < maxUpgradeLevel(game) && canAfford(game, upgradeCost(game, kind, track))).length
 
   function replaceGame(next: GameState) { gameRef.current = next; setGame(next) }
   function pushHistory(entry: HistoryEntry) { historyRef.current = [...historyRef.current.slice(-(MAX_UNDO_STEPS - 1)), entry]; setUndoDepth(historyRef.current.length) }

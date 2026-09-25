@@ -1,6 +1,6 @@
 import type { ComponentKind, TechKey, UpgradeTrack } from './types'
 
-export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 } as const
+export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 } as const
 export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', 'expansion']
 export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; cost: number; requires?: TechKey }> = {
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },
@@ -48,7 +48,7 @@ export function resistanceFromCapacityAndFlow(capacity: number, referenceFlow: n
   const coupling = Math.min(0.999_999, Math.max(0.000_001, referenceFlow * 2 / capacity))
   return -0.5 / Math.log(1 - coupling)
 }
-export function emptyBuildingLevels(): Record<ComponentKind, number> { return Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, 1])) as Record<ComponentKind, number> }
+export function emptyBuildingLevels(initialLevel = 1): Record<ComponentKind, number> { return Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, initialLevel])) as Record<ComponentKind, number> }
 export function emptyAutoRebuilds(): Record<ComponentKind, boolean> { return Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, false])) as Record<ComponentKind, boolean> }
 export function milestoneMultiplier(level: number): number { return level >= 10 ? 2.5 : level >= 5 ? 1.5 : 1 }
 export function levelMultiplier(level: number): number { return Math.pow(ECONOMY.outputGrowth, Math.max(0, level - 1)) * milestoneMultiplier(level) }

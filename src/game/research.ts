@@ -4,12 +4,15 @@ import { canAfford, configuredUpgradeBaseCost, spendCredits } from './debug'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
 
 const economy = (state: GameState) => state.sectorEconomies[state.activeSector]
-export const componentLevel = (state: GameState, kind: ComponentKind) => economy(state).buildingLevels[kind] ?? 1
-export const capacityLevel = (state: GameState, kind: ComponentKind) => economy(state).capacityLevels[kind] ?? 1
-export const autonomyLevel = (state: GameState, kind: ComponentKind) => economy(state).autonomyLevels[kind] ?? 1
-export const componentMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(componentLevel(state, kind))
-export const capacityMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(capacityLevel(state, kind))
-export const autonomyMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(autonomyLevel(state, kind))
+const baselineLevel = (state: GameState) => state.activeSector === 'desert' ? 0 : 1
+const effectiveLevel = (state: GameState, level: number) => level - baselineLevel(state) + 1
+export const maxUpgradeLevel = (state: GameState) => state.activeSector === 'desert' ? ECONOMY.maxCyberpunkBuildingLevel : ECONOMY.maxBuildingLevel
+export const componentLevel = (state: GameState, kind: ComponentKind) => economy(state).buildingLevels[kind] ?? baselineLevel(state)
+export const capacityLevel = (state: GameState, kind: ComponentKind) => economy(state).capacityLevels[kind] ?? baselineLevel(state)
+export const autonomyLevel = (state: GameState, kind: ComponentKind) => economy(state).autonomyLevels[kind] ?? baselineLevel(state)
+export const componentMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(effectiveLevel(state, componentLevel(state, kind)))
+export const capacityMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(effectiveLevel(state, capacityLevel(state, kind)))
+export const autonomyMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(effectiveLevel(state, autonomyLevel(state, kind)))
 export const componentCapacity = (state: GameState, kind: ComponentKind) => COMPONENTS[kind].capacity * capacityMultiplier(state, kind)
 export const fuelCapacity = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].fuelCycles ?? 0) * autonomyMultiplier(state, kind)
 export const directEnergyRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].directEnergy ?? 0) * componentMultiplier(state, kind) * (state.activeSector === 'desert' && kind === 'solar' ? 1.25 : 1)
@@ -39,17 +42,17 @@ export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
 export function upgradeLevel(state: GameState, kind: ComponentKind, track: UpgradeTrack): number { return track === 'output' ? componentLevel(state, kind) : track === 'capacity' ? capacityLevel(state, kind) : autonomyLevel(state, kind) }
 export function upgradeCost(state: GameState, kind: ComponentKind, track: UpgradeTrack = 'output'): number {
   const fallback = UPGRADE_BASE_COSTS[kind][track]
-  return Math.round(configuredUpgradeBaseCost(state, kind, track, fallback) * Math.pow(ECONOMY.upgradeGrowth, upgradeLevel(state, kind, track) - 1))
+  return Math.round(configuredUpgradeBaseCost(state, kind, track, fallback) * Math.pow(ECONOMY.upgradeGrowth, upgradeLevel(state, kind, track) - baselineLevel(state)))
 }
 export function nextUpgradeGainPercent(state: GameState, kind: ComponentKind, track: UpgradeTrack): number {
   const level = upgradeLevel(state, kind, track)
-  if (level >= ECONOMY.maxBuildingLevel) return 0
-  return (levelMultiplier(level + 1) / levelMultiplier(level) - 1) * 100
+  if (level >= maxUpgradeLevel(state)) return 0
+  return (levelMultiplier(effectiveLevel(state, level + 1)) / levelMultiplier(effectiveLevel(state, level)) - 1) * 100
 }
 export function upgradeBuildingTrack(state: GameState, kind: ComponentKind, track: UpgradeTrack): GameState {
   if (!upgradeTracks(kind).includes(track)) return state
   const level = upgradeLevel(state, kind, track); const cost = upgradeCost(state, kind, track)
-  if (level >= ECONOMY.maxBuildingLevel || !canAfford(state, cost)) return state
+  if (level >= maxUpgradeLevel(state) || !canAfford(state, cost)) return state
   const currentEconomy = economy(state)
   if (track === 'output') return { ...state, credits: spendCredits(state, cost), sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...currentEconomy, buildingLevels: { ...currentEconomy.buildingLevels, [kind]: level + 1 } } } }
   if (track === 'capacity') return { ...state, credits: spendCredits(state, cost), sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...currentEconomy, capacityLevels: { ...currentEconomy.capacityLevels, [kind]: level + 1 } } } }

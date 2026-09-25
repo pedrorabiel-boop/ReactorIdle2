@@ -5,7 +5,7 @@ export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'resea
 export type SectorKey = 'coast' | 'desert'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
 export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus'
-export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier'
+export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier'
 
 export interface DebugSettings {
   enabled: boolean
@@ -37,7 +37,7 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 17; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 18; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
