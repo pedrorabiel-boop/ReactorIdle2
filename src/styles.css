@@ -256,10 +256,15 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .missions li.done { color: var(--text); }
 .missions li.done span { background: var(--green); color: var(--ink); border-color: #2f7a26; }
 
-.manual-principles { display: grid; gap: 6px; margin-bottom: 12px; }
+.manual-welcome { padding: 10px; margin-bottom: 8px; background: linear-gradient(135deg, rgba(31,189,205,.14), rgba(255,196,61,.08)); }
+.manual-welcome strong { color: var(--gold); font: 9px var(--font-num); }
+.manual-welcome p { margin: 6px 0 0; color: var(--text); font-size: 11px; line-height: 1.45; }
+.manual-principles { display: grid; gap: 6px; margin-bottom: 14px; }
 .manual-principles article { padding: 8px 10px; background: rgba(0,0,0,.22); }
+.manual-principle-title { display: flex; align-items: center; gap: 6px; }
 .manual-principles strong { color: var(--cyan); font: 8px var(--font-num); }
 .manual-principles p { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.manual-types-title { margin: 0 0 6px; color: var(--gold); font: 9px var(--font-num); letter-spacing: .04em; }
 .manual-category { margin-top: 12px; }
 .manual-category > h3 { color: var(--gold); font: 700 13px var(--font-ui); }
 .manual-category > p { margin: 2px 0 7px; color: var(--muted); font-size: 10px; line-height: 1.35; }
