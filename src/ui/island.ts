@@ -1,5 +1,5 @@
 import type { GameState, SectorKey } from '../game/types'
-import { COAST_BUILDABLE_SET } from '../game/terrain'
+import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from '../game/terrain'
 import type { EnvironmentKey, Neighbors, TerrainKind } from './pixel/sprites'
 
 export const TILE = 48 // 16 px lógicos × 3
@@ -34,8 +34,8 @@ const SHAPES: Record<SectorKey, { bumps: Array<[number, number]>; islets: Array<
     islets: [[-3, 11], [-2, 11], [-2, 12], [10, -3], [11, -3], [11, -2], [-3, 3], [10, 12]],
   },
   desert: {
-    bumps: [[5, -1], [-1, 1], [-1, 5], [8, 2], [8, 8], [1, 10], [6, 10], [7, 10]],
-    islets: [[-3, -2], [-2, -2], [10, 3], [11, 3], [-3, 9], [10, 12], [11, 12], [11, 11]],
+    bumps: [[2, -1], [5, -1], [-1, 1], [-1, 3], [8, 1], [1, 5], [6, 5], [2, 7], [7, 7], [0, 9], [9, 10], [3, 12], [6, 12]],
+    islets: [[-3, 6], [-2, 6], [10, 4], [11, 4], [-2, 13], [10, 14], [11, 14], [11, 13]],
   },
 }
 
@@ -47,26 +47,37 @@ function hash(x: number, y: number): number {
 
 export function buildIsland(rows: number, cols: number, sector: SectorKey, occupiedIndices: number[] = []): Island {
   const shape = SHAPES[sector]
-  const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols, rows }
-  const totalCols = cols + 2 + WATER_MARGIN * 2
-  const totalRows = rows + 2 + WATER_MARGIN * 2
+  const cyberpunk = sector === 'desert'
+  const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols: cols + (cyberpunk ? 1 : 0), rows: rows + (cyberpunk ? 2 : 0) }
+  const totalCols = grid.cols + 2 + WATER_MARGIN * 2
+  const totalRows = grid.rows + 2 + WATER_MARGIN * 2
   const decorLand = new Set([...shape.bumps, ...shape.islets].map(([x, y]) => `${x},${y}`))
   const occupied = new Set(occupiedIndices)
 
-  const inGridBounds = (x: number, y: number) => x >= grid.x && x < grid.x + cols && y >= grid.y && y < grid.y + rows
-  const isBuildable = (x: number, y: number) => {
-    if (!inGridBounds(x, y)) return false
-    const index = (y - grid.y) * cols + (x - grid.x)
-    return sector === 'desert' || COAST_BUILDABLE_SET.has(index) || occupied.has(index)
+  const allowed = sector === 'coast' ? COAST_BUILDABLE_SET : CYBERPUNK_BUILDABLE_SET
+  const positionForIndex = (index: number) => {
+    const row = Math.floor(index / cols)
+    const col = index % cols
+    if (!cyberpunk) return { x: grid.x + col, y: grid.y + row }
+    if (row >= 6) return { x: grid.x + col + 1, y: grid.y + row + 2 }
+    if (row === 5) return { x: grid.x + col, y: grid.y + row + 1 }
+    return { x: grid.x + col, y: grid.y + row }
   }
-  const isLand = (x: number, y: number): boolean => isBuildable(x, y) || decorLand.has(`${x - grid.x},${y - grid.y}`)
+  const indexByPosition = new Map<string, number>()
+  for (let index = 0; index < rows * cols; index += 1) {
+    if (!allowed.has(index) && !occupied.has(index)) continue
+    const position = positionForIndex(index)
+    indexByPosition.set(`${position.x},${position.y}`, index)
+  }
+  const gridIndexAt = (x: number, y: number) => indexByPosition.get(`${x},${y}`) ?? null
+  const isLand = (x: number, y: number): boolean => gridIndexAt(x, y) !== null || decorLand.has(`${x - grid.x},${y - grid.y}`)
   const kindAt = (x: number, y: number): TerrainKind => (isLand(x, y) ? 'land' : 'water')
 
   const tiles: IslandTile[] = []
   for (let y = 0; y < totalRows; y++) {
     for (let x = 0; x < totalCols; x++) {
       const kind = kindAt(x, y)
-      const gridIndex = isBuildable(x, y) ? (y - grid.y) * cols + (x - grid.x) : null
+      const gridIndex = gridIndexAt(x, y)
       let decor: IslandTile['decor'] = null
       if (kind === 'land' && gridIndex === null) decor = hash(x, y) % 4 === 0 ? 'rock' : 'ambient'
       const neighbors: Neighbors = kind === 'water'
@@ -81,8 +92,7 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
   return { cols: totalCols, rows: totalRows, grid, tiles }
 }
 
-/** Ambiente visual según la progresión: cada reinversión cambia de piel. */
+/** Ambiente visual propio de cada región. */
 export function environmentFor(game: GameState): EnvironmentKey {
-  void game
-  return 'terrestrial'
+  return game.activeSector === 'desert' ? 'futuristic' : 'terrestrial'
 }

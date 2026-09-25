@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { ENVIRONMENTS, envCssVars, rowsToRects, SPRITES, terrainRows, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
+import { ENVIRONMENTS, envCssVars, rowsToRects, SPRITES, terrainRows, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
 
 const SYMBOL_PREFIX = 'px-'
 
@@ -79,12 +79,13 @@ export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tile
 })
 
 /** Variables CSS de la paleta para el ambiente activo. */
-export function environmentStyle(env: EnvironmentKey): Record<string, string> {
+export function environmentStyle(env: EnvironmentKey | Environment): Record<string, string> {
+  const environment = typeof env === 'string' ? ENVIRONMENTS[env] : env
   const style: Record<string, string> = {}
-  for (const decl of envCssVars(ENVIRONMENTS[env]).split(';')) {
+  for (const decl of envCssVars(environment).split(';')) {
     const [name, value] = decl.split(':')
     style[name] = value
   }
-  style['--glow'] = ENVIRONMENTS[env].glow
+  style['--glow'] = environment.glow
   return style
 }

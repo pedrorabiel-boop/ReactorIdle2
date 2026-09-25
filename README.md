@@ -23,7 +23,7 @@ La red térmica usa difusión resistiva sobre el grafo ortogonal de reactores, t
 
 ## Interfaz pixel art
 
-La planta es una isla pixel art que ocupa toda la pantalla, se desplaza en horizontal y vertical y permite zoom de 60 % a 160 %. La costa inicial tiene 36 celdas en una silueta irregular. Sobre ella flotan el HUD superior (créditos, banco local, ciencia y calor cuando hay térmica) y la barra de pestañas inferior:
+La planta ocupa toda la pantalla, se desplaza en horizontal y vertical y permite zoom de 60 % a 160 %. La costa inicial tiene 36 celdas en una silueta irregular. El segundo sector es el Distrito Neón: una región cyberpunk nocturna de 72 celdas construibles, dividida en dos islas de 40 y 32 celdas, con agua oscura, bordes de neón, pilones urbanos y una variación cromática tenue de los edificios. Sobre el mapa flotan el HUD superior (créditos, banco local, ciencia y calor cuando hay térmica) y la barra de pestañas inferior:
 
 - **Construir** abre la bandeja de piezas ya desbloqueadas. Al elegir una pieza, la interfaz se despeja y queda solo **Terminar**: toca una casilla o arrastra para construir y reconstruir varias torres caducadas. Desde la bandeja también se activa **Demoler** y se puede **Deshacer** hasta 20 acciones.
 - Tocar cualquier edificio abre su inspector directamente para consultar calor, autonomía y averías, apagar, renovar, reparar o demoler.
@@ -38,7 +38,7 @@ La planta es una isla pixel art que ocupa toda la pantalla, se desplaza en horiz
 
 Desde el **Menú** se puede activar un sandbox de balance guardado junto con la partida. Su editor permite habilitar dinero infinito, desbloquear temporalmente todas las torres, modificar créditos y RP actuales, elegir el dinero inicial de un reinicio y ajustar costos, producción, calor, autonomía, almacenamiento, ventas, investigación, mejoras, tecnologías y `Auto rebuild`. El desbloqueo Sandbox no compra investigaciones ni modifica permanentemente el árbol tecnológico. Desactivar Debug restaura inmediatamente el balance y los bloqueos oficiales sin perder la configuración personalizada, para poder alternar entre prueba y juego normal.
 
-Los sprites (16×16) viven en `src/ui/pixel/sprites.ts` como mapas ASCII; el terreno usa autotiling para dibujar costas onduladas y playas alrededor de la tierra. Las paletas alienígena y futurista se conservan para una futura versión del prestigio. `npm run mockup` regenera `docs/mockup/index.html`.
+Los sprites (16×16) viven en `src/ui/pixel/sprites.ts` como mapas ASCII; el terreno usa autotiling para dibujar costas onduladas y playas alrededor de la tierra. La paleta futurista se convirtió en la identidad cyberpunk del Distrito Neón; la paleta alienígena se conserva para una etapa futura. `npm run mockup` regenera `docs/mockup/index.html`.
 
 ## Verificación
 

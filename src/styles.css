@@ -42,6 +42,9 @@ h2, h3, p { margin: 0; }
 .hint { color: var(--muted); font-size: 12px; line-height: 1.4; }
 
 .app { position: fixed; inset: 0; background: var(--px-4); }
+.app.env-futuristic { background: radial-gradient(circle at 50% 40%, #21133d 0, #080b22 62%, #03040f 100%); }
+.env-futuristic .world { background: var(--px-4); box-shadow: 0 0 70px var(--glow); }
+.env-futuristic .terrain-layer { filter: drop-shadow(0 0 5px rgba(32,223,243,.22)); }
 
 /* ─── Marco pixel reutilizable ─── */
 .frame { background: var(--panel); border: 3px solid var(--edge); border-radius: 6px; box-shadow: inset -3px -3px 0 rgba(0,0,0,.35), inset 3px 3px 0 rgba(255,255,255,.06), 0 4px 0 rgba(0,0,0,.4); }
@@ -79,6 +82,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .cell .ghost { opacity: 0; }
 .cell.buildable:hover .ghost, .cell.buildable:focus-visible .ghost { opacity: .55; }
 .cell .piece { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.env-futuristic .cell .piece { filter: drop-shadow(0 2px 0 rgba(0,0,0,.55)) drop-shadow(0 0 2px var(--glow)); }
 .cell.core .piece, .cell.thorium .piece, .cell.fusion .piece { animation: reactor 1.6s ease-in-out infinite; }
 .cell.wind .piece { animation: bob 2.4s ease-in-out infinite; }
 .cell.off .piece { opacity: .45; filter: grayscale(.8); animation: none; }

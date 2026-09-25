@@ -5,13 +5,14 @@ import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from
 import { buyDesertSector, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { canUnlockTech, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
-import { COAST_BUILDABLE_SET } from './game/terrain'
+import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from './game/terrain'
 import type { ComponentKind, GameState, SectorKey, TechKey, ToolMode, UpgradeTrack } from './game/types'
 import { Dock, type DockTab } from './ui/Dock'
 import { formatDecimal, formatNumber } from './ui/format'
 import { Hud } from './ui/Hud'
 import { buildIsland, environmentFor } from './ui/island'
 import { MapViewport } from './ui/MapViewport'
+import { CYBERPUNK_ENVIRONMENT } from './ui/pixel/cyberpunk'
 import { environmentStyle, Sprite, SpriteDefs } from './ui/pixel/Sprite'
 import { ENVIRONMENTS } from './ui/pixel/sprites'
 import { DebugSheet } from './ui/sheets/DebugSheet'
@@ -54,7 +55,9 @@ function App() {
   useEffect(() => { const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as BeforeInstallPromptEvent) }; window.addEventListener('beforeinstallprompt', handler); return () => window.removeEventListener('beforeinstallprompt', handler) }, [])
 
   const environment = environmentFor(game)
-  const extraOccupiedIndices = game.activeSector === 'coast' ? game.tiles.flatMap((tile, index) => tile && !COAST_BUILDABLE_SET.has(index) ? [index] : []) : []
+  const environmentDefinition = environment === 'futuristic' ? CYBERPUNK_ENVIRONMENT : ENVIRONMENTS[environment]
+  const activeBuildableSet = game.activeSector === 'coast' ? COAST_BUILDABLE_SET : CYBERPUNK_BUILDABLE_SET
+  const extraOccupiedIndices = game.tiles.flatMap((tile, index) => tile && !activeBuildableSet.has(index) ? [index] : [])
   const extraOccupiedSignature = extraOccupiedIndices.join(',')
   const island = useMemo(() => buildIsland(game.rows, game.cols, game.activeSector, extraOccupiedIndices), [game.rows, game.cols, game.activeSector, extraOccupiedSignature])
   const heat = totalHeat(game)
@@ -96,10 +99,10 @@ function App() {
   function repairInspected() { if (inspectedIndex === null) return; const next = repairTile(gameRef.current, inspectedIndex); if (next === gameRef.current) { setToast('Créditos insuficientes.'); return } replaceGame(next); setToast(`Pieza reparada por ₡ ${formatNumber(inspectedRepair)}.`) }
   function sellInspected() { if (inspectedIndex !== null) { commit((state) => sellTile(state, inspectedIndex), 'Demolición'); setInspectedIndex(null) } }
   function changeSector(sector: SectorKey) { const next = switchSector(gameRef.current, sector); if (next === gameRef.current) return; replaceGame(next); clearHistory(); closeSheet() }
-  function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Isla desértica adquirida.') }
+  function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Distrito Neón adquirido.') }
 
-  return <div className={`app env-${environment}`} style={environmentStyle(environment)}><SpriteDefs />
-    <MapViewport game={game} island={island} decoration={ENVIRONMENTS[environment].decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
+  return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
+    <MapViewport game={game} island={island} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
     {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} onSellEnergy={sellEnergy} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
