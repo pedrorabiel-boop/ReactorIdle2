@@ -36,7 +36,7 @@ function App() {
   const [inspectedIndex, setInspectedIndex] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<DockTab | null>(null)
   const [buildFocus, setBuildFocus] = useState(false)
-  const [toast, setToast] = useState(loaded.recoveredCorruptSave ? 'El guardado v2 no era válido; se conservó una copia y se inició una partida segura.' : loaded.offlineSummary && loaded.offlineSeconds > 2 ? `Progreso offline ${formatNumber(loaded.offlineSeconds)}s al ${formatNumber(ECONOMY.offlineEfficiency * 100)} % · +${formatDecimal(loaded.offlineSummary.sold)} E vendidas · +₡ ${formatDecimal(loaded.offlineSummary.credits)} · +${formatDecimal(loaded.offlineSummary.research)} RP.` : '')
+  const [toast, setToast] = useState(loaded.recoveredCorruptSave ? 'El guardado v2 no era válido; se conservó una copia y se inició una partida segura.' : loaded.offlineSummary && loaded.offlineSeconds > 2 ? `Progreso offline ${formatNumber(loaded.offlineSeconds)}s · rindió ${formatNumber(loaded.offlineSummary.simulatedSeconds)}s · +${formatDecimal(loaded.offlineSummary.sold)} E vendidas · +₡ ${formatDecimal(loaded.offlineSummary.credits)} · +${formatDecimal(loaded.offlineSummary.research)} RP.` : '')
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const importRef = useRef<HTMLTextAreaElement>(null)
   const gameRef = useRef(game)

@@ -1,9 +1,9 @@
-import { TECHNOLOGIES } from '../../game/balance'
+import { OFFLINE_BANDS, offlineProductiveSeconds, TECHNOLOGIES } from '../../game/balance'
 import { COMPONENTS } from '../../game/catalog'
 import { isComponentUnlocked } from '../../game/engine'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, thermalTransferRate } from '../../game/research'
 import type { ComponentKind, GameState } from '../../game/types'
-import { formatDecimal, formatShort } from '../format'
+import { formatDecimal, formatNumber, formatShort } from '../format'
 import { Sprite } from '../pixel/Sprite'
 import { Sheet } from '../Sheet'
 import { WELCOME_TEXT, WELCOME_TITLE } from '../welcome'
@@ -72,6 +72,15 @@ function stats(game: GameState, kind: ComponentKind): string[] {
   return values
 }
 
+const hours = (seconds: number) => seconds / 3_600
+const bandRange = (index: number) => {
+  const start = OFFLINE_BANDS.slice(0, index).reduce((total, band) => total + band.seconds, 0)
+  const end = start + OFFLINE_BANDS[index].seconds
+  const label = hours(end) - hours(start) > 1 ? `Horas ${hours(start) + 1} a ${hours(end)}` : `Hora ${hours(end)}`
+  return { label, share: `${formatNumber(OFFLINE_BANDS[index].efficiency * 100)} %` }
+}
+const OFFLINE_TOTAL = offlineProductiveSeconds(Number.MAX_SAFE_INTEGER)
+
 export function ManualSheet({ game, onClose }: { game: GameState; onClose: () => void }) {
   return (
     <Sheet title="Manual" eyebrow="GUÍA DE LA PLANTA" onClose={onClose} className="manual-sheet">
@@ -103,6 +112,19 @@ export function ManualSheet({ game, onClose }: { game: GameState; onClose: () =>
           </div>
         </section>
       ))}
+
+      <h2 className="manual-types-title">MIENTRAS NO JUEGAS</h2>
+      <section className="manual-category">
+        <p>La planta sigue operando cuando cierras el juego, pero rinde menos que con la app abierta y cada hora rinde menos que la anterior. Al volver verás cuánto produjo.</p>
+        <div className="manual-offline frame">
+          {OFFLINE_BANDS.map((_, index) => {
+            const band = bandRange(index)
+            return <div key={band.label}><span>{band.label}</span><strong>{band.share}</strong></div>
+          })}
+          <div className="none"><span>Desde entonces</span><strong>0 %</strong></div>
+        </div>
+        <p>En total, una ausencia larga acumula como máximo {formatNumber(OFFLINE_TOTAL)} segundos de producción, algo menos de una hora. Conviene volver seguido: las primeras horas son, con diferencia, las más productivas.</p>
+      </section>
     </Sheet>
   )
 }
