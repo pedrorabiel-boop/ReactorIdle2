@@ -12,7 +12,11 @@ export interface OfflineSummary { simulatedSeconds: number; energy: number; cred
 export interface LoadedGame { state: GameState; offlineSeconds: number; offlineSummary: OfflineSummary | null; recoveredCorruptSave: boolean }
 
 export function simulateOffline(state: GameState, requestedSeconds: number): { state: GameState; summary: OfflineSummary } {
-  const seconds = Math.max(0, Math.min(ECONOMY.maxOfflineSeconds, Math.floor(requestedSeconds))); let next = state
+  const elapsed = Math.max(0, Math.min(ECONOMY.maxOfflineSeconds, Math.floor(requestedSeconds)))
+  // Estar fuera rinde una fracción de lo que rinde la app abierta. Se simulan
+  // solo esos ciclos, de modo que la vida útil y el combustible se gastan a la
+  // misma tasa reducida en vez de consumirse enteros por una ganancia parcial.
+  const seconds = Math.floor(elapsed * ECONOMY.offlineEfficiency); let next = state
   for (let i = 0; i < seconds; i += 1) next = simulateTick(next).state
   return { state: next, summary: { simulatedSeconds: seconds, energy: next.totalEnergy - state.totalEnergy, credits: next.credits - state.credits, research: next.researchPoints - state.researchPoints, sold: next.totalEnergySold - state.totalEnergySold } }
 }

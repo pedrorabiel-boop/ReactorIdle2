@@ -6,7 +6,7 @@ import { nextUpgradeGainPercent, upgradeCost } from './research'
 
 describe('promoted official balance', () => {
   it('matches every global value from the promoted Debug profile', () => {
-    expect(ECONOMY).toMatchObject({ startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 })
+    expect(ECONOMY).toMatchObject({ startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 43_200, offlineEfficiency: 0.1, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 })
     expect(Object.fromEntries(Object.entries(TECHNOLOGIES).map(([key, technology]) => [key, technology.cost]))).toEqual({ solar: 150, thermal: 60_000, thorium: 300_000, fusion: 20_000_000, expansion: 50_000_000 })
     expect(AUTO_REBUILD_COSTS).toEqual({ wind: 15, solar: 3_000, core: 150_000, thorium: 9_000_000, fusion: 60_000_000 })
   })

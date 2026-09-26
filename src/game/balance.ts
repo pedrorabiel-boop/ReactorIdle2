@@ -1,6 +1,6 @@
 import type { ComponentKind, TechKey, UpgradeTrack } from './types'
 
-export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 } as const
+export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 43_200, offlineEfficiency: 0.1, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 } as const
 export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', 'expansion']
 export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; cost: number; requires?: TechKey }> = {
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },

@@ -26,6 +26,7 @@ export const ECONOMY_DEBUG_FIELDS: Array<{ key: DebugEconomyKey; label: string; 
   { key: 'sellRefund', label: 'Reembolso demolición', step: 0.01 },
   { key: 'repairRate', label: 'Costo reparación', step: 0.01 },
   { key: 'maxOfflineSeconds', label: 'Máximo offline / s' },
+  { key: 'offlineEfficiency', label: 'Rendimiento offline', step: 0.05 },
   { key: 'secondIslandCost', label: 'Costo segunda isla' },
   { key: 'maxBuildingLevel', label: 'Nivel máximo · Costa' },
   { key: 'maxCyberpunkBuildingLevel', label: 'Nivel máximo · Distrito Neón' },
