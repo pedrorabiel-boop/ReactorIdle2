@@ -24,6 +24,12 @@ export function offlineProductiveSeconds(elapsedSeconds: number): number {
   return Math.floor(productive)
 }
 
+/** Tecnologías térmicas: cada una regala ticks de bonus al desbloquearse. */
+export const THERMAL_TECHS: TechKey[] = ['thermal', 'thorium', 'fusion']
+export const GIFT_TICKS_PER_THERMAL_TECH = 300
+/** Ticks extra por segundo mientras el bonus está en marcha. */
+export const BOOST_TICKS_PER_SECOND = 10
+
 export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', 'expansion']
 export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; cost: number; requires?: TechKey }> = {
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },

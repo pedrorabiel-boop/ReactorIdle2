@@ -5,9 +5,9 @@ import type { GameState } from '../game/types'
 import { formatCompact, formatDecimal, formatExact, formatNumber } from './format'
 import { Sprite } from './pixel/Sprite'
 
-interface HudProps { game: GameState; heat: number; showHeat: boolean; onSellEnergy: () => void; onOpenMenu: () => void }
+interface HudProps { game: GameState; heat: number; showHeat: boolean; onSellEnergy: () => void; onToggleBoost: () => void; onOpenMenu: () => void }
 
-export function Hud({ game, heat, showHeat, onSellEnergy, onOpenMenu }: HudProps) {
+export function Hud({ game, heat, showHeat, onSellEnergy, onToggleBoost, onOpenMenu }: HudProps) {
   const [exactResource, setExactResource] = useState<'credits' | 'energy' | 'research' | null>(null)
   const report = game.lastReport
   const stored = sectorEnergyStored(game)
@@ -35,6 +35,17 @@ export function Hud({ game, heat, showHeat, onSellEnergy, onOpenMenu }: HudProps
       <button className="sell-energy frame" data-tour="hud-sell" disabled={stored <= 0} onClick={onSellEnergy}><Sprite name="icon-coin" size={14} />Vender todo <b>{formatNumber(Math.floor(stored))} E</b></button>
       {showHeat && <div className={`res res-heat frame ${heat > 200 ? 'danger' : ''}`}><Sprite name="icon-flame" size={16} /><span className="val">{formatCompact(heat)}</span></div>}
       {report.wastedEnergy > 0 && <span className="overflow-chip frame">Exceso −{formatNumber(Math.floor(report.wastedEnergy))} E</span>}
+      {game.giftTicks > 0 && <button
+        type="button"
+        className={`boost frame ${game.boostActive ? 'on' : ''}`}
+        aria-pressed={game.boostActive}
+        aria-label={`${game.boostActive ? 'Detener' : 'Activar'} el bonus; quedan ${formatNumber(game.giftTicks)} ticks de regalo`}
+        onClick={onToggleBoost}
+      >
+        <span className="boost-play" aria-hidden="true">{game.boostActive ? '■' : '▶'}</span>
+        <b>{formatNumber(game.giftTicks)}</b>
+        <small>ticks</small>
+      </button>}
     </div>
   </header>
 }

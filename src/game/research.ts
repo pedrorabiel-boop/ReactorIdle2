@@ -1,4 +1,4 @@
-import { AUTO_REBUILD_COSTS, ECONOMY, levelMultiplier, TECHNOLOGIES, UPGRADE_BASE_COSTS } from './balance'
+import { AUTO_REBUILD_COSTS, ECONOMY, GIFT_TICKS_PER_THERMAL_TECH, TECHNOLOGIES, THERMAL_TECHS, UPGRADE_BASE_COSTS, levelMultiplier } from './balance'
 import { COMPONENTS } from './catalog'
 import { canAfford, configuredUpgradeBaseCost, spendCredits } from './debug'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
@@ -68,4 +68,9 @@ export function upgradeBuildingTrack(state: GameState, kind: ComponentKind, trac
 /** Compatibilidad interna para simuladores: mejora la producción del tipo en el mapa activo. */
 export const upgradeBuildingType = (state: GameState, kind: ComponentKind) => upgradeBuildingTrack(state, kind, 'output')
 export function canUnlockTech(state: GameState, key: TechKey): boolean { const tech = TECHNOLOGIES[key]; return !state.unlockedTechs[key] && (!tech.requires || state.unlockedTechs[tech.requires]) && state.researchPoints >= tech.cost }
-export function unlockTech(state: GameState, key: TechKey): GameState { return canUnlockTech(state, key) ? { ...state, researchPoints: state.researchPoints - TECHNOLOGIES[key].cost, unlockedTechs: { ...state.unlockedTechs, [key]: true } } : state }
+export function unlockTech(state: GameState, key: TechKey): GameState {
+  if (!canUnlockTech(state, key)) return state
+  // Cada salto térmico regala ticks de bonus para estrenar la nueva red.
+  const gift = THERMAL_TECHS.includes(key) ? GIFT_TICKS_PER_THERMAL_TECH : 0
+  return { ...state, researchPoints: state.researchPoints - TECHNOLOGIES[key].cost, unlockedTechs: { ...state.unlockedTechs, [key]: true }, giftTicks: state.giftTicks + gift }
+}

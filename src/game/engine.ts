@@ -1,5 +1,5 @@
 import { COMPONENTS } from './catalog'
-import { ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, TECHNOLOGIES, TECH_ORDER } from './balance'
+import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, TECHNOLOGIES, TECH_ORDER } from './balance'
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, thermalTransferRate } from './research'
 import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, pullHeatForConversion, pumpHeatThroughActivePipes, type ThermalSinkEdge } from './thermal'
@@ -29,7 +29,7 @@ export function createInitialState(debugInput = createDefaultDebugSettings()): G
   const coast = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const desert = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const makeEconomy = (initialLevel: number): SectorEconomy => ({ energyStored: 0, buildingLevels: emptyBuildingLevels(initialLevel), capacityLevels: emptyBuildingLevels(initialLevel), autonomyLevels: emptyBuildingLevels(initialLevel) })
-  return { version: 19, rows: 10, cols: 8, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport() }, ownedSectors: { coast: true, desert: false }, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
+  return { version: 20, rows: 10, cols: 8, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport() }, ownedSectors: { coast: true, desert: false }, giftTicks: 0, boostActive: false, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
 }
 
 export function adjacentIndices(index: number, rows: number, cols: number): number[] { const row = Math.floor(index / cols); const col = index % cols; return [row > 0 ? index - cols : -1, row < rows - 1 ? index + cols : -1, col > 0 ? index - 1 : -1, col < cols - 1 ? index + 1 : -1].filter((value) => value >= 0) }
@@ -126,6 +126,19 @@ export function simulateTick(state: GameState): { state: GameState; report: Tick
   return { state: next, report: aggregate }
 }
 export function simulateMany(state: GameState, ticks: number): GameState { let next = state; for (let i = 0; i < ticks; i += 1) next = simulateTick(next).state; return next }
+
+/**
+ * Un segundo de juego: la velocidad elegida más el impulso del bonus. Cada tick
+ * extra gasta un tick de regalo y el bonus se detiene solo al quedarse sin ellos.
+ */
+export function simulateSecond(state: GameState): GameState {
+  if (state.paused) return state
+  const boost = state.boostActive ? Math.min(BOOST_TICKS_PER_SECOND, Math.max(0, state.giftTicks)) : 0
+  const next = simulateMany(state, state.speed + boost)
+  if (!state.boostActive) return next
+  const giftTicks = Math.max(0, state.giftTicks - boost)
+  return { ...next, giftTicks, boostActive: giftTicks > 0 }
+}
 export function claimContract(state: GameState): GameState { if (state.activeContract.progress < state.activeContract.target) return state; const completed = state.contractsCompleted + 1; const nextTech = TECH_ORDER.find((key) => !state.unlockedTechs[key]); const cap = nextTech ? TECHNOLOGIES[nextTech].cost * 0.1 : Number.POSITIVE_INFINITY; const rewardResearch = Math.min(state.activeContract.rewardResearch, cap); return { ...state, credits: state.credits + state.activeContract.rewardCredits, researchPoints: state.researchPoints + rewardResearch, contractsCompleted: completed, activeContract: createContract(completed, cap) } }
 export function totalHeat(state: GameState): number { return state.tiles.reduce((sum, tile) => sum + (tile?.heat ?? 0), 0) }
 export function countKind(state: GameState, kind: ComponentKind): number { return state.tiles.filter((tile) => tile?.kind === kind).length }

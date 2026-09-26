@@ -376,3 +376,12 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .manual-offline span { font-size: 11px; color: var(--muted); }
 .manual-offline strong { font: 9px var(--font-num); color: var(--gold); }
 .manual-offline .none strong { color: var(--muted); }
+
+/* Bonus de ticks de regalo: interruptor play/stop en la esquina superior derecha. */
+.boost { margin-left: auto; display: flex; align-items: center; gap: 5px; padding: 5px 8px; background: var(--panel-2); color: var(--gold); }
+.boost .boost-play { font-size: 12px; line-height: 1; }
+.boost b { font: 9px var(--font-num); }
+.boost small { font-size: 9px; color: var(--muted); }
+.boost.on { border-color: var(--gold); box-shadow: inset -3px -3px 0 rgba(0,0,0,.35), inset 3px 3px 0 rgba(255,255,255,.06), 0 0 10px var(--gold); animation: boost-run .8s steps(2) infinite; }
+.boost.on .boost-play { color: var(--green); }
+@keyframes boost-run { 50% { border-color: var(--green); } }

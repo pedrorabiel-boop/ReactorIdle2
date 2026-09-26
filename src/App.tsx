@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
-import { buyDesertSector, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
+import { buyDesertSector, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { clearTutorialDone, isPristineGame } from './game/tutorial'
 import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
@@ -59,7 +59,7 @@ function App() {
   // Solo durante el tutorial: al levantar la primera turbina se sale del modo construir.
   useEffect(() => { if (windBuilt && tutorialStepRef.current === 'place') closeSheet() }, [windBuilt])
 
-  useEffect(() => { const timer = window.setInterval(() => setGame((current) => { const next = current.paused ? current : simulateMany(current, current.speed); gameRef.current = next; return next }), 1000); return () => clearInterval(timer) }, [])
+  useEffect(() => { const timer = window.setInterval(() => setGame((current) => { const next = simulateSecond(current); gameRef.current = next; return next }), 1000); return () => clearInterval(timer) }, [])
   useEffect(() => { const finish = (event: PointerEvent) => finishBuildStroke(event.pointerId); window.addEventListener('pointerup', finish); window.addEventListener('pointercancel', finish); return () => { window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', finish) } }, [])
   useEffect(() => saveGame(game), [game])
   useEffect(() => { gameRef.current = game }, [game])
@@ -102,7 +102,8 @@ function App() {
   function changeDebug(settings: GameState['debug']) { const changed = withDebugSettings(gameRef.current, settings); replaceGame(isComponentUnlocked(changed, changed.selectedKind) ? changed : { ...changed, selectedKind: 'wind', toolMode: 'build' }) }
   function toggleDebug() { const current = gameRef.current.debug; changeDebug({ ...current, enabled: !current.enabled }) }
   function resetDebug() { changeDebug(resetDebugTuning(gameRef.current.debug)); setToast('Valores Debug restaurados al balance oficial.') }
-  function research(key: TechKey) { const next = unlockTech(gameRef.current, key); if (next === gameRef.current) return; replaceGame(next); setToast('Tecnología desbloqueada.') }
+  function research(key: TechKey) { const before = gameRef.current; const next = unlockTech(before, key); if (next === before) return; replaceGame(next); const gift = next.giftTicks - before.giftTicks; setToast(gift > 0 ? `¡Tienes ${formatNumber(gift)} ticks de regalo!` : 'Tecnología desbloqueada.') }
+  function toggleBoost() { setGame((current) => current.giftTicks > 0 ? { ...current, boostActive: !current.boostActive } : current) }
   function upgrade(kind: ComponentKind, track: UpgradeTrack) { const price = upgradeCost(gameRef.current, kind, track); const next = upgradeBuildingTrack(gameRef.current, kind, track); if (next === gameRef.current) { setToast('Créditos insuficientes o nivel máximo.'); return } replaceGame(next); setToast(`${COMPONENTS[kind].name}: mejora aplicada a este mapa por ₡ ${formatNumber(price)}.`) }
   function sellEnergy() { const stored = sectorEnergyStored(gameRef.current); const next = sellStoredEnergy(gameRef.current); if (next === gameRef.current) return; replaceGame(next); setToast(`${formatDecimal(stored)} E vendidas por ₡ ${formatDecimal(stored)}.`) }
   function toggleInspected() { if (inspectedIndex !== null) commit((state) => toggleTile(state, inspectedIndex), 'Activación', 0) }
@@ -115,7 +116,7 @@ function App() {
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
     <MapViewport game={game} island={island} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
-    {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} onSellEnergy={sellEnergy} onOpenMenu={() => openTab('menu')} />}
+    {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
       <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`}>

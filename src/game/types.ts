@@ -37,13 +37,13 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 19; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 20; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
   activeContract: EnergyContract; contractsCompleted: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
   sectorEconomies: Record<SectorKey, SectorEconomy>; sectorReports: Record<SectorKey, TickReport>
-  ownedSectors: Record<SectorKey, boolean>; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
+  ownedSectors: Record<SectorKey, boolean>; giftTicks: number; boostActive: boolean; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
   debug: DebugSettings
 }
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { AUTO_REBUILD_COSTS, ECONOMY, LIFETIME_ORDER, TECHNOLOGIES, levelMultiplier, offlineProductiveSeconds } from './balance'
+import { AUTO_REBUILD_COSTS, BOOST_TICKS_PER_SECOND, ECONOMY, GIFT_TICKS_PER_THERMAL_TECH, LIFETIME_ORDER, TECHNOLOGIES, levelMultiplier, offlineProductiveSeconds } from './balance'
 import { COMPONENTS } from './catalog'
-import { buyDesertSector, claimContract, createInitialState, demolitionRefund, globalSalesCapacity, globalStorageCapacity, isComponentUnlocked, placeTile, refuelTile, repairTile, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, simulateTick, switchSector, totalHeat } from './engine'
+import { buyDesertSector, claimContract, createInitialState, demolitionRefund, globalSalesCapacity, globalStorageCapacity, isComponentUnlocked, placeTile, refuelTile, repairTile, sectorEnergyStored, sellStoredEnergy, sellTile, simulateMany, simulateSecond, simulateTick, switchSector, totalHeat } from './engine'
 import { importGame, normalizeGameState, simulateOffline } from './persistence'
 import { canUnlockAutoRebuild, canUnlockTech, componentCapacity, componentLevel, conversionRate, coolingRate, directEnergyRate, fuelCapacity, maxUpgradeLevel, nextUpgradeGainPercent, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, thermalTransferRate, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingType, upgradeCost } from './research'
 import type { GameState } from './types'
@@ -13,7 +13,7 @@ function unlocked(): GameState { const state = rich(); return { ...state, unlock
 function withStored(state: GameState, energyStored: number): GameState { return { ...state, sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...state.sectorEconomies[state.activeSector], energyStored } } } }
 
 describe('economy v2', () => {
-  it('starts with the promoted credits and separate resource stores', () => { const state = createInitialState(); expect(state.credits).toBe(ECONOMY.startingCredits); expect(state.credits).toBe(1); expect(sectorEnergyStored(state)).toBe(0); expect(state.researchPoints).toBe(0); expect(state.version).toBe(19) })
+  it('starts with the promoted credits and separate resource stores', () => { const state = createInitialState(); expect(state.credits).toBe(ECONOMY.startingCredits); expect(state.credits).toBe(1); expect(sectorEnergyStored(state)).toBe(0); expect(state.researchPoints).toBe(0); expect(state.version).toBe(20) })
   it('uses an irregular 36-cell coast for new games', () => { const cells = buildIsland(10, 8, 'coast').tiles.filter((tile) => tile.gridIndex !== null); expect(cells).toHaveLength(36); const rowWidths = new Set(cells.map((tile) => tile.y).map((row) => cells.filter((tile) => tile.y === row).length)); expect(rowWidths.size).toBeGreaterThan(2) })
   it('renders the cyberpunk sector as two unequal, connected and non-rectangular buildable islands', () => { const state = { ...createInitialState(), activeSector: 'desert' as const }; const island = buildIsland(10, 8, 'desert'); const cells = island.tiles.filter((tile) => tile.gridIndex !== null); expect(cells).toHaveLength(72); expect(environmentFor(state)).toBe('futuristic'); expect(CYBERPUNK_ENVIRONMENT).toMatchObject({ decoration: 'pylon', terrain: { 3: '#c968b1', 4: '#080b22', 5: '#63a8b8', 7: '#73508c' } }); const positions = new Set(cells.map(({ x, y }) => `${x},${y}`)); const components: Array<Array<[number, number]>> = []; while (positions.size) { const pending = [positions.values().next().value as string]; positions.delete(pending[0]); const component: Array<[number, number]> = []; while (pending.length) { const current = pending.pop()!; const [x, y] = current.split(',').map(Number) as [number, number]; component.push([x, y]); for (const neighbor of [`${x - 1},${y}`, `${x + 1},${y}`, `${x},${y - 1}`, `${x},${y + 1}`]) if (positions.delete(neighbor)) pending.push(neighbor) } components.push(component) } components.sort((a, b) => b.length - a.length); expect(components.map((component) => component.length)).toEqual([48, 24]); for (const component of components) { const xs = component.map(([x]) => x); const ys = component.map(([, y]) => y); const boundingArea = (Math.max(...xs) - Math.min(...xs) + 1) * (Math.max(...ys) - Math.min(...ys) + 1); expect(boundingArea).toBeGreaterThan(component.length) } expect(cells.filter((tile) => tile.decor !== null).map((tile) => tile.gridIndex).sort((a, b) => a! - b!)).toEqual([10, 29, 43, 68]); expect(buildIsland(10, 8, 'desert', [48]).tiles.some((tile) => tile.gridIndex === 48)).toBe(true) })
   it('keeps thermal pieces locked behind RP technology', () => { const state = rich(); expect(isComponentUnlocked(state, 'core')).toBe(false); expect(placeTile(state, 0, 'core')).toBe(state) })
@@ -122,14 +122,40 @@ describe('economy v2', () => {
   it('simulates offline sales and research only when an office exists', () => { let state = rich(); state = placeTile(state, 0, 'wind'); state = placeTile(state, 1, 'research'); state = placeTile(state, 2, 'sales'); const offline = simulateOffline(state, 20); expect(offline.summary.simulatedSeconds).toBe(10); expect(offline.summary.sold).toBeCloseTo(2); expect(offline.summary.research).toBeCloseTo(10) })
   it('pays a decreasing share of each hour spent away and nothing past the fourth', () => { expect(offlineProductiveSeconds(1_800)).toBe(900); expect(offlineProductiveSeconds(3_600)).toBe(1_800); expect(offlineProductiveSeconds(7_200)).toBe(2_700); expect(offlineProductiveSeconds(10_800)).toBe(3_060); expect(offlineProductiveSeconds(14_400)).toBe(3_420); expect(offlineProductiveSeconds(100_000)).toBe(3_420); expect(ECONOMY.maxOfflineSeconds).toBe(14_400) })
   it('grants exactly those productive seconds to the plant', () => { let state = rich(); state = placeTile(state, 1, 'research'); const online = simulateMany(state, 900); const offline = simulateOffline(state, 1_800).state; expect(offline.researchPoints).toBeCloseTo(online.researchPoints) })
-  it('migrates legacy saves, grants merged Thorium to prior Automation owners, and rejects malformed grids', () => { const old: any = { ...createInitialState(), version: 12, energyStored: 6, buildingLevels: emptyLevels(), capacityLevels: undefined, autonomyLevels: undefined, autoRebuilds: undefined, unlockedTechs: { ...createInitialState().unlockedTechs, automation: true, thorium: false } }; delete old.sectorEconomies; delete old.sectorReports; delete old.debug; const migrated = normalizeGameState(old); expect(migrated?.version).toBe(19); expect(migrated?.unlockedTechs.thorium).toBe(true); expect(migrated?.sectorEconomies.coast.energyStored).toBe(6); expect(migrated?.sectorEconomies.coast.capacityLevels.wind).toBe(1); expect(migrated?.sectorEconomies.coast.buildingLevels.sales2).toBe(1); expect(migrated?.sectorEconomies.coast.buildingLevels.generator2).toBe(1); expect(migrated?.sectorEconomies.coast.buildingLevels.pipe2).toBe(1); expect(migrated?.sectorEconomies.desert.buildingLevels.wind).toBe(0); expect(migrated?.autoRebuilds.wind).toBe(false); expect(migrated?.debug.enabled).toBe(false); expect(normalizeGameState({ version: 9 })).toBeNull(); expect(normalizeGameState({ ...createInitialState(), tiles: [] })).toBeNull(); expect(importGame('bad')).toBeNull() })
+  it('gifts boost ticks on every thermal technology and none on the others', () => {
+    let state: GameState = { ...rich(), researchPoints: 1_000_000_000 }
+    state = unlockTech(state, 'solar'); expect(state.giftTicks).toBe(0)
+    state = unlockTech(state, 'expansion'); expect(state.giftTicks).toBe(0)
+    state = unlockTech(state, 'thermal'); expect(state.giftTicks).toBe(GIFT_TICKS_PER_THERMAL_TECH)
+    state = unlockTech(state, 'thorium'); state = unlockTech(state, 'fusion')
+    expect(state.giftTicks).toBe(GIFT_TICKS_PER_THERMAL_TECH * 3)
+  })
+
+  it('spends gift ticks only while the boost runs and stops itself when they end', () => {
+    const base: GameState = { ...rich(), giftTicks: 25, boostActive: false }
+    // Apagado no gasta nada y avanza solo a la velocidad elegida.
+    expect(simulateSecond(base).giftTicks).toBe(25)
+    expect(simulateSecond(base).tick).toBe(base.tick + base.speed)
+    // Encendido suma los ticks extra y descuenta los mismos del regalo.
+    const first = simulateSecond({ ...base, boostActive: true })
+    expect(first.tick).toBe(base.tick + base.speed + BOOST_TICKS_PER_SECOND)
+    expect(first.giftTicks).toBe(15)
+    const second = simulateSecond(first)
+    const third = simulateSecond(second)
+    expect(third.giftTicks).toBe(0)
+    expect(third.boostActive).toBe(false)
+    // En pausa el bonus no consume nada.
+    expect(simulateSecond({ ...base, boostActive: true, paused: true }).giftTicks).toBe(25)
+  })
+
+  it('migrates legacy saves, grants merged Thorium to prior Automation owners, and rejects malformed grids', () => { const old: any = { ...createInitialState(), version: 12, energyStored: 6, buildingLevels: emptyLevels(), capacityLevels: undefined, autonomyLevels: undefined, autoRebuilds: undefined, unlockedTechs: { ...createInitialState().unlockedTechs, automation: true, thorium: false } }; delete old.sectorEconomies; delete old.sectorReports; delete old.debug; const migrated = normalizeGameState(old); expect(migrated?.version).toBe(20); expect(migrated?.unlockedTechs.thorium).toBe(true); expect(migrated?.sectorEconomies.coast.energyStored).toBe(6); expect(migrated?.sectorEconomies.coast.capacityLevels.wind).toBe(1); expect(migrated?.sectorEconomies.coast.buildingLevels.sales2).toBe(1); expect(migrated?.sectorEconomies.coast.buildingLevels.generator2).toBe(1); expect(migrated?.sectorEconomies.coast.buildingLevels.pipe2).toBe(1); expect(migrated?.sectorEconomies.desert.buildingLevels.wind).toBe(0); expect(migrated?.autoRebuilds.wind).toBe(false); expect(migrated?.debug.enabled).toBe(false); expect(normalizeGameState({ version: 9 })).toBeNull(); expect(normalizeGameState({ ...createInitialState(), tiles: [] })).toBeNull(); expect(importGame('bad')).toBeNull() })
   it('resets only Distrito Neón upgrades when migrating the previous save model', () => { const old: any = createInitialState(); old.version = 17; old.sectorEconomies.coast.buildingLevels.wind = 7; old.sectorEconomies.desert.buildingLevels.wind = 6; old.sectorEconomies.desert.capacityLevels.wind = 5; old.sectorEconomies.desert.autonomyLevels.wind = 4; const migrated = normalizeGameState(old); expect(migrated?.sectorEconomies.coast.buildingLevels.wind).toBe(7); expect(migrated?.sectorEconomies.desert.buildingLevels.wind).toBe(0); expect(migrated?.sectorEconomies.desert.capacityLevels.wind).toBe(0); expect(migrated?.sectorEconomies.desert.autonomyLevels.wind).toBe(0) })
   it('relocates buildings from the old cyberpunk shoreline without losing them', () => { const old: any = createInitialState(); old.version = 18; old.sectorLayouts.desert[48] = { id: 'legacy-wind', kind: 'wind', heat: 0, enabled: true, damaged: false, flow: 0, fuel: 5, autoRefuel: false }; const migrated = normalizeGameState(old); expect(migrated?.sectorLayouts.desert[40]).toMatchObject({ id: 'legacy-wind', kind: 'wind' }); expect(migrated?.sectorLayouts.desert[48]).toBeNull() })
 })
 
 describe('storage safety', () => {
   beforeEach(() => { vi.stubGlobal('localStorage', { getItem: vi.fn(() => null), setItem: vi.fn(), removeItem: vi.fn() }) })
-  it('keeps the old save key untouched while evolving the v2 model', () => { expect(createInitialState().version).toBe(19) })
+  it('keeps the old save key untouched while evolving the v2 model', () => { expect(createInitialState().version).toBe(20) })
 })
 
 function emptyLevels() { return { wind: 1, solar: 1, battery: 1, controller: 1, sales: 1, sales2: 1, research: 1, research2: 1, core: 1, thorium: 1, fusion: 1, exchanger: 1, pipe: 1, pipe2: 1, accumulator: 1, generator: 1, generator2: 1, cooler: 1 } }
