@@ -37,9 +37,9 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 20; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 21; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
-  autoRebuilds: Record<ComponentKind, boolean>
+  autoRebuilds: Record<ComponentKind, boolean>; autoRebuildPaused: boolean
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
   activeContract: EnergyContract; contractsCompleted: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
   sectorEconomies: Record<SectorKey, SectorEconomy>; sectorReports: Record<SectorKey, TickReport>

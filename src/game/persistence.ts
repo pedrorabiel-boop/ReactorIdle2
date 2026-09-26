@@ -25,7 +25,7 @@ export function simulateOffline(state: GameState, requestedSeconds: number): { s
 export function normalizeGameState(value: unknown): GameState | null {
   if (!value || typeof value !== 'object') return null
   const source = value as Record<string, any>
-  if (![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
+  if (![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
   if (source.version < 13 && !source.buildingLevels) return null
   const sourceEconomies = source.sectorEconomies as GameState['sectorEconomies'] | undefined
   if (source.version >= 13 && (!sourceEconomies?.coast || !sourceEconomies?.desert)) return null
@@ -100,7 +100,7 @@ export function normalizeGameState(value: unknown): GameState | null {
   const sectorEconomies: GameState['sectorEconomies'] = sourceEconomies ? { coast: normalizeEconomy(sourceEconomies.coast, 'coast'), desert: normalizeEconomy(sourceEconomies.desert, 'desert') } : { coast: makeLegacyEconomy('coast'), desert: makeLegacyEconomy('desert') }
   const sectorReports: GameState['sectorReports'] = source.sectorReports ?? { coast: emptyTickReport(), desert: emptyTickReport() }
   const unlockedTechs = Object.fromEntries(TECH_ORDER.map((key) => [key, Boolean(source.unlockedTechs[key] || (key === 'thorium' && source.version < 15 && source.unlockedTechs.automation))])) as GameState['unlockedTechs']
-  const normalized = { ...source, version: 20, giftTicks: Math.max(0, Number(source.giftTicks) || 0), boostActive: Boolean(source.boostActive), tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
+  const normalized = { ...source, version: 21, autoRebuildPaused: Boolean(source.autoRebuildPaused), giftTicks: Math.max(0, Number(source.giftTicks) || 0), boostActive: Boolean(source.boostActive), tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
   const clean = normalized as Record<string, any>
   delete clean.energyStored; delete clean.buildingLevels; delete clean.capacityLevels; delete clean.autonomyLevels
   return normalized as GameState
