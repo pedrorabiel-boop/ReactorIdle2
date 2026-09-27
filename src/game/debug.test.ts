@@ -133,7 +133,7 @@ describe('debug balance sandbox', () => {
     expect(loaded?.debug.componentValues.generator2.conversionRate).toBe(6_250_000)
     expect(loaded?.debug.componentValues.pipe2.capacity).toBe(75_000_000_000)
     expect(loaded?.debug.componentValues.pipe2.thermalResistance).toBeCloseTo(1.233151731188216, 12)
-    expect(loaded?.debug.upgradeBaseCosts.sales2.output).toBe(150_000_000)
+    expect(loaded?.debug.upgradeBaseCosts.sales2.output).toBe(25_000_000)
     expect(loaded?.debug.upgradeBaseCosts.research2.output).toBe(150_000_000)
     expect(loaded?.debug.upgradeBaseCosts.generator2.output).toBe(187_500_000)
     expect(loaded?.debug.upgradeBaseCosts.pipe2.output).toBe(67_200_000_000)

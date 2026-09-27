@@ -102,7 +102,7 @@ export function diffuseThermalNetwork(
   topology: ThermalTopology,
   capacityAt: (index: number) => number,
   resistanceAt: (index: number) => number,
-  substeps = 4,
+  substeps = 8,
 ): number {
   let totalMoved = 0
   const iterations = Math.max(1, Math.floor(substeps))
@@ -110,6 +110,9 @@ export function diffuseThermalNetwork(
   for (let step = 0; step < iterations; step += 1) {
     const proposals: HeatFlow[] = []
     const outbound = new Map<number, number>()
+    // Lo que cada pieza puede ceder sin bajar del nivel que comparte con los
+    // vecinos a los que alimenta: evita que se vacíe por completo en un paso.
+    const share = new Map<number, { heat: number; neighbours: number; total: number }>()
 
     for (const edge of topology.edges) {
       const tileA = tiles[edge.a]
@@ -133,6 +136,12 @@ export function diffuseThermalNetwork(
       if (amount <= EPSILON) continue
       proposals.push({ source, destination, amount })
       outbound.set(source, (outbound.get(source) ?? 0) + amount)
+      const sourceHeat = source === edge.a ? heatA : heatB
+      const destinationHeat = source === edge.a ? heatB : heatA
+      const pool = share.get(source) ?? { heat: sourceHeat, neighbours: 0, total: sourceHeat }
+      pool.neighbours += 1
+      pool.total += destinationHeat
+      share.set(source, pool)
     }
 
     if (proposals.length === 0) break
@@ -141,7 +150,10 @@ export function diffuseThermalNetwork(
       const sourceTile = tiles[proposal.source]
       if (!sourceTile) continue
       const requested = outbound.get(proposal.source) ?? proposal.amount
-      const scale = requested > sourceTile.heat ? Math.max(0, sourceTile.heat) / requested : 1
+      const pool = share.get(proposal.source)
+      const level = pool ? pool.total / (pool.neighbours + 1) : 0
+      const budget = Math.min(Math.max(0, sourceTile.heat), pool ? Math.max(0, pool.heat - level) : sourceTile.heat)
+      const scale = requested > budget ? budget / requested : 1
       const moved = proposal.amount * scale
       if (moved <= EPSILON) continue
       deltas.set(proposal.source, (deltas.get(proposal.source) ?? 0) - moved)

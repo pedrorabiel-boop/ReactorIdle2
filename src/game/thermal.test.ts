@@ -20,7 +20,7 @@ describe('resistive thermal graph', () => {
       expect(fullGradientTransfer / definition.referenceTransferRate!).toBeCloseTo(1, 12)
     }
     expect(COMPONENTS.pipe.capacity).toBe(200_000)
-    expect(COMPONENTS.pipe.thermalResistance).toBe(0.25)
+    expect(COMPONENTS.pipe.thermalResistance).toBe(0.01)
     expect(COMPONENTS.pipe2.thermalResistance).toBeCloseTo(1.233151731188216, 12)
     expect(COMPONENTS.pipe2.referenceTransferRate).toBe(12_500_000_000)
   })
@@ -47,6 +47,22 @@ describe('resistive thermal graph', () => {
     const orthogonalAverage = [1, 3, 5, 7].reduce((sum, index) => sum + tiles[index]!.heat, 0) / 4
     const diagonalAverage = [0, 2, 6, 8].reduce((sum, index) => sum + tiles[index]!.heat, 0) / 4
     expect(orthogonalAverage).toBeGreaterThan(diagonalAverage)
+  })
+
+  it('keeps the ring around a source warm even when resistance is almost zero', () => {
+    const tiles = Array.from({ length: 9 }, () => makeTile('pipe', 0))
+    tiles[4] = makeTile('core', 100)
+    diffuseThermalNetwork(tiles, getThermalTopology(tiles, 3, 3), capacityAt, () => 0.01)
+    const orthogonal = [1, 3, 5, 7].map((index) => tiles[index]!.heat)
+    const diagonal = [0, 2, 6, 8].map((index) => tiles[index]!.heat)
+    // Con muy poca resistencia la red se nivela: ninguna pieza queda vacía ni
+    // se aleja mucho del promedio, así que todo vecino encuentra calor.
+    const mean = totalHeat(tiles) / tiles.length
+    for (const heat of [...orthogonal, ...diagonal, tiles[4]!.heat]) {
+      expect(heat).toBeGreaterThan(0)
+      expect(Math.abs(heat - mean) / mean).toBeLessThan(0.3)
+    }
+    expect(totalHeat(tiles)).toBeCloseTo(100, 8)
   })
 
   it('delivers more heat through two parallel routes than through a dead-end branch', () => {
