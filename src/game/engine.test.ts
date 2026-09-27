@@ -40,6 +40,35 @@ describe('economy v2', () => {
     expect(totalHeat(first.state) + first.report.thermalEnergy).toBeCloseTo(COMPONENTS.core.production!, 6)
   })
 
+  it('spreads a reactor output evenly across a connected Pipe II mass', () => {
+    let state = unlocked()
+    state = placeTile(state, 28, 'thorium')
+    const ring = [19, 20, 21, 27, 29, 35, 36, 37]
+    for (const index of ring) state = placeTile(state, index, 'pipe2')
+
+    let running = state
+    for (let i = 0; i < 3; i += 1) running = simulateTick(running).state
+
+    // Solo cuatro piezas del anillo tocan el reactor, pero las ocho acaban iguales.
+    const heats = ring.map((index) => running.tiles[index]!.heat)
+    for (const heat of heats) expect(heat).toBeCloseTo(heats[0], 6)
+    expect(heats[0]).toBeGreaterThan(0)
+  })
+
+  it('keeps the reactor cooler as the Pipe II mass grows behind a single contact', () => {
+    const reactorHeatWith = (mass: number) => {
+      let state = unlocked()
+      state = placeTile(state, 28, 'thorium')
+      for (const index of [27, 26, 25, 24, 23, 22, 21, 20].slice(0, mass)) state = placeTile(state, index, 'pipe2')
+      let running = state
+      for (let i = 0; i < 10; i += 1) running = simulateTick(running).state
+      return running.tiles[28]!.heat
+    }
+    // Mismo punto de contacto: la masa mayor reparte el calor y mantiene el gradiente alto.
+    expect(reactorHeatWith(8)).toBeLessThan(reactorHeatWith(4))
+    expect(reactorHeatWith(4)).toBeLessThan(reactorHeatWith(1))
+  })
+
   it('moves the same heat out of a reactor whatever the conduit tolerates', () => {
     const deliveredWith = (tolerance: number) => {
       let state = unlocked()

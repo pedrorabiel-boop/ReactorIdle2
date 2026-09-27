@@ -2,7 +2,7 @@ import { COMPONENTS } from './catalog'
 import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, TECHNOLOGIES, TECH_ORDER } from './balance'
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
-import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, pullHeatForConversion, type ThermalSinkEdge } from './thermal'
+import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, type ThermalSinkEdge } from './thermal'
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TickReport, Tile } from './types'
 
 const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion'])
@@ -73,6 +73,7 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
   const capacityAt = (index: number) => { const tile = tiles[index]; return tile ? componentCapacity(state, tile.kind) : 0 }
   const resistanceAt = (index: number) => { const tile = tiles[index]; return tile ? thermalResistance(state, tile.kind) : Number.POSITIVE_INFINITY }
   diffuseThermalNetwork(tiles, getThermalTopology(tiles, state.rows, state.cols), capacityAt, resistanceAt)
+  equalizeSuperconductors(tiles, state.rows, state.cols)
   const generatorEdges: ThermalSinkEdge[] = []
   for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
   const conversionDemand = new Map<number, number>()
@@ -80,6 +81,7 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
   const pulled = pullHeatForConversion(tiles, generatorEdges, (index) => conversionDemand.get(index) ?? 0)
   thermalEnergy += pulled.totalMoved
   absorbHeatIntoSinks(tiles, generatorEdges, capacityAt, resistanceAt)
+  equalizeSuperconductors(tiles, state.rows, state.cols)
   for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'cooler' || !tile.enabled || tile.damaged) continue; const sources = adjacentIndices(index, state.rows, state.cols).filter((i) => isThermalCarrier(tiles[i])); const moved = drainHeatByResistance(tiles, sources, coolingRate(state), capacityAt, resistanceAt); cooledHeat += moved; tile.flow += moved }
   for (const tile of tiles) { if (!tile || tile.damaged || componentCapacity(state, tile.kind) <= 0) continue; if (tile.heat > componentCapacity(state, tile.kind)) { tile.damaged = true; tile.enabled = false; incidents += 1 } }
   return { tiles, directEnergy, thermalEnergy, research, cooledHeat, incidents, refuelCost, heatProduction, conversionCapacity, credits }

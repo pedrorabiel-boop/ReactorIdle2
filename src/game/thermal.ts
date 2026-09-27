@@ -12,6 +12,50 @@ export interface ThermalDemandResult { totalMoved: number; received: Map<number,
 
 const topologyCache = new Map<string, ThermalTopology>()
 
+/** La Tubería II conduce sin pérdidas: una masa conectada se comporta como una sola pieza. */
+const SUPERCONDUCTOR: ComponentKind = 'pipe2'
+
+function orthogonalIndices(index: number, rows: number, cols: number): number[] {
+  const row = Math.floor(index / cols)
+  const col = index % cols
+  return [row > 0 ? index - cols : -1, row < rows - 1 ? index + cols : -1, col > 0 ? index - 1 : -1, col < cols - 1 ? index + 1 : -1].filter((value) => value >= 0)
+}
+
+/**
+ * Nivela el calor dentro de cada masa conectada de superconductores. Da igual
+ * por dónde entre o salga el calor: la masa entera queda a la misma temperatura,
+ * así que cuantas más piezas la formen, más reparte y más tolera cada una.
+ */
+export function equalizeSuperconductors(tiles: Array<Tile | null>, rows: number, cols: number): void {
+  const pending = new Set<number>()
+  for (let index = 0; index < tiles.length; index += 1) {
+    const tile = tiles[index]
+    if (tile?.kind === SUPERCONDUCTOR && tile.enabled && !tile.damaged) pending.add(index)
+  }
+
+  while (pending.size > 0) {
+    const start = pending.values().next().value!
+    pending.delete(start)
+    const queue = [start]
+    const mass: number[] = []
+    while (queue.length > 0) {
+      const index = queue.pop()!
+      mass.push(index)
+      for (const neighbour of orthogonalIndices(index, rows, cols)) if (pending.delete(neighbour)) queue.push(neighbour)
+    }
+    if (mass.length < 2) continue
+
+    let total = 0
+    for (const index of mass) total += Math.max(0, tiles[index]!.heat)
+    const share = total / mass.length
+    for (const index of mass) {
+      const tile = tiles[index]!
+      tile.flow += Math.abs(share - tile.heat)
+      tile.heat = share
+    }
+  }
+}
+
 export const isThermalCarrier = (tile: Tile | null | undefined): tile is Tile => Boolean(tile && THERMAL_CARRIERS.has(tile.kind) && tile.enabled && !tile.damaged)
 
 function topologySignature(tiles: Array<Tile | null>, rows: number, cols: number): string {

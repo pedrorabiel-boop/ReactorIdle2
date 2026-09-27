@@ -27,7 +27,7 @@ const MANUAL_DESCRIPTIONS: Record<ComponentKind, string> = {
   generator: 'Tecnología básica de conversión. Recibe calor, transforma hasta su capacidad por tick y almacena solamente el excedente que no logra procesar.',
   generator2: 'Conversor avanzado capaz de procesar una demanda térmica muy superior. Es la contraparte natural de las redes y reactores de Fusión.',
   pipe: 'Conductor pasivo que crea un gradiente de temperatura desde el reactor hacia las turbinas. Diseña caminos adecuados para aprovechar mejor cada fuente.',
-  pipe2: 'Conductor de Fusión. Mantiene el mismo principio que la tubería básica —mover calor por diferencia de temperatura— con una capacidad y una resistencia a la altura de los reactores más exigentes.',
+  pipe2: 'Superconductor de Fusión. Cada grupo de Tuberías II que se tocan entre sí funciona como una sola pieza: el calor que entra por un punto se reparte al instante por toda la masa, sin importar su forma. Cuantas más conectes, más frío mantienes el reactor y más calor tolera el conjunto antes de averiarse.',
   exchanger: 'Nodo de distribución con mayor capacidad que una tubería convencional. Recibe, amortigua y redistribuye calor entre varios ramales de una red compleja.',
   accumulator: 'Gran depósito térmico que conserva el calor excedente para entregarlo nuevamente a la red. Ayuda a estabilizar diferencias entre producción y conversión.',
   cooler: 'Disipa el calor de las piezas adyacentes. Instálalo en puntos críticos para reducir la acumulación y evitar averías por sobrecalentamiento.',

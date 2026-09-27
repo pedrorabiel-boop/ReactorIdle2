@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
-import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, pullHeatForConversion } from './thermal'
+import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, equalizeSuperconductors, getThermalTopology, pullHeatForConversion } from './thermal'
 import type { ComponentKind, Tile } from './types'
 
 let nextTileId = 0
@@ -137,6 +137,46 @@ describe('resistive thermal graph', () => {
     expect(result.received.get(2)).toBeCloseTo(100)
     expect(result.received.get(3)).toBeCloseTo(100)
     expect(tiles[0]!.heat + tiles[1]!.heat).toBeCloseTo(0)
+  })
+
+  it('levels a connected Pipe II mass to one shared temperature', () => {
+    // Anillo de 8 en torno a la casilla central de una grilla 3x3.
+    const tiles = Array.from({ length: 9 }, () => null) as Array<Tile | null>
+    for (const index of [0, 1, 2, 3, 5, 6, 7, 8]) tiles[index] = makeTile('pipe2')
+    tiles[0]!.heat = 800
+    const before = totalHeat(tiles)
+
+    equalizeSuperconductors(tiles, 3, 3)
+
+    for (const index of [0, 1, 2, 3, 5, 6, 7, 8]) expect(tiles[index]!.heat).toBeCloseTo(100)
+    expect(totalHeat(tiles)).toBeCloseTo(before)
+  })
+
+  it('keeps separate masses, other carriers and broken pieces out of the pool', () => {
+    // Dos masas de Pipe II sin contacto, una tubería básica y una Pipe II averiada.
+    const tiles = Array.from({ length: 9 }, () => null) as Array<Tile | null>
+    tiles[0] = makeTile('pipe2', 600); tiles[1] = makeTile('pipe2', 0)
+    tiles[6] = makeTile('pipe2', 90); tiles[7] = makeTile('pipe2', 10)
+    tiles[3] = makeTile('pipe', 500)
+    tiles[4] = makeTile('pipe2', 999); tiles[4]!.damaged = true
+
+    equalizeSuperconductors(tiles, 3, 3)
+
+    expect(tiles[0]!.heat).toBeCloseTo(300); expect(tiles[1]!.heat).toBeCloseTo(300)
+    expect(tiles[6]!.heat).toBeCloseTo(50); expect(tiles[7]!.heat).toBeCloseTo(50)
+    expect(tiles[3]!.heat).toBe(500)
+    expect(tiles[4]!.heat).toBe(999)
+  })
+
+  it('leaves a lone Pipe II untouched and reports the heat it shifted', () => {
+    const tiles = [makeTile('pipe2', 400), null, makeTile('pipe2', 100), makeTile('pipe2', 0)] as Array<Tile | null>
+    equalizeSuperconductors(tiles, 1, 4)
+
+    expect(tiles[0]!.heat).toBe(400)
+    expect(tiles[0]!.flow).toBe(0)
+    expect(tiles[2]!.heat).toBeCloseTo(50)
+    expect(tiles[2]!.flow).toBeCloseTo(50)
+    expect(tiles[3]!.flow).toBeCloseTo(50)
   })
 
   it('reuses graph structure until topology changes', () => {
