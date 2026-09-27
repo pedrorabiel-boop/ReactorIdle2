@@ -44,7 +44,7 @@ function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
   if (def.salesRate) stats.push({ icon: 'icon-handshake', value: `${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`, label: 'Potencia de venta' })
   if (def.researchRate) stats.push({ icon: 'icon-flask', value: `${formatStat(researchPerFacility(game, kind as 'research' | 'research2'))} RP/s`, label: 'Investigación' })
   if (def.controllerBonus) stats.push({ icon: 'icon-bolt', value: `+${formatStat(def.controllerBonus * componentMultiplier(game, kind) * 100)}%`, label: 'Amplificación de red' })
-  if (def.capacity > 0) stats.push({ icon: 'icon-health', value: formatShort(componentCapacity(game, kind)), label: 'Calor máximo' })
+  if (def.capacity > 0) stats.push({ icon: 'icon-health', value: formatShort(componentCapacity(game, kind)), label: 'Tolerancia de calor antes de averiarse' })
   if (def.fuelCycles) stats.push({ icon: 'icon-clock', value: `${formatShort(fuelCapacity(game, kind))} s`, label: 'Vida útil' })
   return stats
 }

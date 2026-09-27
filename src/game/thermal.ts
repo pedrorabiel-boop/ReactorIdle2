@@ -46,8 +46,12 @@ export function clearThermalTopologyCache(): void { topologyCache.clear() }
 interface HeatFlow { source: number; destination: number; amount: number }
 
 /**
- * Stable graph diffusion. Heat potential is heat/capacity and every edge is
- * evaluated from the same snapshot, so array order cannot select a preferred path.
+ * Stable graph diffusion driven by the raw heat difference: resistance alone
+ * sets how fast heat travels, so a small conduit never throttles a large
+ * source. Tolerance stays out of it and only decides, at the end of the tick,
+ * whether a piece holding too much heat breaks down.
+ * Every edge is evaluated from the same snapshot, so array order cannot select
+ * a preferred path.
  */
 export function diffuseThermalNetwork(
   tiles: Array<Tile | null>,
@@ -70,15 +74,15 @@ export function diffuseThermalNetwork(
       const capacityB = capacityAt(edge.b)
       if (!tileA || !tileB || capacityA <= 0 || capacityB <= 0) continue
 
-      const potentialA = Math.max(0, tileA.heat) / capacityA
-      const potentialB = Math.max(0, tileB.heat) / capacityB
-      if (Math.abs(potentialA - potentialB) <= EPSILON) continue
+      const heatA = Math.max(0, tileA.heat)
+      const heatB = Math.max(0, tileB.heat)
+      if (Math.abs(heatA - heatB) <= EPSILON) continue
 
-      const source = potentialA > potentialB ? edge.a : edge.b
+      const source = heatA > heatB ? edge.a : edge.b
       const destination = source === edge.a ? edge.b : edge.a
-      const sourceCapacity = source === edge.a ? capacityA : capacityB
-      const destinationCapacity = destination === edge.a ? capacityA : capacityB
-      const equilibriumTransfer = Math.abs(potentialA - potentialB) / (1 / sourceCapacity + 1 / destinationCapacity)
+      // Half the gap is what would level both pieces; resistance decides which
+      // share of that actually travels in this substep.
+      const equilibriumTransfer = Math.abs(heatA - heatB) / 2
       const edgeResistance = Math.max(MIN_RESISTANCE, resistanceAt(edge.a) + resistanceAt(edge.b))
       const coupling = 1 - Math.exp(-1 / (edgeResistance * iterations))
       const amount = equilibriumTransfer * coupling
@@ -114,8 +118,9 @@ export function diffuseThermalNetwork(
 }
 
 /**
- * Diffuses heat into directional terminal nodes. Sinks receive using the same
- * potential/resistance model as the pipe graph, but can never return heat.
+ * Tops up the small buffer of a terminal node once its conversion demand is
+ * already served. Sinks fill by potential and resistance and can never return
+ * heat, so this only parks the leftover a converter could not process.
  */
 export function absorbHeatIntoSinks(
   tiles: Array<Tile | null>,

@@ -65,7 +65,7 @@ function stats(game: GameState, kind: ComponentKind): string[] {
   if (definition.salesRate) values.push(`Vende ${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`)
   if (definition.researchRate) values.push(`${formatStat(researchPerFacility(game, kind as 'research' | 'research2'))} RP/s`)
   if (definition.controllerBonus) values.push(`+${formatDecimal(definition.controllerBonus * componentMultiplier(game, kind) * 100)}% red`)
-  if (definition.capacity > 0) values.push(`Máx. ${formatShort(componentCapacity(game, kind))} calor`)
+  if (definition.capacity > 0) values.push(`Tolera ${formatShort(componentCapacity(game, kind))} calor`)
   if (definition.thermalResistance) values.push(`${formatDecimal(thermalResistance(game, kind))} R`)
   if (definition.fuelCycles) values.push(`${formatShort(fuelCapacity(game, kind))} s de vida`)
   return values

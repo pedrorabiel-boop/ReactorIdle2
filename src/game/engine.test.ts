@@ -31,20 +31,44 @@ describe('economy v2', () => {
   it('fully and fairly converts the promoted thorium output through tier-II turbines with spare capacity', () => { let state = rich(); state = { ...state, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true, thorium: true, fusion: true } }; state = placeTile(state, 9, 'thorium'); for (const index of [1, 8, 10, 17]) state = placeTile(state, index, 'generator2'); const result = simulateTick(state); expect(result.report.thermalEnergy).toBeCloseTo(COMPONENTS.thorium.production!); expect(totalHeat(result.state)).toBeCloseTo(0); for (const index of [1, 8, 10, 17]) expect(result.state.tiles[index]?.flow).toBeCloseTo(COMPONENTS.thorium.production! / 4); const sustained = simulateMany(result.state, 20); expect(totalHeat(sustained)).toBeCloseTo(0); expect(sustained.incidents).toBe(0) })
   it('converts demand first and stores only a balanced thermal surplus', () => { let state = rich(); state = { ...state, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true }, sectorEconomies: { ...state.sectorEconomies, coast: { ...state.sectorEconomies.coast, buildingLevels: { ...state.sectorEconomies.coast.buildingLevels, core: 2 } } } }; state = placeTile(state, 9, 'core'); for (const index of [1, 8, 10, 17]) state = placeTile(state, index, 'generator'); const result = simulateTick(state); const expectedConversion = COMPONENTS.generator.conversionRate! * 4; const expectedSurplus = COMPONENTS.core.production! * levelMultiplier(2) - expectedConversion; expect(result.report.thermalEnergy).toBeCloseTo(expectedConversion); expect(totalHeat(result.state)).toBeCloseTo(expectedSurplus, 6); const turbineHeat = [1, 8, 10, 17].map((index) => result.state.tiles[index]?.heat ?? 0); expect(Math.max(...turbineHeat) - Math.min(...turbineHeat)).toBeCloseTo(0, 8); expect(turbineHeat[0]).toBeGreaterThan(0) })
   it('keeps pipe resistance as a remote conversion bottleneck at the first thermal tier', () => { let state = unlocked(); state = placeTile(state, 9, 'core'); state = placeTile(state, 10, 'pipe'); state = placeTile(state, 11, 'generator2'); state = { ...state, unlockedTechs: { ...state.unlockedTechs, thorium: false, fusion: false } }; const result = simulateTick(state); expect(result.report.thermalEnergy).toBeGreaterThan(0); expect(result.report.thermalEnergy).toBeLessThan(Math.min(COMPONENTS.core.production!, conversionRate(state, 'generator2'))); expect(totalHeat(result.state) + result.report.thermalEnergy).toBeCloseTo(COMPONENTS.core.production!, 6) })
-  it('carries heat along a Pipe II route by diffusion alone, taking ticks to arrive', () => {
+  it('carries heat across a Pipe II run within the same tick and conserves it', () => {
     let state = unlocked()
     state = placeTile(state, 0, 'core'); state = placeTile(state, 1, 'pipe2'); state = placeTile(state, 2, 'pipe2'); state = placeTile(state, 3, 'generator')
-    // El primer ciclo solo llena la primera tubería: sin bombeo, el calor viaja por gradiente.
     const first = simulateTick(state)
-    expect(first.report.thermalEnergy).toBe(0)
-    expect(first.state.tiles[1]?.heat).toBeGreaterThan(0)
-    expect(totalHeat(first.state)).toBeCloseTo(COMPONENTS.core.production!, 6)
-    // Tras recorrer la línea la turbina recibe calor y convierte a su ritmo.
-    let running = first.state
-    for (let i = 0; i < 3; i += 1) running = simulateTick(running).state
-    const settled = simulateTick(running)
-    expect(settled.report.thermalEnergy).toBeCloseTo(conversionRate(settled.state))
-    expect(settled.state.tiles[2]?.heat).toBeGreaterThan(0)
+    // El calor recorre las dos tuberías y llega a la turbina en el mismo ciclo.
+    expect(first.report.thermalEnergy).toBeGreaterThan(0)
+    expect(totalHeat(first.state) + first.report.thermalEnergy).toBeCloseTo(COMPONENTS.core.production!, 6)
+  })
+
+  it('moves the same heat out of a reactor whatever the conduit tolerates', () => {
+    const deliveredWith = (tolerance: number) => {
+      let state = unlocked()
+      state = placeTile(state, 0, 'thorium'); state = placeTile(state, 1, 'pipe'); state = placeTile(state, 2, 'generator')
+      // El catálogo se ajusta después de crear la partida: createInitialState lo restaura.
+      COMPONENTS.pipe.capacity = tolerance
+      return COMPONENTS.thorium.production! - simulateTick(state).state.tiles[0]!.heat
+    }
+    const original = COMPONENTS.pipe.capacity
+    try {
+      const narrow = deliveredWith(1_000)
+      const wide = deliveredWith(200_000_000)
+      // La tolerancia es un umbral de avería, no un caudal: solo manda la resistencia.
+      expect(narrow).toBeGreaterThan(0)
+      expect(wide).toBeCloseTo(narrow, 6)
+    } finally {
+      COMPONENTS.pipe.capacity = original
+    }
+  })
+
+  it('burns the conduit when the turbines cannot consume what the reactor makes', () => {
+    let state = unlocked()
+    state = placeTile(state, 0, 'thorium'); state = placeTile(state, 1, 'pipe'); state = placeTile(state, 2, 'generator')
+    const result = simulateTick(state)
+    // Un solo conducto de 200.000 no aguanta los 500.000/s del torio.
+    expect(result.state.tiles[1]?.heat).toBeGreaterThan(COMPONENTS.pipe.capacity)
+    expect(result.state.tiles[1]?.damaged).toBe(true)
+    expect(result.state.tiles[1]?.enabled).toBe(false)
+    expect(result.report.incidents).toBeGreaterThanOrEqual(1)
   })
   it('converts stored turbine heat, keeps excess, and can overload after conversion', () => { let state = unlocked(); state = placeTile(state, 0, 'generator'); const rate = conversionRate(state); state = { ...state, tiles: state.tiles.map((tile, index) => index === 0 && tile ? { ...tile, heat: rate + 500 } : tile) }; let result = simulateTick(state); expect(result.report.thermalEnergy).toBe(rate); expect(result.state.tiles[0]?.heat).toBeCloseTo(500); state = { ...result.state, tiles: result.state.tiles.map((tile, index) => index === 0 && tile ? { ...tile, heat: componentCapacity(result.state, 'generator') + rate + 1 } : tile) }; result = simulateTick(state); expect(result.state.tiles[0]).toMatchObject({ damaged: true, enabled: false }); expect(result.state.tiles[0]?.heat).toBeCloseTo(componentCapacity(result.state, 'generator') + 1) })
   it('conserves generated heat through diffusion, conversion and cooling', () => {
