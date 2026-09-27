@@ -1,7 +1,7 @@
 import { OFFLINE_BANDS, offlineProductiveSeconds, TECHNOLOGIES } from '../../game/balance'
 import { COMPONENTS } from '../../game/catalog'
 import { isComponentUnlocked } from '../../game/engine'
-import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, thermalTransferRate } from '../../game/research'
+import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../../game/research'
 import type { ComponentKind, GameState } from '../../game/types'
 import { formatDecimal, formatNumber, formatShort } from '../format'
 import { Sprite } from '../pixel/Sprite'
@@ -27,7 +27,7 @@ const MANUAL_DESCRIPTIONS: Record<ComponentKind, string> = {
   generator: 'Tecnología básica de conversión. Recibe calor, transforma hasta su capacidad por tick y almacena solamente el excedente que no logra procesar.',
   generator2: 'Conversor avanzado capaz de procesar una demanda térmica muy superior. Es la contraparte natural de las redes y reactores de Fusión.',
   pipe: 'Conductor pasivo que crea un gradiente de temperatura desde el reactor hacia las turbinas. Diseña caminos adecuados para aprovechar mejor cada fuente.',
-  pipe2: 'Más que una mejora de capacidad: forma redes presurizadas que extraen calor activamente y lo llevan hacia las turbinas que lo demandan. Rinde mejor junto a las fuentes más calientes.',
+  pipe2: 'Conductor de Fusión. Mantiene el mismo principio que la tubería básica —mover calor por diferencia de temperatura— con una capacidad y una resistencia a la altura de los reactores más exigentes.',
   exchanger: 'Nodo de distribución con mayor capacidad que una tubería convencional. Recibe, amortigua y redistribuye calor entre varios ramales de una red compleja.',
   accumulator: 'Gran depósito térmico que conserva el calor excedente para entregarlo nuevamente a la red. Ayuda a estabilizar diferencias entre producción y conversión.',
   cooler: 'Disipa el calor de las piezas adyacentes. Instálalo en puntos críticos para reducir la acumulación y evitar averías por sobrecalentamiento.',
@@ -60,14 +60,13 @@ function stats(game: GameState, kind: ComponentKind): string[] {
   if (definition.directEnergy) values.push(`${formatStat(directEnergyRate(game, kind))} E/s`)
   if (definition.production) values.push(`${formatStat(productionRate(game, kind))} calor/s`)
   if (definition.conversionRate) values.push(`${formatStat(conversionRate(game, kind as 'generator' | 'generator2'))} E/s`)
-  if (definition.referenceTransferRate) values.push(`${kind === 'pipe2' ? 'Bombeo' : 'Caudal ref.'} ${formatStat(thermalTransferRate(game, kind))}/s`)
   if (definition.coolingRate) values.push(`Disipa ${formatStat(coolingRate(game))}/s`)
   if (definition.storageCapacity) values.push(`+${formatStat(storagePerBattery(game))} E`)
   if (definition.salesRate) values.push(`Vende ${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`)
   if (definition.researchRate) values.push(`${formatStat(researchPerFacility(game, kind as 'research' | 'research2'))} RP/s`)
   if (definition.controllerBonus) values.push(`+${formatDecimal(definition.controllerBonus * componentMultiplier(game, kind) * 100)}% red`)
   if (definition.capacity > 0) values.push(`Máx. ${formatShort(componentCapacity(game, kind))} calor`)
-  if (definition.thermalResistance && kind !== 'pipe2') values.push(`${formatDecimal(thermalResistance(game, kind))} R`)
+  if (definition.thermalResistance) values.push(`${formatDecimal(thermalResistance(game, kind))} R`)
   if (definition.fuelCycles) values.push(`${formatShort(fuelCapacity(game, kind))} s de vida`)
   return values
 }
