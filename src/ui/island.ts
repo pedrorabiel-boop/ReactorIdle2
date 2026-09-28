@@ -1,5 +1,5 @@
 import type { GameState, SectorKey } from '../game/types'
-import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from '../game/terrain'
+import { cellPosition, COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from '../game/terrain'
 import type { EnvironmentKey, Neighbors, TerrainKind } from './pixel/sprites'
 
 export const TILE = 48 // 16 px lógicos × 3
@@ -62,23 +62,11 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
   const occupied = new Set(occupiedIndices)
 
   const allowed = sector === 'coast' ? COAST_BUILDABLE_SET : CYBERPUNK_BUILDABLE_SET
+  // La silueta vive en el motor (game/terrain) para que la vecindad que se
+  // dibuja sea exactamente la que se simula.
   const positionForIndex = (index: number) => {
-    const row = Math.floor(index / cols)
-    const col = index % cols
-    if (!cyberpunk) return { x: grid.x + col, y: grid.y + row }
-    // La principal rota su topología 6×8 a una masa vertical 8×6 y desplaza
-    // franjas enteras para que la propia zona construible forme entrantes.
-    if (row < 6) {
-      const mainRowShift = [2, 2, 0, 0, 1, 1, 0, 0]
-      return { x: grid.x + row + mainRowShift[col], y: grid.y + col }
-    }
-    // La isla secundaria rota la topología 3×8 a una silueta vertical 8×3.
-    // Los pequeños desplazamientos laterales evitan otro rectángulo perfecto.
-    if (row >= 7) {
-      const secondaryRowShift = [1, 1, 0, 0, 0, 1, 1, 0]
-      return { x: grid.x + 11 + (row - 7) + secondaryRowShift[col], y: grid.y + 2 + col }
-    }
-    return { x: grid.x, y: grid.y + row }
+    const { x, y } = cellPosition(sector, index, cols)
+    return { x: grid.x + x, y: grid.y + y }
   }
   const indexByPosition = new Map<string, number>()
   for (let index = 0; index < rows * cols; index += 1) {

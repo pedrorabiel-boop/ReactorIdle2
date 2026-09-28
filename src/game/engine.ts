@@ -3,6 +3,7 @@ import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyB
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
 import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, superconductorMasses, type ThermalSinkEdge } from './thermal'
+import { neighbourIndices } from './terrain'
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TickReport, Tile } from './types'
 
 const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion'])
@@ -32,7 +33,8 @@ export function createInitialState(debugInput = createDefaultDebugSettings()): G
   return { version: 21, rows: 10, cols: 8, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), autoRebuildPaused: false, tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport() }, ownedSectors: { coast: true, desert: false }, giftTicks: 0, boostActive: false, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
 }
 
-export function adjacentIndices(index: number, rows: number, cols: number): number[] { const row = Math.floor(index / cols); const col = index % cols; return [row > 0 ? index - cols : -1, row < rows - 1 ? index + cols : -1, col > 0 ? index - 1 : -1, col < cols - 1 ? index + 1 : -1].filter((value) => value >= 0) }
+/** Vecindad tal como queda dibujada en el mapa; ver game/terrain. */
+export function adjacentIndices(index: number, rows: number, cols: number, sector: SectorKey = 'coast'): number[] { return neighbourIndices(sector, index, rows, cols) }
 /**
  * Una torre se reconstruye sola si compró la licencia y el jugador no tiene el
  * auto rebuild en pausa. La pausa es temporal: no gasta ni devuelve licencias.
@@ -72,19 +74,19 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
   for (const tile of tiles) { if (!tile || !tile.enabled || tile.damaged || !REACTORS.has(tile.kind)) continue; if (tile.fuel <= 0) { const price = COMPONENTS[tile.kind].refuelCost ?? COMPONENTS[tile.kind].cost; if (!isAutoRebuildActive(state, tile.kind) || (!hasInfiniteMoney(state) && credits < price)) continue; tile.id = `${tile.kind}-${state.tick}-auto`; tile.fuel = fuelCapacity(state, tile.kind); if (!hasInfiniteMoney(state)) credits -= price; refuelCost += price } const amount = productionRate(state, tile.kind); tile.heat += amount; tile.fuel = Math.max(0, tile.fuel - 1); heatProduction += amount }
   const capacityAt = (index: number) => { const tile = tiles[index]; return tile ? componentCapacity(state, tile.kind) : 0 }
   const resistanceAt = (index: number) => { const tile = tiles[index]; return tile ? thermalResistance(state, tile.kind) : Number.POSITIVE_INFINITY }
-  diffuseThermalNetwork(tiles, getThermalTopology(tiles, state.rows, state.cols), capacityAt, resistanceAt)
-  equalizeSuperconductors(tiles, state.rows, state.cols)
+  diffuseThermalNetwork(tiles, getThermalTopology(tiles, state.rows, state.cols, state.activeSector), capacityAt, resistanceAt)
+  equalizeSuperconductors(tiles, state.rows, state.cols, state.activeSector)
   const generatorEdges: ThermalSinkEdge[] = []
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols, state.activeSector)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
   const conversionDemand = new Map<number, number>()
   const conversionReserve = new Map<number, number>()
   for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; const rate = conversionRate(state, tile.kind as 'generator' | 'generator2'); conversionCapacity += rate; conversionReserve.set(index, Math.min(rate, componentCapacity(state, tile.kind))); const stored = Math.min(tile.heat, rate); tile.heat -= stored; tile.flow += stored; thermalEnergy += stored; conversionDemand.set(index, rate - stored) }
-  const masses = superconductorMasses(tiles, state.rows, state.cols)
+  const masses = superconductorMasses(tiles, state.rows, state.cols, state.activeSector)
   const pulled = pullHeatForConversion(tiles, generatorEdges, (index) => conversionDemand.get(index) ?? 0, masses)
   thermalEnergy += pulled.totalMoved
   absorbHeatIntoSinks(tiles, generatorEdges, (index) => conversionReserve.get(index) ?? 0, resistanceAt)
-  equalizeSuperconductors(tiles, state.rows, state.cols)
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'cooler' || !tile.enabled || tile.damaged) continue; const sources = adjacentIndices(index, state.rows, state.cols).filter((i) => isThermalCarrier(tiles[i])); const moved = drainHeatByResistance(tiles, sources, coolingRate(state), capacityAt, resistanceAt); cooledHeat += moved; tile.flow += moved }
+  equalizeSuperconductors(tiles, state.rows, state.cols, state.activeSector)
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'cooler' || !tile.enabled || tile.damaged) continue; const sources = adjacentIndices(index, state.rows, state.cols, state.activeSector).filter((i) => isThermalCarrier(tiles[i])); const moved = drainHeatByResistance(tiles, sources, coolingRate(state), capacityAt, resistanceAt); cooledHeat += moved; tile.flow += moved }
   for (const tile of tiles) { if (!tile || tile.damaged || componentCapacity(state, tile.kind) <= 0) continue; if (tile.heat > componentCapacity(state, tile.kind)) { tile.damaged = true; tile.enabled = false; incidents += 1 } }
   return { tiles, directEnergy, thermalEnergy, research, cooledHeat, incidents, refuelCost, heatProduction, conversionCapacity, credits }
 }

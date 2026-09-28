@@ -1,4 +1,5 @@
-import type { ComponentKind, Tile } from './types'
+import { neighbourIndices } from './terrain'
+import type { ComponentKind, SectorKey, Tile } from './types'
 
 const THERMAL_CARRIERS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'exchanger', 'pipe', 'pipe2', 'accumulator'])
 const CACHE_LIMIT = 64
@@ -15,11 +16,8 @@ const topologyCache = new Map<string, ThermalTopology>()
 /** La Tubería II conduce sin pérdidas: una masa conectada se comporta como una sola pieza. */
 const SUPERCONDUCTOR: ComponentKind = 'pipe2'
 
-function orthogonalIndices(index: number, rows: number, cols: number): number[] {
-  const row = Math.floor(index / cols)
-  const col = index % cols
-  return [row > 0 ? index - cols : -1, row < rows - 1 ? index + cols : -1, col > 0 ? index - 1 : -1, col < cols - 1 ? index + 1 : -1].filter((value) => value >= 0)
-}
+/** Vecindad tal como queda dibujada: el mapa puede rotar y desplazar la grilla. */
+const orthogonalIndices = (sector: SectorKey, index: number, rows: number, cols: number): number[] => neighbourIndices(sector, index, rows, cols)
 
 /**
  * Nivela el calor dentro de cada masa conectada de superconductores. Da igual
@@ -30,7 +28,7 @@ function orthogonalIndices(index: number, rows: number, cols: number): number[] 
  * Los grupos de superconductores que se tocan entre sí. Comparten su calor,
  * así que el resto del motor puede tratar cada grupo como una sola pieza.
  */
-export function superconductorMasses(tiles: Array<Tile | null>, rows: number, cols: number): number[][] {
+export function superconductorMasses(tiles: Array<Tile | null>, rows: number, cols: number, sector: SectorKey = 'coast'): number[][] {
   const pending = new Set<number>()
   for (let index = 0; index < tiles.length; index += 1) {
     const tile = tiles[index]
@@ -46,15 +44,15 @@ export function superconductorMasses(tiles: Array<Tile | null>, rows: number, co
     while (queue.length > 0) {
       const index = queue.pop()!
       mass.push(index)
-      for (const neighbour of orthogonalIndices(index, rows, cols)) if (pending.delete(neighbour)) queue.push(neighbour)
+      for (const neighbour of orthogonalIndices(sector, index, rows, cols)) if (pending.delete(neighbour)) queue.push(neighbour)
     }
     masses.push(mass)
   }
   return masses
 }
 
-export function equalizeSuperconductors(tiles: Array<Tile | null>, rows: number, cols: number): void {
-  for (const mass of superconductorMasses(tiles, rows, cols)) {
+export function equalizeSuperconductors(tiles: Array<Tile | null>, rows: number, cols: number, sector: SectorKey = 'coast'): void {
+  for (const mass of superconductorMasses(tiles, rows, cols, sector)) {
     if (mass.length < 2) continue
 
     let total = 0
@@ -70,25 +68,29 @@ export function equalizeSuperconductors(tiles: Array<Tile | null>, rows: number,
 
 export const isThermalCarrier = (tile: Tile | null | undefined): tile is Tile => Boolean(tile && THERMAL_CARRIERS.has(tile.kind) && tile.enabled && !tile.damaged)
 
-function topologySignature(tiles: Array<Tile | null>, rows: number, cols: number): string {
-  return `${rows}x${cols}:${tiles.map((tile) => isThermalCarrier(tile) ? tile.kind : '.').join(',')}`
+function topologySignature(tiles: Array<Tile | null>, rows: number, cols: number, sector: SectorKey): string {
+  return `${sector}:${rows}x${cols}:${tiles.map((tile) => isThermalCarrier(tile) ? tile.kind : '.').join(',')}`
 }
 
 /** Builds only when placement/enabled/damaged topology changes; heat changes reuse the cached graph. */
-export function getThermalTopology(tiles: Array<Tile | null>, rows: number, cols: number): ThermalTopology {
-  const signature = topologySignature(tiles, rows, cols)
+export function getThermalTopology(tiles: Array<Tile | null>, rows: number, cols: number, sector: SectorKey = 'coast'): ThermalTopology {
+  const signature = topologySignature(tiles, rows, cols, sector)
   const cached = topologyCache.get(signature)
   if (cached) return cached
 
   const nodes: number[] = []
   const edges: ThermalEdge[] = []
+  const seen = new Set<string>()
   for (let index = 0; index < tiles.length; index += 1) {
     if (!isThermalCarrier(tiles[index])) continue
     nodes.push(index)
-    const row = Math.floor(index / cols)
-    const col = index % cols
-    if (col < cols - 1 && isThermalCarrier(tiles[index + 1])) edges.push({ a: index, b: index + 1 })
-    if (row < rows - 1 && isThermalCarrier(tiles[index + cols])) edges.push({ a: index, b: index + cols })
+    for (const neighbour of orthogonalIndices(sector, index, rows, cols)) {
+      if (!isThermalCarrier(tiles[neighbour])) continue
+      const pair = index < neighbour ? `${index}:${neighbour}` : `${neighbour}:${index}`
+      if (seen.has(pair)) continue
+      seen.add(pair)
+      edges.push({ a: index, b: neighbour })
+    }
   }
 
   const topology = { signature, nodes, edges }
