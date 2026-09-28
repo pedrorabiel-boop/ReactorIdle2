@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
-import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, equalizeSuperconductors, getThermalTopology, pullHeatForConversion } from './thermal'
+import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, equalizeSuperconductors, getThermalTopology, pullHeatForConversion, superconductorMasses } from './thermal'
 import type { ComponentKind, Tile } from './types'
 
 let nextTileId = 0
@@ -8,6 +8,7 @@ const makeTile = (kind: ComponentKind = 'pipe', heat = 0): Tile => ({ id: `${kin
 const totalHeat = (tiles: Array<Tile | null>) => tiles.reduce((sum, tile) => sum + (tile?.heat ?? 0), 0)
 const capacityAt = () => 100
 const resistanceAt = () => 1
+const reserveAt = () => 100
 
 describe('resistive thermal graph', () => {
   beforeEach(() => { clearThermalTopologyCache(); nextTileId = 0 })
@@ -21,8 +22,9 @@ describe('resistive thermal graph', () => {
     }
     expect(COMPONENTS.pipe.capacity).toBe(200_000)
     expect(COMPONENTS.pipe.thermalResistance).toBe(0.01)
-    expect(COMPONENTS.pipe2.thermalResistance).toBeCloseTo(1.233151731188216, 12)
-    expect(COMPONENTS.pipe2.referenceTransferRate).toBe(12_500_000_000)
+    expect(COMPONENTS.pipe2.thermalResistance).toBe(1)
+    expect(COMPONENTS.pipe2.capacity).toBe(10_000_000)
+    expect(COMPONENTS.pipe2.referenceTransferRate).toBe(1_967_347)
   })
 
   it('conserves heat exactly while redistributing it', () => {
@@ -110,15 +112,54 @@ describe('resistive thermal graph', () => {
   it('feeds terminal converters without ever returning their stored heat', () => {
     const receiving = [makeTile('pipe', 100), makeTile('generator', 0)]
     const before = totalHeat(receiving)
-    const moved = absorbHeatIntoSinks(receiving, [{ source: 0, sink: 1 }], capacityAt, resistanceAt)
+    const moved = absorbHeatIntoSinks(receiving, [{ source: 0, sink: 1 }], reserveAt, resistanceAt)
     expect(moved).toBeGreaterThan(0)
     expect(receiving[1]!.heat).toBeGreaterThan(0)
     expect(totalHeat(receiving)).toBeCloseTo(before, 8)
 
     const blockedReturn = [makeTile('pipe', 0), makeTile('generator', 100)]
-    expect(absorbHeatIntoSinks(blockedReturn, [{ source: 0, sink: 1 }], capacityAt, resistanceAt)).toBe(0)
+    expect(absorbHeatIntoSinks(blockedReturn, [{ source: 0, sink: 1 }], reserveAt, resistanceAt)).toBe(0)
     expect(blockedReturn[0]!.heat).toBe(0)
     expect(blockedReturn[1]!.heat).toBe(100)
+  })
+
+  it('fills a converter reserve up to one conversion tick and no further', () => {
+    const reserve = 1_000
+    const tiles = [makeTile('pipe2', 50_000_000), makeTile('generator2', 0)]
+    // La tolerancia de la turbina es muy superior; la reserva es lo que manda.
+    expect(COMPONENTS.generator2.capacity).toBeGreaterThan(reserve)
+    let moved = 0
+    for (let tick = 0; tick < 20; tick += 1) moved += absorbHeatIntoSinks(tiles, [{ source: 0, sink: 1 }], () => reserve, resistanceAt)
+    expect(tiles[1]!.heat).toBeGreaterThan(reserve * 0.99)
+    expect(tiles[1]!.heat).toBeLessThanOrEqual(reserve)
+    expect(moved).toBeLessThanOrEqual(reserve + 1e-6)
+  })
+
+  it('keeps filling a reserve whatever the carrier tolerance is', () => {
+    // El modelo anterior comparaba calor/tolerancia y un conductor de tolerancia
+    // enorme no lograba rellenar nunca el buffer de un conversor pequeño.
+    for (const carrier of ['pipe', 'pipe2'] as const) {
+      const tiles = [makeTile(carrier, 1_000_000), makeTile('generator2', 400)]
+      absorbHeatIntoSinks(tiles, [{ source: 0, sink: 1 }], () => 1_000, resistanceAt)
+      expect(tiles[1]!.heat).toBeGreaterThan(400)
+    }
+  })
+
+  it('lets one converter reach a whole Pipe II mass, not just its neighbour', () => {
+    const cols = 3
+    const tiles: Array<Tile | null> = [makeTile('pipe2', 150_000), makeTile('pipe2', 150_000), makeTile('pipe2', 150_000), null, null, makeTile('generator2', 0)]
+    const masses = superconductorMasses(tiles, 2, cols)
+    const demand = 2_000_000
+    const pulled = pullHeatForConversion(tiles, [{ source: 2, sink: 5 }], () => demand, masses)
+    // Toda la masa suma 450.000 y la turbina puede convertir mucho más.
+    expect(pulled.totalMoved).toBeCloseTo(450_000, 6)
+    for (const index of [0, 1, 2]) expect(tiles[index]!.heat).toBeCloseTo(0, 6)
+  })
+
+  it('still limits a lone carrier to its own heat', () => {
+    const tiles: Array<Tile | null> = [makeTile('pipe', 150_000), makeTile('pipe', 150_000), null, makeTile('generator', 0)]
+    const pulled = pullHeatForConversion(tiles, [{ source: 1, sink: 3 }], () => 2_000_000, superconductorMasses(tiles, 2, 2))
+    expect(pulled.totalMoved).toBeCloseTo(150_000, 6)
   })
 
   it('satisfies matched terminal conversion without occupying thermal buffers', () => {

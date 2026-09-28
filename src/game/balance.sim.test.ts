@@ -6,7 +6,7 @@ import { nextUpgradeGainPercent, upgradeCost } from './research'
 
 describe('promoted official balance', () => {
   it('matches every global value from the promoted Debug profile', () => {
-    expect(ECONOMY).toMatchObject({ startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 })
+    expect(ECONOMY).toMatchObject({ startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 })
     expect(Object.fromEntries(Object.entries(TECHNOLOGIES).map(([key, technology]) => [key, technology.cost]))).toEqual({ solar: 150, thermal: 60_000, thorium: 300_000, fusion: 50_000_000, expansion: 15_000_000 })
     expect(AUTO_REBUILD_COSTS).toEqual({ wind: 15, solar: 3_000, core: 150_000, thorium: 9_000_000, fusion: 60_000_000 })
   })
@@ -23,18 +23,18 @@ describe('promoted official balance', () => {
       controller: { cost: 100_000_000, capacity: 0, controllerBonus: 0.1 },
       core: { cost: 1_000_000, capacity: 20_000, production: 7_500, fuelCycles: 200, refuelCost: 1_000_000 },
       thorium: { cost: 100_000_000, capacity: 2_500_000, production: 500_000, fuelCycles: 300, refuelCost: 100_000_000 },
-      fusion: { cost: 280_000_000_000, capacity: 75_000_000_000, production: 12_500_000_000, fuelCycles: 34, refuelCost: 280_000_000_000 },
+      fusion: { cost: 2_000_000_000, capacity: 100_000_000, production: 10_000_000, fuelCycles: 300, refuelCost: 2_000_000_000 },
       generator: { cost: 50_000, capacity: 4_000, thermalResistance: 0, conversionRate: 1_875 },
-      generator2: { cost: 37_500_000, capacity: 12_500_000, thermalResistance: 0, conversionRate: 6_250_000 },
+      generator2: { cost: 150_000_000, capacity: 3_000_000, thermalResistance: 0, conversionRate: 900_000 },
       cooler: { cost: 1_000_000, capacity: 0, coolingRate: 50_000 },
       exchanger: { cost: 50_000_000, capacity: 2_000_000, referenceTransferRate: 200_000 },
       pipe: { cost: 10_000_000, capacity: 200_000, referenceTransferRate: 50_000, thermalResistance: 0.01 },
-      pipe2: { cost: 2_240_000_000, capacity: 75_000_000_000, referenceTransferRate: 12_500_000_000, thermalResistance: 1.233151731188216 },
+      pipe2: { cost: 250_000_000, capacity: 10_000_000, referenceTransferRate: 1_967_347, thermalResistance: 1 },
       accumulator: { cost: 250_000_000, capacity: 10_000_000, referenceTransferRate: 100_000 },
     })
     expect(COMPONENTS.exchanger.thermalResistance).toBeCloseTo(2.24071005886228, 12)
     expect(COMPONENTS.pipe.thermalResistance).toBe(0.01)
-    expect(COMPONENTS.pipe2.thermalResistance).toBeCloseTo(1.233151731188216, 12)
+    expect(COMPONENTS.pipe2.thermalResistance).toBe(1)
     expect(COMPONENTS.accumulator.thermalResistance).toBeCloseTo(24.7491582262546, 12)
   })
 
@@ -50,9 +50,9 @@ describe('promoted official balance', () => {
       controller: { output: 3_000_000_000, capacity: 2_550_000_000, autonomy: 2_250_000_000 },
       core: { output: 3_500_000, capacity: 2_000_000, autonomy: 2_500_000 },
       thorium: { output: 400_000_000, capacity: 100_000_000, autonomy: 300_000_000 },
-      fusion: { output: 8_400_000_000_000, capacity: 7_140_000_000_000, autonomy: 6_300_000_000_000 },
+      fusion: { output: 6_000_000_000, capacity: 3_000_000_000, autonomy: 4_000_000_000 },
       generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
-      generator2: { output: 187_500_000, capacity: 112_500_000, autonomy: 33_750_000 },
+      generator2: { output: 500_000_000, capacity: 200_000_000, autonomy: 33_750_000 },
       cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
       exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
       pipe: { output: 300_000_000, capacity: 30_000_000, autonomy: 225_000_000 },
@@ -90,7 +90,7 @@ describe('promoted official balance', () => {
     expect(isComponentUnlocked(fusion, 'generator2')).toBe(true)
     expect(isComponentUnlocked(fusion, 'pipe2')).toBe(true)
     expect(COMPONENTS.generator.conversionRate).toBe(COMPONENTS.core.production! / 4)
-    expect(COMPONENTS.generator2.conversionRate).toBe(6_250_000)
+    expect(COMPONENTS.generator2.conversionRate).toBe(900_000)
     expect(levelMultiplier(10)).toBeCloseTo(Math.pow(1.35, 9) * 2.5)
   })
 })

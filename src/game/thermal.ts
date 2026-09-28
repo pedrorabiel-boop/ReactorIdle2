@@ -26,13 +26,18 @@ function orthogonalIndices(index: number, rows: number, cols: number): number[] 
  * por dónde entre o salga el calor: la masa entera queda a la misma temperatura,
  * así que cuantas más piezas la formen, más reparte y más tolera cada una.
  */
-export function equalizeSuperconductors(tiles: Array<Tile | null>, rows: number, cols: number): void {
+/**
+ * Los grupos de superconductores que se tocan entre sí. Comparten su calor,
+ * así que el resto del motor puede tratar cada grupo como una sola pieza.
+ */
+export function superconductorMasses(tiles: Array<Tile | null>, rows: number, cols: number): number[][] {
   const pending = new Set<number>()
   for (let index = 0; index < tiles.length; index += 1) {
     const tile = tiles[index]
     if (tile?.kind === SUPERCONDUCTOR && tile.enabled && !tile.damaged) pending.add(index)
   }
 
+  const masses: number[][] = []
   while (pending.size > 0) {
     const start = pending.values().next().value!
     pending.delete(start)
@@ -43,6 +48,13 @@ export function equalizeSuperconductors(tiles: Array<Tile | null>, rows: number,
       mass.push(index)
       for (const neighbour of orthogonalIndices(index, rows, cols)) if (pending.delete(neighbour)) queue.push(neighbour)
     }
+    masses.push(mass)
+  }
+  return masses
+}
+
+export function equalizeSuperconductors(tiles: Array<Tile | null>, rows: number, cols: number): void {
+  for (const mass of superconductorMasses(tiles, rows, cols)) {
     if (mass.length < 2) continue
 
     let total = 0
@@ -174,14 +186,14 @@ export function diffuseThermalNetwork(
 }
 
 /**
- * Tops up the small buffer of a terminal node once its conversion demand is
- * already served. Sinks fill by potential and resistance and can never return
- * heat, so this only parks the leftover a converter could not process.
+ * Llena la reserva de un conversor una vez servida su demanda del tick. Solo
+ * se mueve calor de lo caliente a lo frío y nunca vuelve, y la reserva se topa
+ * en un tick de conversión: lo justo para aguantar un bajón de producción.
  */
 export function absorbHeatIntoSinks(
   tiles: Array<Tile | null>,
   edges: ThermalSinkEdge[],
-  capacityAt: (index: number) => number,
+  reserveAt: (index: number) => number,
   resistanceAt: (index: number) => number,
   substeps = 4,
 ): number {
@@ -194,13 +206,15 @@ export function absorbHeatIntoSinks(
     for (const edge of edges) {
       const sourceTile = tiles[edge.source]
       const sinkTile = tiles[edge.sink]
-      const sourceCapacity = capacityAt(edge.source)
-      const sinkCapacity = capacityAt(edge.sink)
-      if (!sourceTile || !sinkTile || sourceCapacity <= 0 || sinkCapacity <= 0) continue
-      const sourcePotential = Math.max(0, sourceTile.heat) / sourceCapacity
-      const sinkPotential = Math.max(0, sinkTile.heat) / sinkCapacity
-      if (sourcePotential <= sinkPotential + EPSILON) continue
-      const equilibriumTransfer = (sourcePotential - sinkPotential) / (1 / sourceCapacity + 1 / sinkCapacity)
+      if (!sourceTile || !sinkTile) continue
+      // La reserva es un tick de conversión, muy por debajo de la tolerancia:
+      // el conversor guarda para un bajón sin quedar al borde de averiarse.
+      const room = reserveAt(edge.sink) - Math.max(0, sinkTile.heat)
+      if (room <= EPSILON) continue
+      const sourceHeat = Math.max(0, sourceTile.heat)
+      const sinkHeat = Math.max(0, sinkTile.heat)
+      if (sourceHeat <= sinkHeat + EPSILON) continue
+      const equilibriumTransfer = Math.min((sourceHeat - sinkHeat) / 2, room)
       const edgeResistance = Math.max(MIN_RESISTANCE, resistanceAt(edge.source) + resistanceAt(edge.sink))
       const coupling = 1 - Math.exp(-1 / (edgeResistance * iterations))
       const amount = equilibriumTransfer * coupling
@@ -341,15 +355,43 @@ export function pullHeatForConversion(
   tiles: Array<Tile | null>,
   edges: ThermalSinkEdge[],
   demandAt: (index: number) => number,
+  masses: number[][] = [],
 ): ThermalDemandResult {
+  // Una masa de superconductores es un solo cuerpo de calor: el conversor que
+  // toca cualquiera de sus piezas alcanza el total, no la porción de su vecina.
+  const members = new Map<number, number[]>()
+  const poolOf = new Map<number, number>()
+  for (const mass of masses) {
+    if (mass.length < 2) continue
+    const pool = mass[0]
+    members.set(pool, mass)
+    for (const index of mass) poolOf.set(index, pool)
+  }
+  const poolFor = (index: number) => poolOf.get(index) ?? index
+  const membersOf = (pool: number) => members.get(pool) ?? [pool]
+  const poolHeat = (pool: number) => membersOf(pool).reduce((sum, index) => sum + Math.max(0, tiles[index]?.heat ?? 0), 0)
+  /** Reparte la extracción entre las piezas de la masa según lo que guarda cada una. */
+  const drawFromPool = (pool: number, amount: number) => {
+    const group = membersOf(pool)
+    const total = poolHeat(pool)
+    if (total <= EPSILON) return
+    for (const index of group) {
+      const tile = tiles[index]
+      if (!tile) continue
+      const taken = amount * (Math.max(0, tile.heat) / total)
+      tile.heat = Math.max(0, tile.heat - taken)
+      tile.flow += taken
+    }
+  }
+
   const validEdges = [...new Map(edges
-    .filter(({ source, sink }) => tiles[source] && tiles[sink] && (tiles[source]?.heat ?? 0) > EPSILON && demandAt(sink) > EPSILON)
-    .map((edge) => [`${edge.source}:${edge.sink}`, edge])).values()]
+    .filter(({ source, sink }) => tiles[source] && tiles[sink] && poolHeat(poolFor(source)) > EPSILON && demandAt(sink) > EPSILON)
+    .map(({ source, sink }) => [`${poolFor(source)}:${sink}`, { source: poolFor(source), sink }])).values()]
   const received = new Map<number, number>()
   let totalMoved = 0
 
   for (const component of demandComponents(validEdges)) {
-    const available = new Map(component.sources.map((source) => [source, Math.max(0, tiles[source]?.heat ?? 0)]))
+    const available = new Map(component.sources.map((source) => [source, poolHeat(source)]))
     const remainingDemand = new Map(component.sinks.map((sink) => [sink, Math.max(0, demandAt(sink))]))
     const totalAvailable = component.sources.reduce((sum, source) => sum + (available.get(source) ?? 0), 0)
     const totalDemand = component.sinks.reduce((sum, sink) => sum + (remainingDemand.get(sink) ?? 0), 0)
@@ -365,12 +407,8 @@ export function pullHeatForConversion(
         if (moved <= EPSILON) continue
         available.set(source, Math.max(0, (available.get(source) ?? 0) - moved))
         remainingDemand.set(sink, Math.max(0, (remainingDemand.get(sink) ?? 0) - moved))
-        const sourceTile = tiles[source]
+        drawFromPool(source, moved)
         const sinkTile = tiles[sink]
-        if (sourceTile) {
-          sourceTile.heat = Math.max(0, sourceTile.heat - moved)
-          sourceTile.flow += moved
-        }
         if (sinkTile) sinkTile.flow += moved
         received.set(sink, (received.get(sink) ?? 0) + moved)
         totalMoved += moved

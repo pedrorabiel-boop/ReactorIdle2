@@ -157,6 +157,23 @@ describe('economy v2', () => {
   it('rebuilds an expired tile from build mode only with the same component type', () => { let state = unlocked(); state = placeTile(state, 0, 'wind'); state = { ...state, tiles: state.tiles.map((tile, i) => i === 0 && tile ? { ...tile, fuel: 0 } : tile) }; const occupied = state; expect(placeTile(state, 0, 'solar')).toBe(occupied); const before = state.credits; state = placeTile(state, 0, 'wind'); expect(state.tiles[0]?.kind).toBe('wind'); expect(state.tiles[0]?.fuel).toBe(10); expect(before - state.credits).toBe(COMPONENTS.wind.cost) })
   it('refunds nothing for durable producers and 85 percent for other pieces', () => { for (const kind of LIFETIME_ORDER) expect(demolitionRefund(kind)).toBe(0); expect(demolitionRefund('battery')).toBe(21_250); let state = unlocked(); state = placeTile(state, 0, 'wind'); const afterBuild = state.credits; state = sellTile(state, 0); expect(state.credits).toBe(afterBuild); state = placeTile(state, 0, 'battery'); const beforeSale = state.credits; state = sellTile(state, 0); expect(state.credits - beforeSale).toBe(21_250) })
   it('unlocks auto rebuild separately per type, pays each rebuild, and renews its visual identity', () => { let state = { ...unlocked(), researchPoints: AUTO_REBUILD_COSTS.wind! }; expect(canUnlockAutoRebuild(state, 'wind')).toBe(true); state = unlockAutoRebuild(state, 'wind'); expect(state.autoRebuilds.wind).toBe(true); expect(state.autoRebuilds.solar).toBe(false); state = placeTile(state, 0, 'wind'); const expiredId = state.tiles[0]?.id; state = { ...state, tiles: state.tiles.map((tile, i) => i === 0 && tile ? { ...tile, fuel: 0 } : tile) }; const before = state.credits; const result = simulateTick(state); expect(result.report.directEnergy).toBeCloseTo(0.2); expect(result.state.tiles[0]?.fuel).toBe(9); expect(result.state.tiles[0]?.id).not.toBe(expiredId); expect(before - result.state.credits).toBe(1) })
+  it('never lets a converter reserve push it past its own tolerance', () => {
+    let state = unlocked()
+    state = placeTile(state, 26, 'pipe')
+    state = placeTile(state, 27, 'generator')
+    // Una turbina mejorada solo en conversión pide más de lo que tolera.
+    COMPONENTS.generator.conversionRate = 1_000_000
+    COMPONENTS.generator.capacity = 4_000
+    state = { ...state, tiles: state.tiles.map((tile, index) => index === 26 && tile ? { ...tile, heat: 150_000 } : tile) }
+    for (let tick = 0; tick < 10; tick += 1) state = simulateTick(state).state
+    const turbine = state.tiles[27]!
+    const tolerance = COMPONENTS.generator.capacity
+    COMPONENTS.generator.conversionRate = 1_875
+    COMPONENTS.generator.capacity = 4_000
+    expect(turbine.damaged).toBe(false)
+    expect(turbine.heat).toBeLessThanOrEqual(tolerance)
+  })
+
   it('pauses every purchased auto rebuild without spending the licences', () => {
     let state = { ...unlocked(), researchPoints: AUTO_REBUILD_COSTS.wind! }
     state = unlockAutoRebuild(state, 'wind')

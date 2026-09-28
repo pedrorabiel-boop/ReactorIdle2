@@ -1,6 +1,6 @@
 import type { ComponentKind, TechKey, UpgradeTrack } from './types'
 
-export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 } as const
+export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 } as const
 /**
  * Rendimiento de una ausencia por tramos: cuanto más tiempo pasa, menos rinde
  * cada hora. Más allá del último tramo la planta no produce nada.
@@ -59,9 +59,9 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   controller: { output: 3_000_000_000, capacity: 2_550_000_000, autonomy: 2_250_000_000 },
   core: { output: 3_500_000, capacity: 2_000_000, autonomy: 2_500_000 },
   thorium: { output: 400_000_000, capacity: 100_000_000, autonomy: 300_000_000 },
-  fusion: { output: 8_400_000_000_000, capacity: 7_140_000_000_000, autonomy: 6_300_000_000_000 },
+  fusion: { output: 6_000_000_000, capacity: 3_000_000_000, autonomy: 4_000_000_000 },
   generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
-  generator2: { output: 187_500_000, capacity: 112_500_000, autonomy: 33_750_000 },
+  generator2: { output: 500_000_000, capacity: 200_000_000, autonomy: 33_750_000 },
   cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
   exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
   pipe: { output: 300_000_000, capacity: 30_000_000, autonomy: 225_000_000 },
