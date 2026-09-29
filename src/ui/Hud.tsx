@@ -5,9 +5,9 @@ import type { GameState } from '../game/types'
 import { formatCompact, formatDecimal, formatExact, formatNumber } from './format'
 import { Sprite } from './pixel/Sprite'
 
-interface HudProps { game: GameState; musicOn: boolean; onToggleMusic: () => void; onSellEnergy: () => void; onToggleBoost: () => void; onOpenMenu: () => void }
+interface HudProps { game: GameState; zoom: number; onZoom: (delta: number) => void; musicOn: boolean; onToggleMusic: () => void; onSellEnergy: () => void; onToggleBoost: () => void; onOpenMenu: () => void }
 
-export function Hud({ game, musicOn, onToggleMusic, onSellEnergy, onToggleBoost, onOpenMenu }: HudProps) {
+export function Hud({ game, zoom, onZoom, musicOn, onToggleMusic, onSellEnergy, onToggleBoost, onOpenMenu }: HudProps) {
   const [exactResource, setExactResource] = useState<'credits' | 'energy' | 'research' | null>(null)
   const report = game.lastReport
   const stored = sectorEnergyStored(game)
@@ -57,6 +57,13 @@ export function Hud({ game, musicOn, onToggleMusic, onSellEnergy, onToggleBoost,
       </button>}
       <button type="button" className={`icon-btn frame hud-push ${musicOn ? 'on' : ''}`} aria-pressed={musicOn} onClick={onToggleMusic} aria-label={musicOn ? 'Silenciar la música' : 'Activar la música'}><Sprite name={musicOn ? 'icon-sound' : 'icon-mute'} size={20} /></button>
       <button className="icon-btn frame" onClick={onOpenMenu} aria-label="Abrir menú"><Sprite name="icon-menu" size={20} /></button>
+    </div>
+    <div className="hud-row hud-zoom">
+      <div className="zoom-controls frame" role="group" aria-label="Zoom del mapa">
+        <button type="button" onClick={() => onZoom(-0.1)} disabled={zoom <= 0.6} aria-label="Alejar el mapa">−</button>
+        <span>{Math.round(zoom * 100)}%</span>
+        <button type="button" onClick={() => onZoom(0.1)} disabled={zoom >= 1.6} aria-label="Acercar el mapa">+</button>
+      </div>
     </div>
   </header>
 }

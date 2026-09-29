@@ -19,6 +19,8 @@ interface MapViewportProps {
   selectedKind: ComponentKind
   inspectedIndex: number | null
   minimalUi?: boolean
+  /** El control vive en el HUD; aqui solo se aplica el valor. */
+  zoom: number
   onCellPointerDown: (event: PointerEvent<HTMLButtonElement>, index: number) => void
   onCellClick: (index: number) => void
   onGridPointerMove: (event: PointerEvent<HTMLDivElement>) => void
@@ -108,11 +110,10 @@ const Cell = memo(function Cell({ game, tile, index, tour, x, y, armed, toolMode
   )
 })
 
-export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
+export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, zoom, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
   // Ancla de la guía de inicio: la primera casilla construible que sigue vacía.
   const firstFreeIndex = island.tiles.find((tile) => tile.gridIndex !== null && !game.tiles[tile.gridIndex])?.gridIndex ?? null
   const viewportRef = useRef<HTMLDivElement>(null)
-  const [zoom, setZoom] = useState(1)
   const [joystick, setJoystick] = useState({ x: 0, y: 0 })
   const joystickVectorRef = useRef({ x: 0, y: 0 })
   const joystickFrameRef = useRef<number | null>(null)
@@ -132,7 +133,6 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     viewport.style.setProperty('--sea-y', `${stage.offsetTop}px`)
     viewport.style.setProperty('--sea-size', `${TILE * zoom}px`)
   }
-  const changeZoom = (delta: number) => setZoom((current) => Math.max(0.6, Math.min(1.6, Math.round((current + delta) * 10) / 10)))
   const terrainTiles = useMemo(
     () => island.tiles.map((tile) => {
       const decor = tile.gridIndex !== null && game.tiles[tile.gridIndex] ? null : tile.decor
@@ -261,7 +261,6 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
 
   return (
     <div className={`viewport ${armed ? 'armed' : ''} mode-${toolMode}`} ref={viewportRef}>
-      <div className={`zoom-controls frame ${minimalUi ? 'hidden' : ''}`} role="group" aria-label="Zoom del mapa"><button onClick={() => changeZoom(-0.1)} disabled={zoom <= 0.6}>−</button><span>{Math.round(zoom * 100)}%</span><button onClick={() => changeZoom(0.1)} disabled={zoom >= 1.6}>+</button></div>
       <div className="world-stage" data-tour="map" ref={stageRef} style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
       <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${zoom})` }} onPointerMove={onGridPointerMove}>
         <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} />

@@ -71,11 +71,11 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .world-stage { position: relative; margin: 110px auto 240px; }
 .world { position: relative; background: var(--px-4); transform-origin: 0 0; }
 .viewport.armed:not(.mode-inspect) .world { touch-action: none; }
-.zoom-controls { position: sticky; z-index: 8; top: calc(104px + var(--safe-top)); left: calc(100% - 116px); width: 108px; height: 34px; display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; background: var(--panel-2); }
+/* Tercera fila del HUD: ya no flota sobre el mapa. */
+.zoom-controls { flex: 0 0 auto; margin-left: auto; width: 108px; height: 34px; display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; background: var(--panel-2); }
 .zoom-controls button { height: 100%; border: 0; background: transparent; color: var(--gold); font: 20px var(--font-ui); }
 .zoom-controls button:disabled { opacity: .3; }
 .zoom-controls span { text-align: center; color: var(--muted); font: 7px var(--font-num); }
-.zoom-controls.hidden { visibility: hidden; pointer-events: none; }
 .cell { position: absolute; width: 48px; height: 48px; }
 .terrain-layer { position: absolute; left: 0; top: 0; }
 .grid-outline { position: absolute; border: 2px dashed rgba(255,255,255,.55); box-shadow: 0 0 0 2px rgba(0,0,0,.25); pointer-events: none; animation: dash 1s steps(2) infinite; }
@@ -124,6 +124,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .hud-row { display: flex; gap: 6px; }
 .hud-row > * { pointer-events: auto; }
 .hud-secondary { margin-top: 6px; align-items: center; }
+.hud-zoom { margin-top: 6px; align-items: center; }
 .sell-energy { flex: 0 0 auto; height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; color: var(--gold); }
 .sell-arrow { font: 12px var(--font-ui); color: var(--gold); line-height: 1; }
 .sell-energy:disabled { color: var(--muted); opacity: .55; }

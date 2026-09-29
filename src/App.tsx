@@ -47,6 +47,9 @@ function App() {
   const ignoreClickRef = useRef(false)
   const tutorial = useTutorial(useMemo(() => isPristineGame(loaded.state), [loaded.state]))
   const [musicOn, setMusicOn] = useState(isMusicEnabled)
+  // El zoom vive aqui porque lo dibuja el HUD y lo aplica el mapa.
+  const [zoom, setZoom] = useState(1)
+  const changeZoom = useCallback((delta: number) => setZoom((current) => Math.max(0.6, Math.min(1.6, Math.round((current + delta) * 10) / 10))), [])
   const buildPanelOpen = activeTab === 'build'
   const armed = buildPanelOpen && (buildFocus || game.toolMode === 'demolish')
   const armedRef = useRef(armed); armedRef.current = armed
@@ -133,8 +136,8 @@ function App() {
   function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Distrito Neón adquirido.') }
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
-    <MapViewport game={game} island={island} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
-    {!buildFocus && <Hud game={game} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
+    <MapViewport game={game} island={island} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
+    {!buildFocus && <Hud game={game} zoom={zoom} onZoom={changeZoom} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
       <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`}>
