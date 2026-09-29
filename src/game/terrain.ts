@@ -32,6 +32,34 @@ export const CYBERPUNK_BUILDABLE_INDICES = [
 
 export const CYBERPUNK_BUILDABLE_SET = new Set<number>(CYBERPUNK_BUILDABLE_INDICES)
 
+// Nuclear Test Site: 150 casillas de suelo limpio en una grilla 20x16. La
+// silueta tiene el borde ondulado, dos esquinas comidas y tres afloramientos
+// de roca dentro del campo, que obligan a rodear con las tuberias.
+export const TESTSITE_BUILDABLE_INDICES = [
+  46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+  68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
+  88, 89, 90, 91, 92, 93, 94, 95, 96, 97,
+  102, 103, 104, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+  122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137,
+  142, 143, 144, 145, 146, 147, 148, 152, 153, 154, 155, 156, 157,
+  163, 164, 165, 166, 167, 168, 172, 173, 174, 175, 176, 177,
+  182, 183, 184, 185, 186, 187, 188, 192, 193, 194, 195, 196, 197,
+  202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 217,
+  222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 237,
+  242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253,
+  262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274,
+] as const
+
+export const TESTSITE_BUILDABLE_SET = new Set<number>(TESTSITE_BUILDABLE_INDICES)
+
+/** Cada sector tiene su propia grilla; el Test Site es mucho mayor que los otros dos. */
+export const SECTOR_GRID: Record<SectorKey, { rows: number; cols: number }> = {
+  coast: { rows: 10, cols: 8 },
+  desert: { rows: 10, cols: 8 },
+  testsite: { rows: 16, cols: 20 },
+}
+
+
 // El Distrito Neón no se dibuja con la grilla cruda: rota su topología y
 // desplaza franjas enteras para que la zona construible forme entrantes. Esa
 // transformación NO conserva la vecindad, así que motor y presentación tienen
@@ -49,7 +77,8 @@ export function cellPosition(sector: SectorKey, index: number, cols: number): { 
   return { x: 0, y: row }
 }
 
-const buildableFor = (sector: SectorKey) => sector === 'desert' ? CYBERPUNK_BUILDABLE_SET : COAST_BUILDABLE_SET
+/** Las casillas donde se puede construir en cada sector. Fuente única. */
+export const buildableFor = (sector: SectorKey) => sector === 'desert' ? CYBERPUNK_BUILDABLE_SET : sector === 'testsite' ? TESTSITE_BUILDABLE_SET : COAST_BUILDABLE_SET
 const neighbourCache = new Map<string, number[][]>()
 
 /**

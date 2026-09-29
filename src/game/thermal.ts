@@ -1,7 +1,7 @@
 import { neighbourIndices } from './terrain'
 import type { ComponentKind, SectorKey, Tile } from './types'
 
-const THERMAL_CARRIERS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'exchanger', 'pipe', 'pipe2', 'accumulator'])
+const THERMAL_CARRIERS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'planck', 'exchanger', 'pipe', 'pipe2', 'accumulator'])
 const CACHE_LIMIT = 64
 const MIN_RESISTANCE = 0.000_001
 const EPSILON = 0.000_000_1

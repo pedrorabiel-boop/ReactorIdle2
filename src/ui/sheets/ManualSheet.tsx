@@ -21,6 +21,7 @@ const CATEGORIES: Array<{ title: string; description: string; kinds: ComponentKi
 const MANUAL_DESCRIPTIONS: Record<ComponentKind, string> = {
   wind: 'Tecnología disponible desde el inicio. Produce energía directamente sin utilizar calor: una excelente puerta de entrada al desarrollo energético del país.',
   solar: 'El siguiente nivel de generación directa. Es más eficiente e intensa que la energía eólica y permite dar un salto importante en la escala de tu red.',
+  planck: "El reactor experimental del polígono de ensayos. Entrega 2,5 G de calor por segundo: ninguna instalación modesta lo absorbe, y el calor que nadie convierte revienta la red. Necesita decenas de turbinas y tuberías al máximo nivel trabajando a la vez.",
   core: 'Primer desarrollo energético basado en calor. Produce calor que debes llevar hasta turbinas generadoras para transformarlo en energía vendible.',
   thorium: 'Segunda fase de la generación térmica. Entrega mucho más calor que el núcleo térmico y exige una red cuidadosamente dimensionada.',
   fusion: 'Tercera fase de los generadores térmicos. La fusión alcanza niveles extraordinarios de calor; una red mal diseñada puede sobrecalentarse con rapidez.',

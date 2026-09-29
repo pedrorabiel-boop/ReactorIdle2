@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { cellPosition, neighbourIndices, CYBERPUNK_BUILDABLE_SET } from './terrain'
-import { createInitialState, placeTile, simulateTick } from './engine'
+import { cellPosition, neighbourIndices, CYBERPUNK_BUILDABLE_SET, SECTOR_GRID, TESTSITE_BUILDABLE_INDICES, TESTSITE_BUILDABLE_SET } from './terrain'
+import { createInitialState, isComponentUnlocked, placeTile, simulateTick } from './engine'
+import { COMPONENTS } from './catalog'
+import { ECONOMY, TECHNOLOGIES, levelMultiplier } from './balance'
 import type { GameState } from './types'
 
 const ROWS = 10
@@ -33,6 +35,68 @@ describe('geometry of the map', () => {
     }
   })
 
+  it('lays the test site out as one connected field of 150 cells', () => {
+    const { rows, cols } = SECTOR_GRID.testsite
+    expect(rows).toBe(16)
+    expect(cols).toBe(20)
+    expect(TESTSITE_BUILDABLE_INDICES).toHaveLength(150)
+    expect(TESTSITE_BUILDABLE_SET.size).toBe(150)
+    for (const index of TESTSITE_BUILDABLE_INDICES) expect(index).toBeLessThan(rows * cols)
+
+    const seen = new Set<number>([TESTSITE_BUILDABLE_INDICES[0]])
+    const queue: number[] = [TESTSITE_BUILDABLE_INDICES[0]]
+    while (queue.length > 0) {
+      const index = queue.pop()!
+      for (const neighbour of neighbourIndices('testsite', index, rows, cols)) {
+        if (TESTSITE_BUILDABLE_SET.has(neighbour) && !seen.has(neighbour)) { seen.add(neighbour); queue.push(neighbour) }
+      }
+    }
+    expect(seen.size).toBe(150)
+
+    // El campo se dibuja sobre la grilla plana, así que la vecindad no se tuerce.
+    expect(cellPosition('testsite', 46, cols)).toEqual({ x: 6, y: 2 })
+    expect(neighbourIndices('testsite', 47, rows, cols)).toContain(46)
+  })
+
+  it('leaves room inside the field for the rock outcrops', () => {
+    const { rows, cols } = SECTOR_GRID.testsite
+    // Todo lo no construible que el exterior no alcanza es un afloramiento.
+    const outside = new Set<number>()
+    const queue: number[] = []
+    for (let index = 0; index < rows * cols; index += 1) {
+      const row = Math.floor(index / cols), col = index % cols
+      if ((row === 0 || col === 0 || row === rows - 1 || col === cols - 1) && !TESTSITE_BUILDABLE_SET.has(index)) { outside.add(index); queue.push(index) }
+    }
+    while (queue.length > 0) {
+      const index = queue.pop()!
+      for (const neighbour of neighbourIndices('testsite', index, rows, cols)) {
+        if (!TESTSITE_BUILDABLE_SET.has(neighbour) && !outside.has(neighbour)) { outside.add(neighbour); queue.push(neighbour) }
+      }
+    }
+    let outcrops = 0
+    for (let index = 0; index < rows * cols; index += 1) {
+      if (!TESTSITE_BUILDABLE_SET.has(index) && !outside.has(index)) outcrops += 1
+    }
+    expect(outcrops).toBe(9)
+  })
+
+  it("gates The Planck's Length behind the test site licence and sizes it beyond any small grid", () => {
+    const planck = COMPONENTS.planck
+    expect(planck.tech).toBe('testsite')
+    expect(TECHNOLOGIES.testsite.cost).toBe(100_000_000)
+    expect(TECHNOLOGIES.testsite.requires).toBe('fusion')
+    // Su producción exige decenas de Turbina II al máximo: una sola no basta.
+    const maxTurbine = (COMPONENTS.generator2.conversionRate ?? 0) * levelMultiplier(ECONOMY.maxCyberpunkBuildingLevel)
+    expect((planck.production ?? 0) / maxTurbine).toBeGreaterThan(5)
+    // Y la tolerancia le da margen de segundos, no de minutos, si nadie convierte.
+    expect(planck.capacity / (planck.production ?? 1)).toBeLessThan(10)
+
+    let state: GameState = { ...createInitialState(), credits: 1e18 }
+    expect(isComponentUnlocked(state, 'planck')).toBe(false)
+    state = { ...state, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true, testsite: true } }
+    expect(isComponentUnlocked(state, 'planck')).toBe(true)
+  })
+
   it('feeds every turbine of a cyberpunk ring that touches the conduit on screen', () => {
     // Cruz dibujada alrededor de (3,3): reactor al centro, Tubería II en los
     // cuatro lados y una turbina detrás de cada tubería. Los índices no son
@@ -44,7 +108,7 @@ describe('geometry of the map', () => {
       expect(cellPosition('desert', index as number, COLS)).toEqual(spot)
     }
 
-    let state: GameState = { ...createInitialState(), credits: 1e18, activeSector: 'desert', ownedSectors: { coast: true, desert: true }, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true } }
+    let state: GameState = { ...createInitialState(), credits: 1e18, activeSector: 'desert', ownedSectors: { coast: true, desert: true, testsite: true }, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true, testsite: true } }
     state = { ...state, tiles: state.sectorLayouts.desert.map((tile) => tile ? { ...tile } : null) }
     state = placeTile(state, reactor, 'core')
     for (const index of pipes) state = placeTile(state, index, 'pipe2')

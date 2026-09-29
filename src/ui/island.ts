@@ -1,9 +1,10 @@
 import type { GameState, SectorKey } from '../game/types'
-import { cellPosition, COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from '../game/terrain'
+import { buildableFor, cellPosition } from '../game/terrain'
 import type { EnvironmentKey, Neighbors, TerrainKind } from './pixel/sprites'
 
 export const TILE = 48 // 16 px lógicos × 3
 export const WATER_MARGIN = 3 // tiles de agua alrededor de la grilla (los salientes ocupan el primero)
+export const FRAME_DEPTH = 3 // grosor del marco de cactus y montañas del Test Site
 
 export interface IslandTile {
   x: number
@@ -12,7 +13,7 @@ export interface IslandTile {
   /** Índice de casilla del motor si el tile es construible. */
   gridIndex: number | null
   /** Decoración ambiental (árbol/hongo/pilón) o roca. */
-  decor: 'ambient' | 'rock' | null
+  decor: 'ambient' | 'rock' | 'mountain' | 'boulder' | null
   neighbors: Neighbors
 }
 
@@ -33,6 +34,7 @@ const SHAPES: Record<SectorKey, { bumps: Array<[number, number]>; islets: Array<
     bumps: [[2, -1], [3, -1], [-1, 2], [8, 4], [8, 5], [-1, 7], [5, 10], [3, 10]],
     islets: [[-3, 11], [-2, 11], [-2, 12], [10, -3], [11, -3], [11, -2], [-3, 3], [10, 12]],
   },
+  testsite: { bumps: [], islets: [] },
   desert: {
     bumps: [],
     islets: [],
@@ -55,13 +57,16 @@ function hash(x: number, y: number): number {
 export function buildIsland(rows: number, cols: number, sector: SectorKey, occupiedIndices: number[] = []): Island {
   const shape = SHAPES[sector]
   const cyberpunk = sector === 'desert'
+  // El Test Site no es una isla: el campo limpio queda rodeado por una banda
+  // de tierra que se va poblando de cactus y montañas hacia afuera.
+  const testsite = sector === 'testsite'
   const grid = { x: WATER_MARGIN + 1, y: WATER_MARGIN + 1, cols: cols + (cyberpunk ? 6 : 0), rows: rows + (cyberpunk ? 2 : 0) }
   const totalCols = grid.cols + 2 + WATER_MARGIN * 2
   const totalRows = grid.rows + 2 + WATER_MARGIN * 2
   const decorLand = new Set([...shape.bumps, ...shape.islets].map(([x, y]) => `${x},${y}`))
   const occupied = new Set(occupiedIndices)
 
-  const allowed = sector === 'coast' ? COAST_BUILDABLE_SET : CYBERPUNK_BUILDABLE_SET
+  const allowed = buildableFor(sector)
   // La silueta vive en el motor (game/terrain) para que la vecindad que se
   // dibuja sea exactamente la que se simula.
   const positionForIndex = (index: number) => {
@@ -75,7 +80,34 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
     indexByPosition.set(`${position.x},${position.y}`, index)
   }
   const gridIndexAt = (x: number, y: number) => indexByPosition.get(`${x},${y}`) ?? null
-  const isLand = (x: number, y: number): boolean => gridIndexAt(x, y) !== null || decorLand.has(`${x - grid.x},${y - grid.y}`)
+  const buildablePositions = [...indexByPosition.keys()].map((at) => at.split(',').map(Number) as [number, number])
+  /** Distancia en casillas al suelo construible más cercano. */
+  const frameDistance = (x: number, y: number) => {
+    let best = Number.POSITIVE_INFINITY
+    for (const [bx, by] of buildablePositions) best = Math.min(best, Math.max(Math.abs(bx - x), Math.abs(by - y)))
+    return best
+  }
+  const outcrops = new Set<string>()
+  if (testsite) {
+    const reach = new Set<string>()
+    const queue: Array<[number, number]> = [[0, 0]]
+    const inCanvas = (x: number, y: number) => x >= 0 && y >= 0 && x < grid.cols + 2 + WATER_MARGIN * 2 && y < grid.rows + 2 + WATER_MARGIN * 2
+    while (queue.length > 0) {
+      const [x, y] = queue.pop()!
+      const at = `${x},${y}`
+      if (!inCanvas(x, y) || reach.has(at) || gridIndexAt(x, y) !== null) continue
+      reach.add(at)
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) queue.push([x + dx, y + dy])
+    }
+    for (let y = 0; y < grid.rows + 2 + WATER_MARGIN * 2; y += 1) {
+      for (let x = 0; x < grid.cols + 2 + WATER_MARGIN * 2; x += 1) {
+        if (gridIndexAt(x, y) === null && !reach.has(`${x},${y}`)) outcrops.add(`${x},${y}`)
+      }
+    }
+  }
+  const isLand = (x: number, y: number): boolean => testsite
+    ? frameDistance(x, y) <= FRAME_DEPTH
+    : gridIndexAt(x, y) !== null || decorLand.has(`${x - grid.x},${y - grid.y}`)
   const kindAt = (x: number, y: number): TerrainKind => (isLand(x, y) ? 'land' : 'water')
 
   const tiles: IslandTile[] = []
@@ -84,7 +116,16 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
       const kind = kindAt(x, y)
       const gridIndex = gridIndexAt(x, y)
       let decor: IslandTile['decor'] = null
-      if (kind === 'land' && gridIndex === null) decor = hash(x, y) % 4 === 0 ? 'rock' : 'ambient'
+      if (testsite && kind === 'land' && gridIndex === null) {
+        // El marco se densifica hacia afuera: cactus sueltos, matorral cerrado
+        // y montañas al fondo. Los afloramientos internos quedan como roca.
+        const depth = frameDistance(x, y)
+        const roll = hash(x, y) % 10
+        if (outcrops.has(`${x},${y}`)) decor = 'boulder'
+        else if (depth === 1) decor = roll < 4 ? 'ambient' : null
+        else if (depth === 2) decor = roll < 8 ? 'ambient' : 'mountain'
+        else decor = roll < 8 ? 'mountain' : 'ambient'
+      } else if (kind === 'land' && gridIndex === null) decor = hash(x, y) % 4 === 0 ? 'rock' : 'ambient'
       else if (cyberpunk && gridIndex !== null) decor = CYBERPUNK_INTERIOR_DECOR.get(gridIndex) ?? null
       const neighbors: Neighbors = kind === 'water'
         ? {
@@ -100,5 +141,7 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
 
 /** Ambiente visual propio de cada región. */
 export function environmentFor(game: GameState): EnvironmentKey {
-  return game.activeSector === 'desert' ? 'futuristic' : 'terrestrial'
+  if (game.activeSector === 'desert') return 'futuristic'
+  if (game.activeSector === 'testsite') return 'wasteland'
+  return 'terrestrial'
 }

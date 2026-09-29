@@ -3,13 +3,13 @@ import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyB
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
 import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, superconductorMasses, type ThermalSinkEdge } from './thermal'
-import { neighbourIndices } from './terrain'
+import { neighbourIndices, SECTOR_GRID } from './terrain'
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TickReport, Tile } from './types'
 
-const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion'])
+const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'planck'])
 const CONVERTERS = new Set<ComponentKind>(['generator', 'generator2'])
 const DIRECT = new Set<ComponentKind>(['wind', 'solar'])
-const LIFETIME_PRODUCERS = new Set<ComponentKind>(['wind', 'solar', 'core', 'thorium', 'fusion'])
+const LIFETIME_PRODUCERS = new Set<ComponentKind>(['wind', 'solar', 'core', 'thorium', 'fusion', 'planck'])
 
 export function emptyTickReport(): TickReport { return { producedEnergy: 0, directEnergy: 0, thermalEnergy: 0, storedEnergy: 0, wastedEnergy: 0, soldEnergy: 0, earnedCredits: 0, generatedResearch: 0, cooledHeat: 0, incidents: 0, refuelCost: 0, repairCost: 0, storageCapacity: ECONOMY.baseStorage, salesCapacity: ECONOMY.baseSalesRate, conversionCapacity: 0, heatProduction: 0 } }
 
@@ -29,8 +29,9 @@ export function createInitialState(debugInput = createDefaultDebugSettings()): G
   applyDebugSettings(debug)
   const coast = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const desert = Array.from({ length: 80 }, () => null) as GameState['tiles']
+  const testsite = Array.from({ length: SECTOR_GRID.testsite.rows * SECTOR_GRID.testsite.cols }, () => null) as GameState['tiles']
   const makeEconomy = (initialLevel: number): SectorEconomy => ({ energyStored: 0, buildingLevels: emptyBuildingLevels(initialLevel), capacityLevels: emptyBuildingLevels(initialLevel), autonomyLevels: emptyBuildingLevels(initialLevel) })
-  return { version: 21, rows: 10, cols: 8, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), autoRebuildPaused: false, tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport() }, ownedSectors: { coast: true, desert: false }, giftTicks: 0, boostActive: false, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
+  return { version: 22, rows: SECTOR_GRID.coast.rows, cols: SECTOR_GRID.coast.cols, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), autoRebuildPaused: false, tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert, testsite }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0), testsite: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport(), testsite: emptyTickReport() }, ownedSectors: { coast: true, desert: false, testsite: false }, giftTicks: 0, boostActive: false, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
 }
 
 /** Vecindad tal como queda dibujada en el mapa; ver game/terrain. */
@@ -64,29 +65,32 @@ export function refuelTile(state: GameState, index: number): GameState { const t
 export function repairPrice(state: GameState, index: number): number | null { const tile = state.tiles[index]; return tile?.damaged ? Math.ceil(COMPONENTS[tile.kind].cost * ECONOMY.repairRate) : tile ? 0 : null }
 export function repairTile(state: GameState, index: number): GameState { const tile = state.tiles[index]; const price = repairPrice(state, index); if (!tile || !price || !canAfford(state, price)) return state; const tiles = [...state.tiles]; tiles[index] = { ...tile, damaged: false, enabled: true, heat: 0 }; return { ...state, tiles, credits: spendCredits(state, price), totalRepairSpent: state.totalRepairSpent + price, sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } } }
 export function restorePlantLayout(state: GameState, tiles: GameState['tiles'], creditAdjustment: number): GameState { return { ...state, tiles, credits: hasInfiniteMoney(state) ? state.credits : Math.max(0, state.credits + creditAdjustment), sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } } }
-export function switchSector(state: GameState, sector: SectorKey): GameState { if (sector === state.activeSector || !isSectorUnlocked(state, sector)) return state; const sectorLayouts = { ...state.sectorLayouts, [state.activeSector]: state.tiles }; return { ...state, activeSector: sector, sectorLayouts, tiles: sectorLayouts[sector].map((tile) => tile ? { ...tile } : null), lastReport: state.sectorReports[sector] } }
+export function switchSector(state: GameState, sector: SectorKey): GameState { if (sector === state.activeSector || !isSectorUnlocked(state, sector)) return state; const sectorLayouts = { ...state.sectorLayouts, [state.activeSector]: state.tiles }; return { ...state, activeSector: sector, ...SECTOR_GRID[sector], sectorLayouts, tiles: sectorLayouts[sector].map((tile) => tile ? { ...tile } : null), lastReport: state.sectorReports[sector] } }
 export function buyDesertSector(state: GameState): GameState { if (state.ownedSectors.desert || !state.unlockedTechs.expansion || !canAfford(state, ECONOMY.secondIslandCost)) return state; return { ...state, credits: spendCredits(state, ECONOMY.secondIslandCost), ownedSectors: { ...state.ownedSectors, desert: true } } }
+/** El Test Site no se compra con créditos: lo abre la autorización de ensayos. */
+export function claimTestSite(state: GameState): GameState { if (state.ownedSectors.testsite || !state.unlockedTechs.testsite) return state; return { ...state, ownedSectors: { ...state.ownedSectors, testsite: true } } }
 
 interface SectorResult { tiles: GameState['tiles']; directEnergy: number; thermalEnergy: number; research: number; cooledHeat: number; incidents: number; refuelCost: number; heatProduction: number; conversionCapacity: number; credits: number }
 function simulateSector(state: GameState, tilesInput: GameState['tiles'], creditsInput: number): SectorResult {
+  const { rows, cols } = SECTOR_GRID[state.activeSector]
   const tiles = tilesInput.map((tile) => tile ? { ...tile, flow: 0 } : null); let credits = creditsInput; let directEnergy = 0; let thermalEnergy = 0; let research = 0; let cooledHeat = 0; let incidents = 0; let refuelCost = 0; let heatProduction = 0; let conversionCapacity = 0
   for (const tile of tiles) { if (!tile || !tile.enabled || tile.damaged) continue; if (DIRECT.has(tile.kind)) { if (tile.fuel <= 0) { const price = COMPONENTS[tile.kind].refuelCost ?? COMPONENTS[tile.kind].cost; if (!isAutoRebuildActive(state, tile.kind) || (!hasInfiniteMoney(state) && credits < price)) continue; tile.id = `${tile.kind}-${state.tick}-auto`; tile.fuel = fuelCapacity(state, tile.kind); if (!hasInfiniteMoney(state)) credits -= price; refuelCost += price } const amount = directEnergyRate(state, tile.kind); directEnergy += amount; tile.flow = amount; tile.fuel = Math.max(0, tile.fuel - 1) } if (tile.kind === 'research' || tile.kind === 'research2') research += researchPerFacility(state, tile.kind) }
   for (const tile of tiles) { if (!tile || !tile.enabled || tile.damaged || !REACTORS.has(tile.kind)) continue; if (tile.fuel <= 0) { const price = COMPONENTS[tile.kind].refuelCost ?? COMPONENTS[tile.kind].cost; if (!isAutoRebuildActive(state, tile.kind) || (!hasInfiniteMoney(state) && credits < price)) continue; tile.id = `${tile.kind}-${state.tick}-auto`; tile.fuel = fuelCapacity(state, tile.kind); if (!hasInfiniteMoney(state)) credits -= price; refuelCost += price } const amount = productionRate(state, tile.kind); tile.heat += amount; tile.fuel = Math.max(0, tile.fuel - 1); heatProduction += amount }
   const capacityAt = (index: number) => { const tile = tiles[index]; return tile ? componentCapacity(state, tile.kind) : 0 }
   const resistanceAt = (index: number) => { const tile = tiles[index]; return tile ? thermalResistance(state, tile.kind) : Number.POSITIVE_INFINITY }
-  diffuseThermalNetwork(tiles, getThermalTopology(tiles, state.rows, state.cols, state.activeSector), capacityAt, resistanceAt)
-  equalizeSuperconductors(tiles, state.rows, state.cols, state.activeSector)
+  diffuseThermalNetwork(tiles, getThermalTopology(tiles, rows, cols, state.activeSector), capacityAt, resistanceAt)
+  equalizeSuperconductors(tiles, rows, cols, state.activeSector)
   const generatorEdges: ThermalSinkEdge[] = []
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, state.rows, state.cols, state.activeSector)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, rows, cols, state.activeSector)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
   const conversionDemand = new Map<number, number>()
   const conversionReserve = new Map<number, number>()
   for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; const rate = conversionRate(state, tile.kind as 'generator' | 'generator2'); conversionCapacity += rate; conversionReserve.set(index, Math.min(rate, componentCapacity(state, tile.kind))); const stored = Math.min(tile.heat, rate); tile.heat -= stored; tile.flow += stored; thermalEnergy += stored; conversionDemand.set(index, rate - stored) }
-  const masses = superconductorMasses(tiles, state.rows, state.cols, state.activeSector)
+  const masses = superconductorMasses(tiles, rows, cols, state.activeSector)
   const pulled = pullHeatForConversion(tiles, generatorEdges, (index) => conversionDemand.get(index) ?? 0, masses)
   thermalEnergy += pulled.totalMoved
   absorbHeatIntoSinks(tiles, generatorEdges, (index) => conversionReserve.get(index) ?? 0, resistanceAt)
-  equalizeSuperconductors(tiles, state.rows, state.cols, state.activeSector)
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'cooler' || !tile.enabled || tile.damaged) continue; const sources = adjacentIndices(index, state.rows, state.cols, state.activeSector).filter((i) => isThermalCarrier(tiles[i])); const moved = drainHeatByResistance(tiles, sources, coolingRate(state), capacityAt, resistanceAt); cooledHeat += moved; tile.flow += moved }
+  equalizeSuperconductors(tiles, rows, cols, state.activeSector)
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'cooler' || !tile.enabled || tile.damaged) continue; const sources = adjacentIndices(index, rows, cols, state.activeSector).filter((i) => isThermalCarrier(tiles[i])); const moved = drainHeatByResistance(tiles, sources, coolingRate(state), capacityAt, resistanceAt); cooledHeat += moved; tile.flow += moved }
   for (const tile of tiles) { if (!tile || tile.damaged || componentCapacity(state, tile.kind) <= 0) continue; if (tile.heat > componentCapacity(state, tile.kind)) { tile.damaged = true; tile.enabled = false; incidents += 1 } }
   return { tiles, directEnergy, thermalEnergy, research, cooledHeat, incidents, refuelCost, heatProduction, conversionCapacity, credits }
 }
@@ -113,7 +117,7 @@ export function sellStoredEnergy(state: GameState): GameState {
 
 export function simulateTick(state: GameState): { state: GameState; report: TickReport } {
   const currentLayouts = { ...state.sectorLayouts, [state.activeSector]: state.tiles }; let credits = state.credits; let aggregate = emptyTickReport(); const layouts = { ...currentLayouts }; const sectorEconomies = { ...state.sectorEconomies }; const sectorReports = { ...state.sectorReports }
-  for (const sector of (['coast', 'desert'] as SectorKey[])) {
+  for (const sector of (['coast', 'desert', 'testsite'] as SectorKey[])) {
     if (!state.ownedSectors[sector]) continue
     const scopedState = { ...state, activeSector: sector, tiles: layouts[sector], sectorLayouts: layouts, sectorEconomies }
     const result = simulateSector(scopedState, layouts[sector], credits); layouts[sector] = result.tiles; credits = result.credits

@@ -1,8 +1,8 @@
-export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'sales2' | 'research' | 'research2' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'pipe2' | 'accumulator' | 'generator' | 'generator2' | 'cooler'
+export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'sales2' | 'research' | 'research2' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'pipe2' | 'accumulator' | 'generator' | 'generator2' | 'cooler' | 'planck'
 export type ToolMode = 'build' | 'demolish' | 'inspect'
-export type TechKey = 'solar' | 'thermal' | 'thorium' | 'fusion' | 'expansion'
+export type TechKey = 'solar' | 'thermal' | 'thorium' | 'fusion' | 'expansion' | 'testsite'
 export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
-export type SectorKey = 'coast' | 'desert'
+export type SectorKey = 'coast' | 'desert' | 'testsite'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
 export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus'
 export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier'
@@ -37,7 +37,7 @@ export interface SectorEconomy {
 }
 
 export interface GameState {
-  version: 21; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 22; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>; autoRebuildPaused: boolean
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number

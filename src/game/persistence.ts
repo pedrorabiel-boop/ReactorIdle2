@@ -3,7 +3,7 @@ import { COMPONENTS } from './catalog'
 import { applyDebugSettings, normalizeDebugSettings } from './debug'
 import { createInitialState, emptyTickReport, isComponentUnlocked, simulateTick } from './engine'
 import type { GameState, SectorEconomy, SectorKey, Tile } from './types'
-import { COAST_BUILDABLE_INDICES, COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_INDICES } from './terrain'
+import { COAST_BUILDABLE_INDICES, COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_INDICES, SECTOR_GRID } from './terrain'
 
 const SAVE_KEY = 'nucleus-idle-save-v2'
 const CORRUPT_BACKUP_KEY = 'nucleus-idle-v2-corrupt-backup'
@@ -25,7 +25,7 @@ export function simulateOffline(state: GameState, requestedSeconds: number): { s
 export function normalizeGameState(value: unknown): GameState | null {
   if (!value || typeof value !== 'object') return null
   const source = value as Record<string, any>
-  if (![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
+  if (![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].includes(source.version) || !Array.isArray(source.tiles) || source.tiles.length !== source.rows * source.cols || !source.unlockedTechs || !source.sectorLayouts || !source.ownedSectors) return null
   if (source.version < 13 && !source.buildingLevels) return null
   const sourceEconomies = source.sectorEconomies as GameState['sectorEconomies'] | undefined
   if (source.version >= 13 && (!sourceEconomies?.coast || !sourceEconomies?.desert)) return null
@@ -46,8 +46,14 @@ export function normalizeGameState(value: unknown): GameState | null {
   for (const { index } of overflow) coast[index] = null
   for (const { tile, index } of overflow) { const target = COAST_BUILDABLE_INDICES.find((candidate) => !coast[candidate]); if (target === undefined) { coast[index] = tile; continue } coast[target] = tile }
   sectorLayouts.coast = coast
+  // El Test Site llega vacío en cualquier partida anterior a la versión 22.
+  const testsiteCells = SECTOR_GRID.testsite.rows * SECTOR_GRID.testsite.cols
+  if (!Array.isArray(sectorLayouts.testsite) || sectorLayouts.testsite.length !== testsiteCells) {
+    sectorLayouts.testsite = Array.from({ length: testsiteCells }, () => null)
+  }
   const activeSector = source.activeSector as SectorKey
   if (activeSector === 'desert') sectorLayouts.desert = source.tiles.map(migrateTile)
+  if (activeSector === 'testsite') sectorLayouts.testsite = source.tiles.map(migrateTile)
   if (source.version < 19) {
     for (let offset = 0; offset < 8; offset += 1) {
       const previousIndex = 48 + offset
@@ -97,10 +103,10 @@ export function normalizeGameState(value: unknown): GameState | null {
     const resetForCyberpunk = sector === 'desert' && source.version < 18
     return { energyStored: Math.max(0, Number(entry.energyStored) || 0), buildingLevels: normalizeLevels(resetForCyberpunk ? undefined : entry.buildingLevels, sector), capacityLevels: normalizeLevels(resetForCyberpunk ? undefined : entry.capacityLevels, sector), autonomyLevels: normalizeLevels(resetForCyberpunk ? undefined : entry.autonomyLevels, sector) }
   }
-  const sectorEconomies: GameState['sectorEconomies'] = sourceEconomies ? { coast: normalizeEconomy(sourceEconomies.coast, 'coast'), desert: normalizeEconomy(sourceEconomies.desert, 'desert') } : { coast: makeLegacyEconomy('coast'), desert: makeLegacyEconomy('desert') }
+  const sectorEconomies: GameState['sectorEconomies'] = sourceEconomies ? { coast: normalizeEconomy(sourceEconomies.coast, 'coast'), desert: normalizeEconomy(sourceEconomies.desert, 'desert'), testsite: normalizeEconomy(sourceEconomies.testsite, 'testsite') } : { coast: makeLegacyEconomy('coast'), desert: makeLegacyEconomy('desert'), testsite: makeLegacyEconomy('testsite') }
   const sectorReports: GameState['sectorReports'] = source.sectorReports ?? { coast: emptyTickReport(), desert: emptyTickReport() }
   const unlockedTechs = Object.fromEntries(TECH_ORDER.map((key) => [key, Boolean(source.unlockedTechs[key] || (key === 'thorium' && source.version < 15 && source.unlockedTechs.automation))])) as GameState['unlockedTechs']
-  const normalized = { ...source, version: 21, autoRebuildPaused: Boolean(source.autoRebuildPaused), giftTicks: Math.max(0, Number(source.giftTicks) || 0), boostActive: Boolean(source.boostActive), tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
+  const normalized = { ...source, version: 22, autoRebuildPaused: Boolean(source.autoRebuildPaused), giftTicks: Math.max(0, Number(source.giftTicks) || 0), boostActive: Boolean(source.boostActive), tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
   const clean = normalized as Record<string, any>
   delete clean.energyStored; delete clean.buildingLevels; delete clean.capacityLevels; delete clean.autonomyLevels
   return normalized as GameState

@@ -4,9 +4,9 @@ import { canAfford, configuredUpgradeBaseCost, spendCredits } from './debug'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
 
 const economy = (state: GameState) => state.sectorEconomies[state.activeSector]
-const baselineLevel = (state: GameState) => state.activeSector === 'desert' ? 0 : 1
+const baselineLevel = (state: GameState) => state.activeSector === 'coast' ? 1 : 0
 const effectiveLevel = (state: GameState, level: number) => level - baselineLevel(state) + 1
-export const maxUpgradeLevel = (state: GameState) => state.activeSector === 'desert' ? ECONOMY.maxCyberpunkBuildingLevel : ECONOMY.maxBuildingLevel
+export const maxUpgradeLevel = (state: GameState) => state.activeSector === 'coast' ? ECONOMY.maxBuildingLevel : ECONOMY.maxCyberpunkBuildingLevel
 export const componentLevel = (state: GameState, kind: ComponentKind) => economy(state).buildingLevels[kind] ?? baselineLevel(state)
 export const capacityLevel = (state: GameState, kind: ComponentKind) => economy(state).capacityLevels[kind] ?? baselineLevel(state)
 export const autonomyLevel = (state: GameState, kind: ComponentKind) => economy(state).autonomyLevels[kind] ?? baselineLevel(state)

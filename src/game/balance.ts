@@ -30,23 +30,25 @@ export const GIFT_TICKS_PER_THERMAL_TECH = 300
 /** Ticks extra por segundo mientras el bonus está en marcha. */
 export const BOOST_TICKS_PER_SECOND = 10
 
-export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', 'expansion']
+export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', 'expansion', 'testsite']
 export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; cost: number; requires?: TechKey }> = {
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
   thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, toda la red térmica, controlador, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
   fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea el reactor de fusión, la Turbina II y la Tubería II sin alterar la infraestructura existente.', cost: 50_000_000, requires: 'thorium' },
   expansion: { name: 'Expansión territorial', description: 'Autoriza la compra del Distrito Neón. No requiere otras tecnologías.', cost: 15_000_000 },
+  testsite: { name: 'Autorización de ensayos', description: 'Abre el Nuclear Test Site, 150 casillas de suelo limpio, y con él el reactor experimental.', cost: 100_000_000, requires: 'fusion' },
 }
-export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false }
-export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'pipe2', 'accumulator']
-export const LIFETIME_ORDER: ComponentKind[] = ['wind', 'solar', 'core', 'thorium', 'fusion']
+export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false, testsite: false }
+export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'planck', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'pipe2', 'accumulator']
+export const LIFETIME_ORDER: ComponentKind[] = ['wind', 'solar', 'core', 'thorium', 'fusion', 'planck']
 export const AUTO_REBUILD_COSTS: Partial<Record<ComponentKind, number>> = {
   wind: 15,
   solar: 3_000,
   core: 150_000,
   thorium: 9_000_000,
   fusion: 60_000_000,
+  planck: 400_000_000,
 }
 export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, number>> = {
   wind: { output: 30, capacity: 26, autonomy: 23 },
@@ -60,6 +62,7 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   core: { output: 3_500_000, capacity: 2_000_000, autonomy: 2_500_000 },
   thorium: { output: 400_000_000, capacity: 100_000_000, autonomy: 300_000_000 },
   fusion: { output: 6_000_000_000, capacity: 3_000_000_000, autonomy: 4_000_000_000 },
+  planck: { output: 900_000_000_000, capacity: 450_000_000_000, autonomy: 600_000_000_000 },
   generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
   generator2: { output: 500_000_000, capacity: 200_000_000, autonomy: 33_750_000 },
   cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },

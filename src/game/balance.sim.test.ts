@@ -7,8 +7,8 @@ import { nextUpgradeGainPercent, upgradeCost } from './research'
 describe('promoted official balance', () => {
   it('matches every global value from the promoted Debug profile', () => {
     expect(ECONOMY).toMatchObject({ startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 })
-    expect(Object.fromEntries(Object.entries(TECHNOLOGIES).map(([key, technology]) => [key, technology.cost]))).toEqual({ solar: 150, thermal: 60_000, thorium: 300_000, fusion: 50_000_000, expansion: 15_000_000 })
-    expect(AUTO_REBUILD_COSTS).toEqual({ wind: 15, solar: 3_000, core: 150_000, thorium: 9_000_000, fusion: 60_000_000 })
+    expect(Object.fromEntries(Object.entries(TECHNOLOGIES).map(([key, technology]) => [key, technology.cost]))).toEqual({ solar: 150, thermal: 60_000, thorium: 300_000, fusion: 50_000_000, expansion: 15_000_000, testsite: 100_000_000 })
+    expect(AUTO_REBUILD_COSTS).toEqual({ wind: 15, solar: 3_000, core: 150_000, thorium: 9_000_000, fusion: 60_000_000, planck: 400_000_000 })
   })
 
   it('matches every component value from the promoted Debug profile', () => {
@@ -51,6 +51,7 @@ describe('promoted official balance', () => {
       core: { output: 3_500_000, capacity: 2_000_000, autonomy: 2_500_000 },
       thorium: { output: 400_000_000, capacity: 100_000_000, autonomy: 300_000_000 },
       fusion: { output: 6_000_000_000, capacity: 3_000_000_000, autonomy: 4_000_000_000 },
+      planck: { output: 900_000_000_000, capacity: 450_000_000_000, autonomy: 600_000_000_000 },
       generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
       generator2: { output: 500_000_000, capacity: 200_000_000, autonomy: 33_750_000 },
       cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },

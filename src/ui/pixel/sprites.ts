@@ -3,7 +3,7 @@
 // `.` es transparente. Los sprites se exportan como SVG con bordes nítidos.
 
 export type PaletteKey = keyof typeof PALETTE
-export type EnvironmentKey = 'terrestrial' | 'alien' | 'futuristic'
+export type EnvironmentKey = 'terrestrial' | 'alien' | 'futuristic' | 'wasteland'
 export type TerrainKind = 'water' | 'land'
 export type Neighbors = Partial<Record<'n' | 'e' | 's' | 'w' | 'ne' | 'nw' | 'se' | 'sw', TerrainKind>>
 export interface Environment {
@@ -34,6 +34,11 @@ export const PALETTE = {
   C: '#5ff3e6', // cyan
   T: '#8a5a2b', // brown
   t: '#c98d52', // light brown
+  c: '#f0a58c', // coral pálido (el celeste del yermo)
+  v: '#4e8f3a', // verde cactus
+  n: '#2f5c28', // verde cactus oscuro
+  M: '#6b4436', // roca de montaña
+  m: '#8a5a45', // roca de montaña clara
   // Terreno (se remapea por ambiente)
   1: '#5fc531', // land
   2: '#79d94a', // land speckle
@@ -66,6 +71,15 @@ export const ENVIRONMENTS: Record<EnvironmentKey, Environment> = {
     recolor: { E: 'C', e: 'b', R: 'O', r: 'Y' },
     decoration: 'pylon',
     glow: 'rgba(99,230,255,.35)',
+  },
+  // Sal y óxido: yeso claro dentro del campo, roca oxidada fuera. El celeste
+  // de la red térmica se gira a coral para que no desentone con la arena.
+  wasteland: {
+    name: 'Yermo',
+    terrain: { 1: '#e6dcc2', 2: '#f4ecd8', 3: '#c39a63', 4: '#7d4330', 5: '#a9624a', 6: '#fbf6e6', 7: '#9d6f45', 8: '#d29a5c' },
+    recolor: { E: 'O', e: 'Y', g: 'T', B: 'T', b: 't', C: 'c' },
+    decoration: 'cactus',
+    glow: 'rgba(255,214,120,.28)',
   },
 }
 
@@ -199,6 +213,24 @@ export const SPRITES: Record<string, string[]> = {
     '..KDDKKKKKKDDK..',
     '...KKDDDDDDKK...',
     '.....KKKKKK.....',
+  ]),
+  planck: S([
+    '.......KK.......',
+    '.......WW.......',
+    '......KWWK......',
+    '.....KKWWKK.....',
+    '....KKYWWYKK....',
+    '...KKYYWWYYKK...',
+    '..KKYYWKKWYYKK..',
+    'KKWWWWKKKKWWWWKK',
+    'KKWWWWKKKKWWWWKK',
+    '..KKYYWKKWYYKK..',
+    '...KKYYWWYYKK...',
+    '....KKYWWYKK....',
+    '.....KKWWKK.....',
+    '......KWWK......',
+    '.......WW.......',
+    '.......KK.......',
   ]),
   // ─── Red térmica ───
   generator: S([
@@ -469,6 +501,60 @@ export const SPRITES: Record<string, string[]> = {
     '.....KLLLLK.....',
     '....KDDDDDDK....',
     '....KKKKKKKK....',
+    '................',
+    '................',
+    '................',
+  ]),
+  cactus: S([
+    '................',
+    '................',
+    '.......KK.......',
+    '......KvvK......',
+    '..KK..KvvK..KK..',
+    '.KvvK.KvvK.KvvK.',
+    '.KvvKKKvvKKKvvK.',
+    '.KvvvvvvvvvvvvK.',
+    '..KvvvvvvvvvvK..',
+    '...KKKvvvvKKK...',
+    '.....KvvvvK.....',
+    '.....KvnnvK.....',
+    '.....KvvvvK.....',
+    '.....KvnnvK.....',
+    '.....KKKKKK.....',
+    '................',
+  ]),
+  boulder: S([
+    '................',
+    '................',
+    '................',
+    '................',
+    '.......KK.......',
+    '......KmmK......',
+    '.....KMmmMK.....',
+    '....KMmmmmMK....',
+    '...KMmmKMmmMK...',
+    '..KMmmKMMKmmMK..',
+    '.KMmmmMMMMmmmMK.',
+    '.KMMMMMMMMMMMMK.',
+    '.KKKKKKKKKKKKKK.',
+    '................',
+    '................',
+    '................',
+  ]),
+  mountain: S([
+    '................',
+    '................',
+    '.......KK.......',
+    '......KmmK......',
+    '.....KMmmMK.....',
+    '....KMmmmmMK....',
+    '...KMmmKKmmMK...',
+    '..KMmmKMMKmmMK..',
+    '.KMmmKMmmMKmmMK.',
+    'KMmmKMmmmmMKmmMK',
+    'KMmMKMmmmmMKMmMK',
+    'KMMMMMMMMMMMMMMK',
+    'KKKKKKKKKKKKKKKK',
     '................',
     '................',
     '................',

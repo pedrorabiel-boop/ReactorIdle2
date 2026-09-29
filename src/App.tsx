@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
-import { buyDesertSector, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
+import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { clearTutorialDone, isPristineGame } from './game/tutorial'
 import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
@@ -113,6 +113,7 @@ function App() {
   function repairInspected() { if (inspectedIndex === null) return; const next = repairTile(gameRef.current, inspectedIndex); if (next === gameRef.current) { setToast('Créditos insuficientes.'); return } replaceGame(next); setToast(`Pieza reparada por ₡ ${formatNumber(inspectedRepair)}.`) }
   function sellInspected() { if (inspectedIndex !== null) { commit((state) => sellTile(state, inspectedIndex), 'Demolición'); setInspectedIndex(null) } }
   function changeSector(sector: SectorKey) { const next = switchSector(gameRef.current, sector); if (next === gameRef.current) return; replaceGame(next); clearHistory(); closeSheet() }
+  function occupyTestSite() { const next = claimTestSite(gameRef.current); if (next === gameRef.current) { setToast('Todavía no tienes la autorización de ensayos.'); return } replaceGame(next); setToast('Nuclear Test Site abierto.') }
   function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Distrito Neón adquirido.') }
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
@@ -130,7 +131,7 @@ function App() {
     {activeTab === 'upgrades' && <UpgradesSheet game={game} onClose={closeSheet} onUpgrade={upgrade} />}
     {activeTab === 'lab' && <ResearchSheet game={game} onClose={closeSheet} onResearch={research} onAutoRebuild={researchAutoRebuild} />}
     {activeTab === 'manual' && <ManualSheet game={game} onClose={closeSheet} />}
-    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onToggleAutoRebuild={toggleAutoRebuild} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
+    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onClaimTestSite={occupyTestSite} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onToggleAutoRebuild={toggleAutoRebuild} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
     {activeTab === 'debug' && <DebugSheet game={game} onClose={closeSheet} onChange={changeDebug} onSetCredits={(credits) => replaceGame({ ...gameRef.current, credits })} onSetResearch={(researchPoints) => replaceGame({ ...gameRef.current, researchPoints })} onReset={resetDebug} />}
     {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} />}
     {tutorial.step && <Tutorial step={tutorial.step} game={game} progress={tutorialProgress} onNext={tutorial.next} onFinish={tutorial.finish} />}
