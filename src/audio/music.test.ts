@@ -11,6 +11,9 @@ describe('music layers', () => {
     for (const layer of MUSIC_LAYERS) {
       if (layer.tech) expect(TECH_ORDER).toContain(layer.tech)
       expect(layer.file).toMatch(/^nucleus-[a-e]\.mp3$/)
+      // La corrección de nivel solo sube pistas bajas; nunca atenúa.
+      expect(layer.gain).toBeGreaterThanOrEqual(1)
+      expect(layer.gain).toBeLessThanOrEqual(4)
     }
     // Ninguna tecnología manda dos capas a la vez.
     const techs = MUSIC_LAYERS.map((layer) => layer.tech).filter(Boolean)

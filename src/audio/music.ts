@@ -12,14 +12,20 @@ export interface MusicLayer {
   /** Tecnología que la incorpora; la capa base no tiene ninguna. */
   tech?: TechKey
   name: string
+  /**
+   * Corrección de nivel. Las pistas no vienen igualadas entre sí: medidas en
+   * RMS, la base queda 14 dB por debajo de las cuerdas y se pierde del todo.
+   * Aquí solo se suben las bajas; ninguna se atenúa.
+   */
+  gain: number
 }
 
 export const MUSIC_LAYERS: MusicLayer[] = [
-  { id: 'a', file: 'nucleus-a.mp3', name: 'Base' },
-  { id: 'b', file: 'nucleus-b.mp3', tech: 'solar', name: 'Captación solar' },
-  { id: 'c', file: 'nucleus-c.mp3', tech: 'thorium', name: 'Ciclo de torio' },
-  { id: 'd', file: 'nucleus-d.mp3', tech: 'expansion', name: 'Expansión territorial' },
-  { id: 'e', file: 'nucleus-e.mp3', tech: 'fusion', name: 'Confinamiento de fusión' },
+  { id: 'a', file: 'nucleus-a.mp3', name: 'Base', gain: 3 },
+  { id: 'b', file: 'nucleus-b.mp3', tech: 'solar', name: 'Captación solar', gain: 1.6 },
+  { id: 'c', file: 'nucleus-c.mp3', tech: 'thorium', name: 'Ciclo de torio', gain: 1 },
+  { id: 'd', file: 'nucleus-d.mp3', tech: 'expansion', name: 'Expansión territorial', gain: 1 },
+  { id: 'e', file: 'nucleus-e.mp3', tech: 'fusion', name: 'Confinamiento de fusión', gain: 1 },
 ]
 
 const STORAGE_KEY = 'nucleus-idle-music'
@@ -78,7 +84,16 @@ function ensureContext(): AudioContext | null {
   }
   master = context.createGain()
   master.gain.value = isMusicEnabled() ? MASTER_VOLUME : 0
-  master.connect(context.destination)
+  // Red de seguridad: al subir capas los picos podrían sumar por encima de 1.
+  // Solo actúa en esos picos y deja el resto intacto.
+  const limiter = context.createDynamicsCompressor()
+  limiter.threshold.value = -2
+  limiter.knee.value = 0
+  limiter.ratio.value = 20
+  limiter.attack.value = 0.003
+  limiter.release.value = 0.25
+  master.connect(limiter)
+  limiter.connect(context.destination)
   return context
 }
 
@@ -111,7 +126,7 @@ async function addVoice(layer: MusicLayer): Promise<void> {
     const elapsed = Math.max(0, ctx.currentTime - loopOrigin)
     source.start(ctx.currentTime, elapsed % buffer.duration)
     voices.set(layer.id, { gain, source, duration: buffer.duration })
-    fade(gain, 1)
+    fade(gain, layer.gain)
   } catch {
     // Una capa que no carga simplemente no suena; el resto sigue.
   } finally {
@@ -142,7 +157,7 @@ export function syncMusicLayers(active: Iterable<string>): void {
   for (const layer of MUSIC_LAYERS) {
     const voice = voices.get(layer.id)
     if (wanted.has(layer.id)) {
-      if (voice) fade(voice.gain, 1)
+      if (voice) fade(voice.gain, layer.gain)
       else void addVoice(layer)
     } else if (voice) {
       fade(voice.gain, 0)
@@ -167,6 +182,7 @@ export function musicStatus() {
     master: master?.gain.value ?? 0,
     layers: MUSIC_LAYERS.map((layer) => ({
       id: layer.id,
+      objetivo: layer.gain,
       gain: Number((voices.get(layer.id)?.gain.gain.value ?? 0).toFixed(3)),
       seconds: Number((voices.get(layer.id)?.duration ?? 0).toFixed(3)),
       loading: loading.has(layer.id),
