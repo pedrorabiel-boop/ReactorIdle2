@@ -3,7 +3,7 @@ import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyB
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
 import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, superconductorMasses, type ThermalSinkEdge } from './thermal'
-import { neighbourIndices, SECTOR_GRID } from './terrain'
+import { buildableFor, neighbourIndices, SECTOR_GRID } from './terrain'
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TickReport, Tile } from './types'
 
 const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'planck'])
@@ -52,6 +52,8 @@ function makeTile(state: GameState, kind: ComponentKind, index: number): Tile { 
 export function placeTile(state: GameState, index: number, kind: ComponentKind): GameState {
   const definition = COMPONENTS[kind]
   if (index < 0 || index >= state.tiles.length || !canAfford(state, definition.cost) || !isComponentUnlocked(state, kind)) return state
+  // Roca, cactus y montaña no son decoración: sobre ellos no se construye.
+  if (!buildableFor(state.activeSector).has(index)) return state
   const existing = state.tiles[index]
   if (existing) return existing.kind === kind && usesAutonomy(kind) && existing.fuel <= 0 ? refuelTile(state, index) : state
   const tiles = [...state.tiles]; tiles[index] = makeTile(state, kind, index)

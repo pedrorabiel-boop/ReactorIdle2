@@ -97,6 +97,40 @@ describe('geometry of the map', () => {
     expect(isComponentUnlocked(state, 'planck')).toBe(true)
   })
 
+  it('refuses to build on a test site outcrop and allows it on the field', () => {
+    const { rows, cols } = SECTOR_GRID.testsite
+    const outcrop = (() => {
+      for (let index = 0; index < rows * cols; index += 1) {
+        if (TESTSITE_BUILDABLE_SET.has(index)) continue
+        const around = neighbourIndices('testsite', index, rows, cols)
+        if (around.length === 4 && around.some((n) => TESTSITE_BUILDABLE_SET.has(n))) return index
+      }
+      throw new Error('sin afloramientos')
+    })()
+    const field = TESTSITE_BUILDABLE_INDICES[0]
+
+    let state: GameState = { ...createInitialState(), credits: 1e18, activeSector: 'testsite', ownedSectors: { coast: true, desert: true, testsite: true }, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true, testsite: true } }
+    state = { ...state, ...SECTOR_GRID.testsite, tiles: state.sectorLayouts.testsite.map((tile) => tile ? { ...tile } : null) }
+
+    const blocked = placeTile(state, outcrop, 'wind')
+    expect(blocked).toBe(state)
+    expect(blocked.tiles[outcrop]).toBeNull()
+
+    const built = placeTile(state, field, 'wind')
+    expect(built.tiles[field]?.kind).toBe('wind')
+  })
+
+  it('keeps the neon district decorations cosmetic, not obstacles', () => {
+    // En el Distrito Neón la roca y la vegetación se dibujan encima de casillas
+    // construibles: son adorno y desaparecen al construir.
+    let state: GameState = { ...createInitialState(), credits: 1e18, activeSector: 'desert', ownedSectors: { coast: true, desert: true, testsite: false }, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true, testsite: false } }
+    state = { ...state, tiles: state.sectorLayouts.desert.map((tile) => tile ? { ...tile } : null) }
+    for (const decorated of [10, 29, 43, 68]) {
+      expect(CYBERPUNK_BUILDABLE_SET.has(decorated)).toBe(true)
+      expect(placeTile(state, decorated, 'wind').tiles[decorated]?.kind).toBe('wind')
+    }
+  })
+
   it('feeds every turbine of a cyberpunk ring that touches the conduit on screen', () => {
     // Cruz dibujada alrededor de (3,3): reactor al centro, Tubería II en los
     // cuatro lados y una turbina detrás de cada tubería. Los índices no son

@@ -25,15 +25,15 @@ describe('debug balance sandbox', () => {
     expect(state.unlockedTechs.fusion).toBe(false)
     expect(isComponentUnlocked(state, 'pipe2')).toBe(true)
     expect(isComponentVisible(state, 'research')).toBe(true)
-    state = placeTile(state, 0, 'pipe2')
-    expect(state.tiles[0]?.kind).toBe('pipe2')
+    state = placeTile(state, 25, 'pipe2')
+    expect(state.tiles[25]?.kind).toBe('pipe2')
     expect(state.unlockedTechs.fusion).toBe(false)
 
     state = withDebugSettings(state, { ...state.debug, enabled: false })
     expect(isComponentUnlocked(state, 'pipe2')).toBe(false)
     expect(isComponentVisible(state, 'research')).toBe(false)
-    expect(placeTile(state, 1, 'pipe2')).toBe(state)
-    expect(state.tiles[0]?.kind).toBe('pipe2')
+    expect(placeTile(state, 26, 'pipe2')).toBe(state)
+    expect(state.tiles[25]?.kind).toBe('pipe2')
   })
 
   it('uses the configured initial money for a new debug game', () => {
@@ -49,8 +49,8 @@ describe('debug balance sandbox', () => {
     debug.infiniteMoney = true
     debug.upgradeBaseCosts.wind.output = 987_654
     let state = { ...createInitialState(debug), credits: 0 }
-    state = placeTile(state, 0, 'wind')
-    expect(state.tiles[0]?.kind).toBe('wind')
+    state = placeTile(state, 25, 'wind')
+    expect(state.tiles[25]?.kind).toBe('wind')
     expect(state.credits).toBe(0)
     expect(upgradeCost(state, 'wind')).toBe(987_654)
     state = upgradeBuildingTrack(state, 'wind', 'output')
@@ -67,7 +67,7 @@ describe('debug balance sandbox', () => {
     state = { ...state, researchPoints: 9 }
     expect(directEnergyRate(state, 'wind')).toBe(7)
     expect(canUnlockTech(state, 'solar')).toBe(true)
-    state = placeTile(state, 0, 'wind')
+    state = placeTile(state, 25, 'wind')
     expect(simulateTick(state).report.directEnergy).toBe(7)
   })
 
@@ -77,8 +77,8 @@ describe('debug balance sandbox', () => {
     debug.infiniteMoney = true
     let state = createInitialState(debug)
     state = { ...state, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: false, testsite: false } }
-    state = placeTile(state, 0, 'generator')
-    state = placeTile(state, 1, 'pipe')
+    state = placeTile(state, 25, 'generator')
+    state = placeTile(state, 26, 'pipe')
     const tuned = {
       ...state.debug,
       componentValues: {
@@ -88,8 +88,8 @@ describe('debug balance sandbox', () => {
       },
     }
     state = withDebugSettings(state, tuned)
-    expect(state.tiles[0]?.kind).toBe('generator')
-    expect(state.tiles[1]?.kind).toBe('pipe')
+    expect(state.tiles[25]?.kind).toBe('generator')
+    expect(state.tiles[26]?.kind).toBe('pipe')
     expect(conversionRate(state)).toBe(4_321)
     expect(componentCapacity(state, 'generator')).toBe(8_765)
     expect(componentCapacity(state, 'pipe')).toBe(9_876)
