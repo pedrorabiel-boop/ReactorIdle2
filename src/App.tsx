@@ -2,7 +2,7 @@ import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo
 import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
-import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
+import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { clearTutorialDone, isPristineGame } from './game/tutorial'
 import { isMusicEnabled, isMusicStarted, layersForTechs, setMusicEnabled, startMusic, syncMusicLayers } from './audio/music'
@@ -89,7 +89,6 @@ function App() {
   const extraOccupiedIndices = game.tiles.flatMap((tile, index) => tile && !activeBuildableSet.has(index) ? [index] : [])
   const extraOccupiedSignature = extraOccupiedIndices.join(',')
   const island = useMemo(() => buildIsland(game.rows, game.cols, game.activeSector, extraOccupiedIndices), [game.rows, game.cols, game.activeSector, extraOccupiedSignature])
-  const heat = totalHeat(game)
   const inspectedRefuel = inspectedIndex === null ? 0 : refuelPrice(game, inspectedIndex) ?? 0
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
   const affordableTechs = TECH_ORDER.filter((key) => canUnlockTech(game, key)).length
@@ -135,7 +134,7 @@ function App() {
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
     <MapViewport game={game} island={island} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
-    {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
+    {!buildFocus && <Hud game={game} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
       <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`}>

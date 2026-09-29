@@ -124,8 +124,8 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .hud-row { display: flex; gap: 6px; }
 .hud-row > * { pointer-events: auto; }
 .hud-secondary { margin-top: 6px; align-items: center; }
-.sell-energy { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 5px 7px; color: var(--gold); font: 600 9px var(--font-ui); white-space: nowrap; }
-.sell-energy b { font: 7px var(--font-num); }
+.sell-energy { flex: 0 0 auto; height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; color: var(--gold); }
+.sell-arrow { font: 12px var(--font-ui); color: var(--gold); line-height: 1; }
 .sell-energy:disabled { color: var(--muted); opacity: .55; }
 .res { flex: 1; min-width: 0; display: grid; grid-template-columns: 18px 1fr; column-gap: 5px; align-items: center; padding: 5px 6px; }
 .res .val { font: 10px var(--font-num); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -139,15 +139,16 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .energy-bank.danger { border-color: var(--red); background: #422326; animation: bank-alert .8s steps(2) infinite; }
 .energy-bank.danger .val, .energy-bank.danger .rate { color: var(--red); }
 @keyframes bank-alert { 50% { filter: brightness(1.25); } }
-.res-heat { flex: 0 0 auto; grid-template-columns: 16px auto; padding: 4px 8px; }
-.res-heat.danger .val { color: var(--red); }
 .icon-btn { flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; }
+/* Empuja los controles de la derecha al final de su fila. */
+.hud-push { margin-left: auto; }
 .icon-btn.small { width: 34px; height: 34px; font: 18px var(--font-ui); }
 .speed { display: flex; gap: 2px; padding: 3px; }
 .speed button { min-width: 30px; height: 26px; padding: 0 6px; border: 2px solid transparent; background: transparent; font: 9px var(--font-num); color: var(--muted); }
 .speed button.on { color: var(--ink); background: var(--gold); border-color: var(--gold-dark); }
 .sector-chip { margin-left: auto; padding: 6px 8px; font: 600 11px var(--font-ui); color: var(--muted); }
-.overflow-chip { margin-left: auto; padding: 6px 8px; color: var(--red); border-color: #6b2a2a; font: 7px var(--font-num); }
+/* Solo aparece cuando se desperdicia energia: se encoge antes que romper la fila. */
+.overflow-chip { flex: 0 1 auto; min-width: 0; padding: 6px 8px; color: var(--red); border-color: #6b2a2a; font: 7px var(--font-num); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .build-toolbar { position: absolute; z-index: 12; top: calc(10px + var(--safe-top)); left: 10px; right: 10px; display: flex; align-items: stretch; gap: 6px; pointer-events: none; }
 .build-toolbar > * { pointer-events: auto; }
 .build-back { flex: 0 0 auto; min-height: 44px; padding: 7px 10px; color: var(--gold); background: var(--panel-2); font: 700 12px var(--font-ui); white-space: nowrap; }
@@ -381,7 +382,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .manual-offline .none strong { color: var(--muted); }
 
 /* Bonus de ticks de regalo: interruptor play/stop en la esquina superior derecha. */
-.boost { margin-left: auto; display: flex; align-items: center; gap: 5px; padding: 5px 8px; background: var(--panel-2); color: var(--gold); }
+.boost { flex: 0 0 auto; height: 44px; display: flex; align-items: center; gap: 5px; padding: 0 10px; background: var(--panel-2); color: var(--gold); }
 .boost .boost-play { font-size: 12px; line-height: 1; }
 .boost b { font: 9px var(--font-num); }
 .boost small { font-size: 9px; color: var(--muted); }
