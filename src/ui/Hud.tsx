@@ -43,7 +43,6 @@ export function Hud({ game, zoom, onZoom, musicOn, onToggleMusic, onSellEnergy, 
         <span className="sell-arrow" aria-hidden="true">→</span>
         <Sprite name="icon-coin" size={16} />
       </button>
-      {report.wastedEnergy > 0 && <span className="overflow-chip frame">Exceso −{formatNumber(Math.floor(report.wastedEnergy))} E</span>}
       {game.giftTicks > 0 && <button
         type="button"
         className={`boost frame ${game.boostActive ? 'on' : ''}`}

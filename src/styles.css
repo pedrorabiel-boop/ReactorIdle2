@@ -124,7 +124,8 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .hud-row { display: flex; gap: 6px; }
 .hud-row > * { pointer-events: auto; }
 .hud-secondary { margin-top: 6px; align-items: center; }
-.hud-zoom { margin-top: 6px; align-items: center; }
+/* Cae un poco mas que las otras filas para despegarse de los botones. */
+.hud-zoom { margin-top: 16px; align-items: center; }
 .sell-energy { flex: 0 0 auto; height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; color: var(--gold); }
 .sell-arrow { font: 12px var(--font-ui); color: var(--gold); line-height: 1; }
 .sell-energy:disabled { color: var(--muted); opacity: .55; }
@@ -148,8 +149,6 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .speed button { min-width: 30px; height: 26px; padding: 0 6px; border: 2px solid transparent; background: transparent; font: 9px var(--font-num); color: var(--muted); }
 .speed button.on { color: var(--ink); background: var(--gold); border-color: var(--gold-dark); }
 .sector-chip { margin-left: auto; padding: 6px 8px; font: 600 11px var(--font-ui); color: var(--muted); }
-/* Solo aparece cuando se desperdicia energia: se encoge antes que romper la fila. */
-.overflow-chip { flex: 0 1 auto; min-width: 0; padding: 6px 8px; color: var(--red); border-color: #6b2a2a; font: 7px var(--font-num); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .build-toolbar { position: absolute; z-index: 12; top: calc(10px + var(--safe-top)); left: 10px; right: 10px; display: flex; align-items: stretch; gap: 6px; pointer-events: none; }
 .build-toolbar > * { pointer-events: auto; }
 .build-back { flex: 0 0 auto; min-height: 44px; padding: 7px 10px; color: var(--gold); background: var(--panel-2); font: 700 12px var(--font-ui); white-space: nowrap; }
