@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { cellPosition, neighbourIndices, CYBERPUNK_BUILDABLE_SET, SECTOR_GRID, TESTSITE_BUILDABLE_INDICES, TESTSITE_BUILDABLE_SET } from './terrain'
 import { createInitialState, isComponentUnlocked, placeTile, simulateTick } from './engine'
+import { buildIsland } from '../ui/island'
 import { COMPONENTS } from './catalog'
 import { ECONOMY, TECHNOLOGIES, levelMultiplier } from './balance'
 import type { GameState } from './types'
@@ -95,6 +96,22 @@ describe('geometry of the map', () => {
     expect(isComponentUnlocked(state, 'planck')).toBe(false)
     state = { ...state, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true, testsite: true } }
     expect(isComponentUnlocked(state, 'planck')).toBe(true)
+  })
+
+  it('never leaves bare ground outside the field, so clean sand always means buildable', () => {
+    const { rows, cols } = SECTOR_GRID.testsite
+    const island = buildIsland(rows, cols, 'testsite')
+    const interactive = island.tiles.filter((tile) => tile.gridIndex !== null)
+    expect(interactive).toHaveLength(150)
+    expect(interactive.every((tile) => TESTSITE_BUILDABLE_SET.has(tile.gridIndex!))).toBe(true)
+
+    // Todo el suelo que no se puede ocupar lleva algo encima: cactus, roca o
+    // montaña. Una casilla de arena limpia es siempre construible.
+    const frame = island.tiles.filter((tile) => tile.kind === 'land' && tile.gridIndex === null)
+    expect(frame.length).toBeGreaterThan(0)
+    expect(frame.filter((tile) => tile.decor === null)).toHaveLength(0)
+    // Y al revés: el campo nunca lleva decoración que lo disfrace.
+    expect(interactive.every((tile) => tile.decor === null)).toBe(true)
   })
 
   it('refuses to build on a test site outcrop and allows it on the field', () => {

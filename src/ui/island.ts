@@ -119,11 +119,13 @@ export function buildIsland(rows: number, cols: number, sector: SectorKey, occup
       if (testsite && kind === 'land' && gridIndex === null) {
         // El marco se densifica hacia afuera: cactus sueltos, matorral cerrado
         // y montañas al fondo. Los afloramientos internos quedan como roca.
+        // Ninguna casilla del marco queda desnuda: la arena limpia significa
+        // siempre suelo construible, y lo que lleva algo encima nunca lo es.
         const depth = frameDistance(x, y)
         const roll = hash(x, y) % 10
         if (outcrops.has(`${x},${y}`)) decor = 'boulder'
-        else if (depth === 1) decor = roll < 4 ? 'ambient' : null
-        else if (depth === 2) decor = roll < 8 ? 'ambient' : 'mountain'
+        else if (depth === 1) decor = roll < 8 ? 'ambient' : 'boulder'
+        else if (depth === 2) decor = roll < 6 ? 'ambient' : 'mountain'
         else decor = roll < 8 ? 'mountain' : 'ambient'
       } else if (kind === 'land' && gridIndex === null) decor = hash(x, y) % 4 === 0 ? 'rock' : 'ambient'
       else if (cyberpunk && gridIndex !== null) decor = CYBERPUNK_INTERIOR_DECOR.get(gridIndex) ?? null
