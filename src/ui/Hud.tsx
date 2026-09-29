@@ -5,9 +5,9 @@ import type { GameState } from '../game/types'
 import { formatCompact, formatDecimal, formatExact, formatNumber } from './format'
 import { Sprite } from './pixel/Sprite'
 
-interface HudProps { game: GameState; heat: number; showHeat: boolean; onSellEnergy: () => void; onToggleBoost: () => void; onOpenMenu: () => void }
+interface HudProps { game: GameState; heat: number; showHeat: boolean; musicOn: boolean; onToggleMusic: () => void; onSellEnergy: () => void; onToggleBoost: () => void; onOpenMenu: () => void }
 
-export function Hud({ game, heat, showHeat, onSellEnergy, onToggleBoost, onOpenMenu }: HudProps) {
+export function Hud({ game, heat, showHeat, musicOn, onToggleMusic, onSellEnergy, onToggleBoost, onOpenMenu }: HudProps) {
   const [exactResource, setExactResource] = useState<'credits' | 'energy' | 'research' | null>(null)
   const report = game.lastReport
   const stored = sectorEnergyStored(game)
@@ -28,6 +28,7 @@ export function Hud({ game, heat, showHeat, onSellEnergy, onToggleBoost, onOpenM
       <button type="button" data-tour="hud-credits" className={`res resource-button frame ${exactResource === 'credits' ? 'on' : ''}`} aria-label={`Créditos ${hasInfiniteMoney(game) ? 'infinitos' : formatExact(game.credits)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'credits'} onClick={() => toggleExact('credits')}><Sprite name="icon-coin" size={18} /><span className="val">{credits}</span><span className="rate">+{formatDecimal(report.earnedCredits)}/s</span></button>
       <button type="button" data-tour="hud-energy" className={`res resource-button energy-bank frame ${bankState} ${exactResource === 'energy' ? 'on' : ''}`} aria-label={`Energía ${formatExact(stored)} de ${formatExact(capacity)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'energy'} onClick={() => toggleExact('energy')}><Sprite name="icon-bolt" size={18} /><span className="val">{formatNumber(Math.floor(stored))}/{formatNumber(Math.floor(capacity))}</span><span className="rate">{formatDecimal(report.producedEnergy)} prod · {formatDecimal(report.soldEnergy)}/{formatDecimal(sectorSalesCapacity(game))} venta</span></button>
       <button type="button" data-tour="hud-research" className={`res resource-button frame ${exactResource === 'research' ? 'on' : ''}`} aria-label={`Research ${formatExact(game.researchPoints)} RP; tocar para ver valor exacto`} aria-expanded={exactResource === 'research'} onClick={() => toggleExact('research')}><Sprite name="icon-flask" size={18} /><span className="val">{formatCompact(game.researchPoints)} RP</span><span className="rate">+{formatDecimal(report.generatedResearch)}/s</span></button>
+      <button type="button" className={`icon-btn frame ${musicOn ? 'on' : ''}`} aria-pressed={musicOn} onClick={onToggleMusic} aria-label={musicOn ? 'Silenciar la música' : 'Activar la música'}><Sprite name={musicOn ? 'icon-sound' : 'icon-mute'} size={20} /></button>
       <button className="icon-btn frame" onClick={onOpenMenu} aria-label="Abrir menú"><Sprite name="icon-menu" size={20} /></button>
     </div>
     {exactCopy && <button type="button" className="hud-exact frame" onClick={() => setExactResource(null)} aria-label={`${exactCopy}; cerrar detalle`}>{exactCopy}</button>}

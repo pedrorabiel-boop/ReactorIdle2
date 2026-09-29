@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
 import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, totalHeat, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { clearTutorialDone, isPristineGame } from './game/tutorial'
+import { isMusicEnabled, isMusicStarted, layersForTechs, setMusicEnabled, startMusic, syncMusicLayers } from './audio/music'
 import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
 import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from './game/terrain'
 import type { ComponentKind, GameState, SectorKey, TechKey, ToolMode, UpgradeTrack } from './game/types'
@@ -45,6 +46,7 @@ function App() {
   const strokeRef = useRef<BuildStroke | null>(null)
   const ignoreClickRef = useRef(false)
   const tutorial = useTutorial(useMemo(() => isPristineGame(loaded.state), [loaded.state]))
+  const [musicOn, setMusicOn] = useState(isMusicEnabled)
   const buildPanelOpen = activeTab === 'build'
   const armed = buildPanelOpen && (buildFocus || game.toolMode === 'demolish')
   const armedRef = useRef(armed); armedRef.current = armed
@@ -53,6 +55,21 @@ function App() {
 
   const windBuilt = game.tiles.some((tile) => tile?.kind === 'wind')
   const tutorialProgress: TutorialProgress = { buildOpen: activeTab === 'build', windSelected: buildFocus && game.selectedKind === 'wind', windBuilt }
+  // La música solo puede arrancar desde un gesto del usuario, y las capas
+  // siguen el estado de tecnologías sin detener nunca lo que ya suena.
+  const musicLayers = useMemo(() => layersForTechs(game.unlockedTechs), [game.unlockedTechs])
+  useEffect(() => { syncMusicLayers(musicLayers) }, [musicLayers])
+  const beginMusic = useCallback(() => { if (!isMusicStarted()) startMusic(layersForTechs(gameRef.current.unlockedTechs)) }, [])
+  // Con una referencia, dos toques seguidos no leen el mismo valor obsoleto.
+  const musicOnRef = useRef(musicOn)
+  musicOnRef.current = musicOn
+  const toggleMusic = useCallback(() => {
+    const next = !musicOnRef.current
+    musicOnRef.current = next
+    setMusicOn(next)
+    setMusicEnabled(next)
+    if (next) beginMusic()
+  }, [beginMusic])
   const tutorialStepRef = useRef(tutorial.step?.id)
   tutorialStepRef.current = tutorial.step?.id
 
@@ -118,7 +135,7 @@ function App() {
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
     <MapViewport game={game} island={island} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
-    {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
+    {!buildFocus && <Hud game={game} heat={heat} showHeat={game.unlockedTechs.thermal} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
       <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`}>
@@ -134,7 +151,7 @@ function App() {
     {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onClaimTestSite={occupyTestSite} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onToggleAutoRebuild={toggleAutoRebuild} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
     {activeTab === 'debug' && <DebugSheet game={game} onClose={closeSheet} onChange={changeDebug} onSetCredits={(credits) => replaceGame({ ...gameRef.current, credits })} onSetResearch={(researchPoints) => replaceGame({ ...gameRef.current, researchPoints })} onReset={resetDebug} />}
     {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} />}
-    {tutorial.step && <Tutorial step={tutorial.step} game={game} progress={tutorialProgress} onNext={tutorial.next} onFinish={tutorial.finish} />}
+    {tutorial.step && <Tutorial step={tutorial.step} game={game} progress={tutorialProgress} onNext={() => { beginMusic(); tutorial.next() }} onFinish={() => { beginMusic(); tutorial.finish() }} />}
     {toast && <div className="toast frame" role="status">{toast}</div>}
   </div>
 }
