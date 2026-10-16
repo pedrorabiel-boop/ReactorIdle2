@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nucleus-idle-v64-lab-card-layout'
+const CACHE_NAME = 'nucleus-idle-v65-fresh-shell'
 const STATIC_FILES = ['./manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './fonts/pixelify-sans-latin.woff2', './fonts/pixelify-sans-latin-ext.woff2', './fonts/press-start-2p-latin.woff2', './fonts/press-start-2p-latin-ext.woff2']
 
 self.addEventListener('install', (event) => {
@@ -28,8 +28,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
+  // El HTML llega con max-age=600, asi que el navegador puede responderlo desde
+  // su propia cache y dejar al jugador en el despliegue anterior hasta diez
+  // minutos. Para la pagina pedimos siempre a la red; los assets llevan hash en
+  // el nombre y pueden cachearse sin riesgo.
+  const bypassHttpCache = event.request.mode === 'navigate'
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, bypassHttpCache ? { cache: 'reload' } : undefined)
       .then((response) => {
         if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()))
         return response
