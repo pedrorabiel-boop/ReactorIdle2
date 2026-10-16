@@ -6,6 +6,7 @@ import type { ComponentKind, GameState, UpgradeTrack } from '../../game/types'
 import { formatDecimal, formatNumber } from '../format'
 import { Sprite } from '../pixel/Sprite'
 import { Sheet } from '../Sheet'
+import { sectorLabel } from '../sectors'
 
 interface Props { game: GameState; onClose: () => void; onUpgrade: (kind: ComponentKind, track: UpgradeTrack) => void }
 
@@ -32,7 +33,7 @@ function impactLabel(track: UpgradeTrack, kind: ComponentKind): string {
 export function UpgradesSheet({ game, onClose, onUpgrade }: Props) {
   const kinds = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind))
   const maximum = maxUpgradeLevel(game)
-  return <Sheet title="Mejoras" eyebrow={`POR TIPO · ${game.activeSector === 'coast' ? 'A-01 COSTA' : 'B-02 DISTRITO NEÓN'}`} onClose={onClose} className="global-upgrades">
+  return <Sheet title="Mejoras" eyebrow={`POR TIPO · ${sectorLabel(game.activeSector).toUpperCase()}`} onClose={onClose} className="global-upgrades">
     <div className="balance frame"><Sprite name="icon-coin" size={22} /><div><strong>₡ {hasInfiniteMoney(game) ? '∞' : formatNumber(game.credits)}</strong><small>Afecta todas las unidades presentes y futuras del tipo, solo en este mapa · máximo Nv.{maximum}.</small></div></div>
     <div className="upgrade-groups">{kinds.map((kind) => <article className="upgrade-group frame" key={kind}>
       <div className="upgrade-type"><span className="upgrade-icon frame"><Sprite name={kind} size={28} /></span><div><strong>{COMPONENTS[kind].name}</strong><small>{countKind(game, kind)} construidas</small></div></div>
