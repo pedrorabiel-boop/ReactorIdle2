@@ -45,7 +45,7 @@ export interface GameState {
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
   activeContract: EnergyContract; contractsCompleted: number; prestiges: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
   sectorEconomies: Record<SectorKey, SectorEconomy>; sectorReports: Record<SectorKey, TickReport>
-  ownedSectors: Record<SectorKey, boolean>; giftTicks: number; boostActive: boolean; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
+  ownedSectors: Record<SectorKey, boolean>; giftTicks: number; boostActive: boolean; showFlowNumbers: boolean; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
   debug: DebugSettings
 }
 

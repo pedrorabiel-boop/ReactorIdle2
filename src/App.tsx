@@ -2,11 +2,11 @@ import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo
 import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
-import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, toggleUpgradeVisibility, performPrestige, prestigeMultiplier, usesAutonomy } from './game/engine'
+import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, toggleUpgradeVisibility, pendingAutoRebuilds, pendingTechs, performPrestige, prestigeMultiplier, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { clearTutorialDone, isPristineGame } from './game/tutorial'
 import { isMusicEnabled, isMusicStarted, layersForTechs, setMusicEnabled, startMusic, syncMusicLayers } from './audio/music'
-import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingTrackMax, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
+import { canUnlockAutoRebuild, canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingTrackMax, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
 import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from './game/terrain'
 import type { ComponentKind, GameState, SectorKey, TechKey, ToolMode, UpgradeTrack } from './game/types'
 import { Dock, type DockTab } from './ui/Dock'
@@ -94,8 +94,8 @@ function App() {
   const island = useMemo(() => buildIsland(game.rows, game.cols, game.activeSector, extraOccupiedIndices), [game.rows, game.cols, game.activeSector, extraOccupiedSignature])
   const inspectedRefuel = inspectedIndex === null ? 0 : refuelPrice(game, inspectedIndex) ?? 0
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
-  const affordableTechs = TECH_ORDER.filter((key) => canUnlockTech(game, key)).length
-  const affordableUpgrades = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind)).flatMap((kind) => upgradeTracks(kind).map((track) => ({ kind, track }))).filter(({ kind, track }) => upgradeLevel(game, kind, track) < maxUpgradeLevel(game) && canAfford(game, upgradeCost(game, kind, track))).length
+  const affordableTechs = pendingTechs(game).filter((key) => canUnlockTech(game, key)).length + pendingAutoRebuilds(game).filter((kind) => canUnlockAutoRebuild(game, kind)).length
+  const affordableUpgrades = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind) && !game.sectorEconomies[game.activeSector].hiddenUpgrades.includes(kind)).flatMap((kind) => upgradeTracks(kind).map((track) => ({ kind, track }))).filter(({ kind, track }) => upgradeLevel(game, kind, track) < maxUpgradeLevel(game) && canAfford(game, upgradeCost(game, kind, track))).length
 
   function replaceGame(next: GameState) { gameRef.current = next; setGame(next) }
   function pushHistory(entry: HistoryEntry) { historyRef.current = [...historyRef.current.slice(-(MAX_UNDO_STEPS - 1)), entry]; setUndoDepth(historyRef.current.length) }
@@ -160,7 +160,7 @@ function App() {
     {activeTab === 'upgrades' && <UpgradesSheet game={game} onClose={closeSheet} onUpgrade={upgrade} onUpgradeMax={upgradeMax} onToggleHidden={toggleHiddenUpgrade} />}
     {activeTab === 'lab' && <ResearchSheet game={game} onClose={closeSheet} onResearch={research} onAutoRebuild={researchAutoRebuild} />}
     {activeTab === 'manual' && <ManualSheet game={game} onClose={closeSheet} />}
-    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onClaimTestSite={occupyTestSite} onPrestige={prestige} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onToggleAutoRebuild={toggleAutoRebuild} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
+    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onClaimTestSite={occupyTestSite} onPrestige={prestige} onToggleFlowNumbers={() => setGame((current) => ({ ...current, showFlowNumbers: !current.showFlowNumbers }))} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onToggleAutoRebuild={toggleAutoRebuild} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
     {activeTab === 'debug' && <DebugSheet game={game} onClose={closeSheet} onChange={changeDebug} onSetCredits={(credits) => replaceGame({ ...gameRef.current, credits })} onSetResearch={(researchPoints) => replaceGame({ ...gameRef.current, researchPoints })} onReset={resetDebug} />}
     {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} />}
     {tutorial.step && <Tutorial step={tutorial.step} game={game} progress={tutorialProgress} onNext={() => { beginMusic(); tutorial.next() }} onFinish={() => { beginMusic(); tutorial.finish() }} />}

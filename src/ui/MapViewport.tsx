@@ -99,7 +99,7 @@ const Cell = memo(function Cell({ game, tile, index, tour, x, y, armed, toolMode
             <span className={`heat-bar h${level}`} aria-hidden="true"><i /><i /><i /><i /><i /></span>
           )}
           {hasAutonomy && fuelMax > 0 && <span className="fuel-bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (tile.fuel / fuelMax) * 100)}%` }} /></span>}
-          {tile.flow !== 0 && <span className="flow-tag" aria-hidden="true">{tile.flow < 0 ? '−' : '+'}{Math.round(Math.abs(tile.flow))}</span>}
+          {game.showFlowNumbers && tile.flow !== 0 && <span className="flow-tag" aria-hidden="true">{tile.flow < 0 ? '−' : '+'}{Math.round(Math.abs(tile.flow))}</span>}
           {tile.damaged && <span className="worn-tag" aria-hidden="true" title="Avería térmica">⚠</span>}
           {!tile.enabled && <span className="off-tag" aria-hidden="true">⏻</span>}
         </>

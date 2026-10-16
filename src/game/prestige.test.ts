@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ECONOMY } from './balance'
 import { COMPONENTS } from './catalog'
-import { canPrestige, createInitialState, performPrestige, placeTile, prestigeMultiplier, prestigeThreshold, sellStoredEnergy, toggleUpgradeVisibility } from './engine'
+import { canPrestige, createInitialState, pendingAutoRebuilds, pendingTechs, performPrestige, placeTile, prestigeMultiplier, prestigeThreshold, sellStoredEnergy, toggleUpgradeVisibility } from './engine'
 import { upgradeBuildingTrack, upgradeBuildingTrackMax, upgradeLevel, maxUpgradeLevel } from './research'
 import type { GameState } from './types'
 
@@ -80,5 +80,32 @@ describe('upgrade sheet state', () => {
     // Apartar en un mapa no afecta a los otros.
     expect(hidden.sectorEconomies.desert.hiddenUpgrades).toEqual([])
     expect(toggleUpgradeVisibility(hidden, 'wind').sectorEconomies.coast.hiddenUpgrades).toEqual([])
+  })
+})
+
+describe('lab sheet contents', () => {
+  it('offers only what can be bought now, never what is done or still locked', () => {
+    const fresh = createInitialState()
+    // Al empezar: solo lo que no tiene requisito pendiente.
+    expect(pendingTechs(fresh)).toEqual(['solar', 'expansion'])
+
+    const withSolar = { ...fresh, unlockedTechs: { ...fresh.unlockedTechs, solar: true } }
+    // Lo investigado desaparece y entra su siguiente escalon.
+    expect(pendingTechs(withSolar)).not.toContain('solar')
+    expect(pendingTechs(withSolar)).toContain('thermal')
+    // Torio sigue oculto porque le falta Ingenieria termica.
+    expect(pendingTechs(withSolar)).not.toContain('thorium')
+
+    const everything = { ...fresh, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true, testsite: true } }
+    expect(pendingTechs(everything)).toEqual([])
+  })
+
+  it('drops an auto rebuild licence from the list once it is owned', () => {
+    const state = { ...createInitialState(), credits: 1e18, unlockedTechs: { solar: true, thermal: true, thorium: true, fusion: true, expansion: true, testsite: true } }
+    const before = pendingAutoRebuilds(state)
+    expect(before).toContain('wind')
+    const owned = { ...state, autoRebuilds: { ...state.autoRebuilds, wind: true } }
+    expect(pendingAutoRebuilds(owned)).not.toContain('wind')
+    expect(pendingAutoRebuilds(owned).length).toBe(before.length - 1)
   })
 })

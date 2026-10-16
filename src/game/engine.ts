@@ -1,10 +1,10 @@
 import { COMPONENTS } from './catalog'
-import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, TECHNOLOGIES, TECH_ORDER } from './balance'
+import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, LIFETIME_ORDER, TECHNOLOGIES, TECH_ORDER } from './balance'
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
 import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
 import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, superconductorMasses, type ThermalSinkEdge } from './thermal'
 import { buildableFor, neighbourIndices, SECTOR_GRID } from './terrain'
-import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TickReport, Tile } from './types'
+import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TechKey, TickReport, Tile } from './types'
 
 const REACTORS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'planck'])
 const CONVERTERS = new Set<ComponentKind>(['generator', 'generator2'])
@@ -31,7 +31,7 @@ export function createInitialState(debugInput = createDefaultDebugSettings()): G
   const desert = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const testsite = Array.from({ length: SECTOR_GRID.testsite.rows * SECTOR_GRID.testsite.cols }, () => null) as GameState['tiles']
   const makeEconomy = (initialLevel: number): SectorEconomy => ({ energyStored: 0, buildingLevels: emptyBuildingLevels(initialLevel), capacityLevels: emptyBuildingLevels(initialLevel), autonomyLevels: emptyBuildingLevels(initialLevel), hiddenUpgrades: [] })
-  return { version: 23, rows: SECTOR_GRID.coast.rows, cols: SECTOR_GRID.coast.cols, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), autoRebuildPaused: false, tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, prestiges: 0, activeSector: 'coast', sectorLayouts: { coast, desert, testsite }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0), testsite: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport(), testsite: emptyTickReport() }, ownedSectors: { coast: true, desert: false, testsite: false }, giftTicks: 0, boostActive: false, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
+  return { version: 23, rows: SECTOR_GRID.coast.rows, cols: SECTOR_GRID.coast.cols, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), autoRebuildPaused: false, tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, prestiges: 0, activeSector: 'coast', sectorLayouts: { coast, desert, testsite }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0), testsite: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport(), testsite: emptyTickReport() }, ownedSectors: { coast: true, desert: false, testsite: false }, giftTicks: 0, boostActive: false, showFlowNumbers: true, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
 }
 
 /** Vecindad tal como queda dibujada en el mapa; ver game/terrain. */
@@ -47,6 +47,14 @@ export const usesAutonomy = (kind: ComponentKind) => LIFETIME_PRODUCERS.has(kind
 export function isComponentUnlocked(state: GameState, kind: ComponentKind): boolean { if (state.debug.enabled && state.debug.unlockAllBuildings) return true; const tech = COMPONENTS[kind].tech; return !tech || state.unlockedTechs[tech] }
 export function isComponentVisible(state: GameState, kind: ComponentKind): boolean { if (state.debug.enabled && state.debug.unlockAllBuildings) return true; if (kind === 'sales') return state.totalEnergySold >= 5 || state.lastReport.wastedEnergy > 0; if (kind === 'research') return state.totalCreditsEarned >= 50; return kind === 'wind' || Boolean(COMPONENTS[kind].tech) }
 export const isSectorUnlocked = (state: GameState, sector: SectorKey) => state.ownedSectors[sector]
+/** Tecnologias que ya se pueden comprar: ni investigadas, ni sin su requisito. */
+export const pendingTechs = (state: GameState): TechKey[] => TECH_ORDER.filter((key) => {
+  const requires = TECHNOLOGIES[key].requires
+  return !state.unlockedTechs[key] && (!requires || state.unlockedTechs[requires])
+})
+/** Licencias de auto rebuild que aun no se han comprado. */
+export const pendingAutoRebuilds = (state: GameState): ComponentKind[] =>
+  LIFETIME_ORDER.filter((kind) => !state.autoRebuilds[kind] && isComponentUnlocked(state, kind) && isComponentVisible(state, kind))
 
 function makeTile(state: GameState, kind: ComponentKind, index: number): Tile { return { id: `${kind}-${state.tick}-${index}`, kind, heat: 0, enabled: true, damaged: false, flow: 0, fuel: fuelCapacity(state, kind), autoRefuel: false } }
 export function placeTile(state: GameState, index: number, kind: ComponentKind): GameState {

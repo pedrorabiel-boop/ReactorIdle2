@@ -234,6 +234,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .pips i { height: 5px; background: rgba(0,0,0,.5); border: 1px solid var(--ink); }
 .pips i.on { background: var(--cyan); }
 .upgrade .btn { min-width: 62px; font: 9px var(--font-num); }
+.research-progress { margin: 0 0 8px; color: var(--muted); font: 7px var(--font-num); }
 .research-section-title { margin: 10px 0 6px; color: var(--gold); font: 700 12px var(--font-ui); }
 .research-section-hint { margin: -2px 0 7px; color: var(--muted); font-size: 10px; line-height: 1.35; }
 .prestige-state { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
