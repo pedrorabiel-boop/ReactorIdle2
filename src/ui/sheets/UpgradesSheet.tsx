@@ -57,7 +57,7 @@ export function UpgradesSheet({ game, onClose, onUpgrade, onUpgradeMax, onToggle
         const isHidden = hidden.includes(kind)
         return <article className="upgrade-group frame" key={kind}>
           <div className="upgrade-type">
-            <span className="upgrade-icon frame"><Sprite name={kind} size={52} /></span>
+            <span className="upgrade-icon big frame"><Sprite name={kind} size={52} /></span>
             <div className="upgrade-title"><strong>{COMPONENTS[kind].name}</strong><small>{countKind(game, kind)} construidas</small></div>
             <button
               type="button"
