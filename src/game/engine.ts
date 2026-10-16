@@ -30,8 +30,8 @@ export function createInitialState(debugInput = createDefaultDebugSettings()): G
   const coast = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const desert = Array.from({ length: 80 }, () => null) as GameState['tiles']
   const testsite = Array.from({ length: SECTOR_GRID.testsite.rows * SECTOR_GRID.testsite.cols }, () => null) as GameState['tiles']
-  const makeEconomy = (initialLevel: number): SectorEconomy => ({ energyStored: 0, buildingLevels: emptyBuildingLevels(initialLevel), capacityLevels: emptyBuildingLevels(initialLevel), autonomyLevels: emptyBuildingLevels(initialLevel) })
-  return { version: 22, rows: SECTOR_GRID.coast.rows, cols: SECTOR_GRID.coast.cols, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), autoRebuildPaused: false, tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, activeSector: 'coast', sectorLayouts: { coast, desert, testsite }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0), testsite: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport(), testsite: emptyTickReport() }, ownedSectors: { coast: true, desert: false, testsite: false }, giftTicks: 0, boostActive: false, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
+  const makeEconomy = (initialLevel: number): SectorEconomy => ({ energyStored: 0, buildingLevels: emptyBuildingLevels(initialLevel), capacityLevels: emptyBuildingLevels(initialLevel), autonomyLevels: emptyBuildingLevels(initialLevel), hiddenUpgrades: [] })
+  return { version: 23, rows: SECTOR_GRID.coast.rows, cols: SECTOR_GRID.coast.cols, tiles: coast, credits: ECONOMY.startingCredits, totalEnergy: 0, totalEnergySold: 0, totalCreditsEarned: 0, researchPoints: 0, unlockedTechs: { ...EMPTY_TECHS }, autoRebuilds: emptyAutoRebuilds(), autoRebuildPaused: false, tick: 0, incidents: 0, totalFuelSpent: 0, totalRepairSpent: 0, activeContract: createContract(0, TECHNOLOGIES.solar.cost * 0.1), contractsCompleted: 0, prestiges: 0, activeSector: 'coast', sectorLayouts: { coast, desert, testsite }, sectorEconomies: { coast: makeEconomy(1), desert: makeEconomy(0), testsite: makeEconomy(0) }, sectorReports: { coast: emptyTickReport(), desert: emptyTickReport(), testsite: emptyTickReport() }, ownedSectors: { coast: true, desert: false, testsite: false }, giftTicks: 0, boostActive: false, selectedKind: 'wind', toolMode: 'build', paused: false, speed: 1, lastReport: emptyTickReport(), debug }
 }
 
 /** Vecindad tal como queda dibujada en el mapa; ver game/terrain. */
@@ -70,6 +70,29 @@ export function restorePlantLayout(state: GameState, tiles: GameState['tiles'], 
 export function switchSector(state: GameState, sector: SectorKey): GameState { if (sector === state.activeSector || !isSectorUnlocked(state, sector)) return state; const sectorLayouts = { ...state.sectorLayouts, [state.activeSector]: state.tiles }; return { ...state, activeSector: sector, ...SECTOR_GRID[sector], sectorLayouts, tiles: sectorLayouts[sector].map((tile) => tile ? { ...tile } : null), lastReport: state.sectorReports[sector] } }
 export function buyDesertSector(state: GameState): GameState { if (state.ownedSectors.desert || !state.unlockedTechs.expansion || !canAfford(state, ECONOMY.secondIslandCost)) return state; return { ...state, credits: spendCredits(state, ECONOMY.secondIslandCost), ownedSectors: { ...state.ownedSectors, desert: true } } }
 /** El Test Site no se compra con créditos: lo abre la autorización de ensayos. */
+/** Cada prestigio multiplica de forma permanente lo que rinde cada venta. */
+export const prestigeMultiplier = (state: GameState) => Math.pow(ECONOMY.prestigeSalesBonus, state.prestiges)
+/** Dinero necesario para reiniciar: un multiplo del reactor mas potente. */
+export const prestigeThreshold = () => COMPONENTS.planck.cost * ECONOMY.prestigeCostMultiple
+export const canPrestige = (state: GameState) => state.credits >= prestigeThreshold()
+/**
+ * Borra la partida entera y empieza de cero conservando solo la cuenta de
+ * prestigios, su bonus y la configuracion del sandbox.
+ */
+export function performPrestige(state: GameState): GameState {
+  if (!canPrestige(state)) return state
+  return { ...createInitialState(state.debug), prestiges: state.prestiges + 1 }
+}
+
+/** Aparta o devuelve un tipo a la hoja de mejoras del mapa activo. */
+export function toggleUpgradeVisibility(state: GameState, kind: ComponentKind): GameState {
+  const economy = state.sectorEconomies[state.activeSector]
+  const hidden = economy.hiddenUpgrades.includes(kind)
+    ? economy.hiddenUpgrades.filter((entry) => entry !== kind)
+    : [...economy.hiddenUpgrades, kind]
+  return { ...state, sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...economy, hiddenUpgrades: hidden } } }
+}
+
 export function claimTestSite(state: GameState): GameState { if (state.ownedSectors.testsite || !state.unlockedTechs.testsite) return state; return { ...state, ownedSectors: { ...state.ownedSectors, testsite: true } } }
 
 interface SectorResult { tiles: GameState['tiles']; directEnergy: number; thermalEnergy: number; research: number; cooledHeat: number; incidents: number; refuelCost: number; heatProduction: number; conversionCapacity: number; credits: number }
@@ -111,7 +134,7 @@ export function sellStoredEnergy(state: GameState): GameState {
   const sectorEconomy = state.sectorEconomies[state.activeSector]
   const sold = Math.max(0, sectorEconomy.energyStored)
   if (sold <= 0) return state
-  const earned = sold * ECONOMY.energyPrice
+  const earned = sold * ECONOMY.energyPrice * prestigeMultiplier(state)
   const activeContract = state.activeContract.kind === 'sales' ? { ...state.activeContract, progress: Math.min(state.activeContract.target, state.activeContract.progress + sold) } : state.activeContract
   const lastReport = { ...state.lastReport, soldEnergy: state.lastReport.soldEnergy + sold, earnedCredits: state.lastReport.earnedCredits + earned }
   return { ...state, sectorEconomies: { ...state.sectorEconomies, [state.activeSector]: { ...sectorEconomy, energyStored: 0 } }, credits: state.credits + earned, totalEnergySold: state.totalEnergySold + sold, totalCreditsEarned: state.totalCreditsEarned + earned, activeContract, lastReport, sectorReports: { ...state.sectorReports, [state.activeSector]: lastReport } }
@@ -129,7 +152,7 @@ export function simulateTick(state: GameState): { state: GameState; report: Tick
     const available = sectorEconomies[sector].energyStored + produced
     // Las oficinas venden primero. Solo la energía que supera su potencia de venta intenta entrar al banco local.
     const sold = Math.min(available, salesCapacity); const unsold = available - sold
-    const energyStored = Math.min(storageCapacity, unsold); const wasted = Math.max(0, unsold - storageCapacity); const earned = sold * ECONOMY.energyPrice
+    const energyStored = Math.min(storageCapacity, unsold); const wasted = Math.max(0, unsold - storageCapacity); const earned = sold * ECONOMY.energyPrice * prestigeMultiplier(state)
     const report: TickReport = { producedEnergy: produced, directEnergy: result.directEnergy, thermalEnergy: result.thermalEnergy, storedEnergy: Math.max(0, energyStored - sectorEconomies[sector].energyStored), wastedEnergy: wasted, soldEnergy: sold, earnedCredits: earned, generatedResearch: result.research, cooledHeat: result.cooledHeat, incidents: result.incidents, refuelCost: result.refuelCost, repairCost: 0, storageCapacity, salesCapacity, conversionCapacity: result.conversionCapacity, heatProduction: result.heatProduction }
     sectorEconomies[sector] = { ...sectorEconomies[sector], energyStored }; sectorReports[sector] = report; credits += earned
     for (const key of Object.keys(aggregate) as Array<keyof TickReport>) aggregate[key] += report[key]

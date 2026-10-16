@@ -2,11 +2,11 @@ import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo
 import { ECONOMY, TECH_ORDER } from './game/balance'
 import { COMPONENT_ORDER, COMPONENTS } from './game/catalog'
 import { canAfford, hasInfiniteMoney, resetDebugTuning, withDebugSettings } from './game/debug'
-import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, usesAutonomy } from './game/engine'
+import { buyDesertSector, claimTestSite, createInitialState, isComponentUnlocked, isComponentVisible, placeTile, refuelPrice, refuelTile, repairPrice, repairTile, restorePlantLayout, sectorEnergyStored, sellStoredEnergy, sellTile, simulateSecond, switchSector, toggleTile, toggleUpgradeVisibility, performPrestige, prestigeMultiplier, usesAutonomy } from './game/engine'
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './game/persistence'
 import { clearTutorialDone, isPristineGame } from './game/tutorial'
 import { isMusicEnabled, isMusicStarted, layersForTechs, setMusicEnabled, startMusic, syncMusicLayers } from './audio/music'
-import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
+import { canUnlockTech, maxUpgradeLevel, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingTrackMax, upgradeCost, upgradeLevel, upgradeTracks } from './game/research'
 import { COAST_BUILDABLE_SET, CYBERPUNK_BUILDABLE_SET } from './game/terrain'
 import type { ComponentKind, GameState, SectorKey, TechKey, ToolMode, UpgradeTrack } from './game/types'
 import { Dock, type DockTab } from './ui/Dock'
@@ -124,6 +124,16 @@ function App() {
   function research(key: TechKey) { const before = gameRef.current; const next = unlockTech(before, key); if (next === before) return; replaceGame(next); const gift = next.giftTicks - before.giftTicks; setToast(gift > 0 ? `¡Tienes ${formatNumber(gift)} ticks de regalo!` : 'Tecnología desbloqueada.') }
   function toggleAutoRebuild() { setGame((current) => ({ ...current, autoRebuildPaused: !current.autoRebuildPaused })) }
   function toggleBoost() { setGame((current) => current.giftTicks > 0 ? { ...current, boostActive: !current.boostActive } : current) }
+  function upgradeMax(kind: ComponentKind, track: UpgradeTrack) {
+    const before = gameRef.current
+    const next = upgradeBuildingTrackMax(before, kind, track)
+    if (next === before) { setToast('Créditos insuficientes o nivel máximo.'); return }
+    const levels = upgradeLevel(next, kind, track) - upgradeLevel(before, kind, track)
+    replaceGame(next)
+    setToast(`${COMPONENTS[kind].name}: ${levels} ${levels === 1 ? 'nivel' : 'niveles'} por ₡ ${formatNumber(before.credits - next.credits)}.`)
+  }
+  function prestige() { const next = performPrestige(gameRef.current); if (next === gameRef.current) { setToast('Aún no alcanzas el dinero necesario.'); return } replaceGame(next); closeSheet(); setToast(`Prestigio ${next.prestiges}: cada venta rinde × ${formatDecimal(prestigeMultiplier(next))}.`) }
+  function toggleHiddenUpgrade(kind: ComponentKind) { replaceGame(toggleUpgradeVisibility(gameRef.current, kind)) }
   function upgrade(kind: ComponentKind, track: UpgradeTrack) { const price = upgradeCost(gameRef.current, kind, track); const next = upgradeBuildingTrack(gameRef.current, kind, track); if (next === gameRef.current) { setToast('Créditos insuficientes o nivel máximo.'); return } replaceGame(next); setToast(`${COMPONENTS[kind].name}: mejora aplicada a este mapa por ₡ ${formatNumber(price)}.`) }
   function sellEnergy() { const stored = sectorEnergyStored(gameRef.current); const next = sellStoredEnergy(gameRef.current); if (next === gameRef.current) return; replaceGame(next); setToast(`${formatDecimal(stored)} E vendidas por ₡ ${formatDecimal(stored)}.`) }
   function toggleInspected() { if (inspectedIndex !== null) commit((state) => toggleTile(state, inspectedIndex), 'Activación', 0) }
@@ -147,10 +157,10 @@ function App() {
       </div>
     </div>}
     {activeTab === 'inspector' && <InspectorSheet game={game} index={inspectedIndex} refuelPrice={inspectedRefuel} repairPrice={inspectedRepair} onClose={closeSheet} onToggle={toggleInspected} onRefuel={refuelInspected} onRepair={repairInspected} onSell={sellInspected} />}
-    {activeTab === 'upgrades' && <UpgradesSheet game={game} onClose={closeSheet} onUpgrade={upgrade} />}
+    {activeTab === 'upgrades' && <UpgradesSheet game={game} onClose={closeSheet} onUpgrade={upgrade} onUpgradeMax={upgradeMax} onToggleHidden={toggleHiddenUpgrade} />}
     {activeTab === 'lab' && <ResearchSheet game={game} onClose={closeSheet} onResearch={research} onAutoRebuild={researchAutoRebuild} />}
     {activeTab === 'manual' && <ManualSheet game={game} onClose={closeSheet} />}
-    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onClaimTestSite={occupyTestSite} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onToggleAutoRebuild={toggleAutoRebuild} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
+    {activeTab === 'menu' && <MenuSheet game={game} importRef={importRef} onClose={closeSheet} onSector={changeSector} onBuySector={buySector} onClaimTestSite={occupyTestSite} onPrestige={prestige} onTogglePause={() => setGame((current) => ({ ...current, paused: !current.paused }))} onToggleAutoRebuild={toggleAutoRebuild} onSpeed={(speed) => setGame((current) => ({ ...current, speed, paused: false }))} onInstall={installApp} onCopySave={copySave} onImport={restoreSave} onReset={resetGame} onToggleDebug={toggleDebug} onOpenDebug={() => setActiveTab('debug')} />}
     {activeTab === 'debug' && <DebugSheet game={game} onClose={closeSheet} onChange={changeDebug} onSetCredits={(credits) => replaceGame({ ...gameRef.current, credits })} onSetResearch={(researchPoints) => replaceGame({ ...gameRef.current, researchPoints })} onReset={resetDebug} />}
     {!buildFocus && <Dock game={game} activeTab={activeTab} buildFocus={buildFocus} onTab={openTab} onCloseBuild={closeSheet} onChooseComponent={chooseComponent} onChooseTool={chooseTool} labBadge={affordableTechs} upgradesBadge={affordableUpgrades} />}
     {tutorial.step && <Tutorial step={tutorial.step} game={game} progress={tutorialProgress} onNext={() => { beginMusic(); tutorial.next() }} onFinish={() => { beginMusic(); tutorial.finish() }} />}

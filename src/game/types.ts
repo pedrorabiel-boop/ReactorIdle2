@@ -5,7 +5,7 @@ export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'resea
 export type SectorKey = 'coast' | 'desert' | 'testsite'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
 export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus'
-export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier'
+export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier' | 'prestigeCostMultiple' | 'prestigeSalesBonus'
 
 export interface DebugSettings {
   enabled: boolean
@@ -34,14 +34,16 @@ export interface SectorEconomy {
   buildingLevels: Record<ComponentKind, number>
   capacityLevels: Record<ComponentKind, number>
   autonomyLevels: Record<ComponentKind, number>
+  /** Tipos que el jugador aparto de la hoja de mejoras en este mapa. */
+  hiddenUpgrades: ComponentKind[]
 }
 
 export interface GameState {
-  version: 22; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
+  version: 23; rows: number; cols: number; tiles: Array<Tile | null>; credits: number; totalEnergy: number
   totalEnergySold: number; totalCreditsEarned: number; researchPoints: number; unlockedTechs: Record<TechKey, boolean>
   autoRebuilds: Record<ComponentKind, boolean>; autoRebuildPaused: boolean
   tick: number; incidents: number; totalFuelSpent: number; totalRepairSpent: number
-  activeContract: EnergyContract; contractsCompleted: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
+  activeContract: EnergyContract; contractsCompleted: number; prestiges: number; activeSector: SectorKey; sectorLayouts: Record<SectorKey, Array<Tile | null>>
   sectorEconomies: Record<SectorKey, SectorEconomy>; sectorReports: Record<SectorKey, TickReport>
   ownedSectors: Record<SectorKey, boolean>; giftTicks: number; boostActive: boolean; selectedKind: ComponentKind; toolMode: ToolMode; paused: boolean; speed: 1 | 2 | 4; lastReport: TickReport
   debug: DebugSettings

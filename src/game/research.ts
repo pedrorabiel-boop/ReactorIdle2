@@ -64,6 +64,19 @@ export function upgradeBuildingTrack(state: GameState, kind: ComponentKind, trac
   const sectorLayouts = { ...currentLayouts, [state.activeSector]: activeTiles }
   return { ...upgraded, credits: spendCredits(state, cost), sectorLayouts, tiles: activeTiles }
 }
+/** Sube la pista todo lo que alcance el dinero, sin pasar del nivel máximo. */
+export function upgradeBuildingTrackMax(state: GameState, kind: ComponentKind, track: UpgradeTrack): GameState {
+  let current = state
+  // El tope de niveles ya acota el bucle; el contador solo protege de un
+  // catálogo mal configurado con coste cero.
+  for (let step = 0; step < 100; step += 1) {
+    const next = upgradeBuildingTrack(current, kind, track)
+    if (next === current) break
+    current = next
+  }
+  return current
+}
+
 /** Compatibilidad interna para simuladores: mejora la producción del tipo en el mapa activo. */
 export const upgradeBuildingType = (state: GameState, kind: ComponentKind) => upgradeBuildingTrack(state, kind, 'output')
 export function canUnlockTech(state: GameState, key: TechKey): boolean { const tech = TECHNOLOGIES[key]; return !state.unlockedTechs[key] && (!tech.requires || state.unlockedTechs[tech.requires]) && state.researchPoints >= tech.cost }
