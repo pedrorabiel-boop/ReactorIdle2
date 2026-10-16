@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { LIFETIME_ORDER, TECH_ORDER, TECHNOLOGIES } from '../../game/balance'
 import { COMPONENTS } from '../../game/catalog'
 import { pendingAutoRebuilds, pendingTechs } from '../../game/engine'
@@ -11,11 +12,44 @@ interface Props { game: GameState; onClose: () => void; onResearch: (key: TechKe
 
 const techIcon = (key: TechKey) => key === 'solar' ? 'solar' : key === 'thorium' ? 'thorium' : key === 'fusion' ? 'fusion' : 'icon-flask'
 
+interface CardProps {
+  id: string
+  icon: string
+  title: string
+  description: string
+  cost: number
+  affordable: boolean
+  open: boolean
+  onToggleInfo: (id: string) => void
+  onBuy: () => void
+}
+
+/** Icono · (título sobre el botón) · información. El precio vive solo en el botón. */
+function ResearchCard({ id, icon, title, description, cost, affordable, open, onToggleInfo, onBuy }: CardProps) {
+  return <article className="upgrade frame">
+    <span className="upgrade-icon frame"><Sprite name={icon} size={28} /></span>
+    <div className="upgrade-main">
+      <strong>{title}</strong>
+      <button className="btn frame gold" disabled={!affordable} onClick={onBuy}>{formatNumber(cost)} RP</button>
+    </div>
+    <button
+      type="button"
+      className={`upgrade-info frame ${open ? 'on' : ''}`}
+      aria-expanded={open}
+      aria-label={`${open ? 'Ocultar' : 'Ver'} la descripción de ${title}`}
+      onClick={() => onToggleInfo(id)}
+    ><Sprite name="icon-info" size={16} /></button>
+    {open && <p className="upgrade-note">{description}</p>}
+  </article>
+}
+
 export function ResearchSheet({ game, onClose, onResearch, onAutoRebuild }: Props) {
   // El laboratorio solo enseña lo que se puede comprar ahora: ni lo ya
   // investigado, ni los escalones que todavía no tienen su requisito.
   const techs = pendingTechs(game)
   const licences = pendingAutoRebuilds(game)
+  const [openInfo, setOpenInfo] = useState<string | null>(null)
+  const toggleInfo = (id: string) => setOpenInfo((current) => current === id ? null : id)
 
   const doneTechs = TECH_ORDER.filter((key) => game.unlockedTechs[key]).length
   const doneLicences = LIFETIME_ORDER.filter((kind) => game.autoRebuilds[kind]).length
@@ -27,27 +61,34 @@ export function ResearchSheet({ game, onClose, onResearch, onAutoRebuild }: Prop
 
     {techs.length > 0 && <>
       <h3 className="research-section-title">Tecnologías</h3>
-      <div className="upgrades">{techs.map((key) => {
-        const tech = TECHNOLOGIES[key]
-        return <article className="upgrade frame" key={key}>
-          <span className="upgrade-icon frame"><Sprite name={techIcon(key)} size={28} /></span>
-          <div className="upgrade-copy"><strong>{tech.name}</strong><p>{tech.description}</p><small>{formatNumber(tech.cost)} RP</small></div>
-          <button className="btn frame gold" disabled={!canUnlockTech(game, key)} onClick={() => onResearch(key)}>{formatNumber(tech.cost)} RP</button>
-        </article>
-      })}</div>
+      <div className="upgrades">{techs.map((key) => <ResearchCard
+        key={key}
+        id={`tech-${key}`}
+        icon={techIcon(key)}
+        title={TECHNOLOGIES[key].name}
+        description={TECHNOLOGIES[key].description}
+        cost={TECHNOLOGIES[key].cost}
+        affordable={canUnlockTech(game, key)}
+        open={openInfo === `tech-${key}`}
+        onToggleInfo={toggleInfo}
+        onBuy={() => onResearch(key)}
+      />)}</div>
     </>}
 
     {licences.length > 0 && <>
       <h3 className="research-section-title">Auto rebuild</h3>
-      <p className="research-section-hint">Cada licencia automatiza un tipo. La reconstrucción consume el costo completo del edificio cuando su vida útil llega a cero.</p>
-      <div className="upgrades">{licences.map((kind) => {
-        const cost = autoRebuildCost(game, kind)
-        return <article className="upgrade frame" key={kind}>
-          <span className="upgrade-icon frame"><Sprite name={kind} size={28} /></span>
-          <div className="upgrade-copy"><strong>Auto rebuild · {COMPONENTS[kind].shortName}</strong><p>Reconstruye las unidades caducadas de este tipo cuando haya créditos.</p><small>{formatNumber(cost)} RP</small></div>
-          <button className="btn frame gold" disabled={!canUnlockAutoRebuild(game, kind)} onClick={() => onAutoRebuild(kind)}>{formatNumber(cost)} RP</button>
-        </article>
-      })}</div>
+      <div className="upgrades">{licences.map((kind) => <ResearchCard
+        key={kind}
+        id={`licence-${kind}`}
+        icon={kind}
+        title={`Auto rebuild · ${COMPONENTS[kind].shortName}`}
+        description="Reconstruye las unidades caducadas de este tipo cuando haya créditos, por el costo completo del edificio."
+        cost={autoRebuildCost(game, kind)}
+        affordable={canUnlockAutoRebuild(game, kind)}
+        open={openInfo === `licence-${kind}`}
+        onToggleInfo={toggleInfo}
+        onBuy={() => onAutoRebuild(kind)}
+      />)}</div>
     </>}
 
     {techs.length === 0 && licences.length === 0

@@ -223,7 +223,14 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .balance strong { display: block; font: 12px var(--font-num); color: var(--cyan); }
 .balance small { display: block; margin-top: 4px; font-size: 10px; color: var(--muted); }
 .upgrades { display: grid; gap: 6px; }
+/* Icono | titulo sobre el boton de compra | informacion. La descripcion se
+   despliega en una fila propia para no quedar recortada por el scroll. */
 .upgrade { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; background: rgba(0,0,0,.2); }
+.upgrade-main { min-width: 0; display: grid; gap: 5px; justify-items: start; }
+.upgrade-main strong { font: 600 12px var(--font-ui); line-height: 1.2; }
+.upgrade-info { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; background: var(--panel-2); }
+.upgrade-info.on { border-color: var(--gold); }
+.upgrade-note { grid-column: 1 / -1; margin: 2px 0 0; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.08); color: var(--muted); font-size: 10px; line-height: 1.35; }
 .upgrade.maxed { opacity: .6; }
 .upgrade-icon { flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; font-size: 18px; color: var(--cyan); background: var(--panel-2); }
 /* Solo en la hoja de Mejoras el icono manda, para recorrerla de un vistazo.
