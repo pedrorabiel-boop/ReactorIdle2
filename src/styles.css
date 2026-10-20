@@ -83,6 +83,27 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .prop { position: absolute; pointer-events: none; transition: opacity .18s ease; }
 /* La copa que vuela sobre terreno construible se desvanece al interactuar. */
 .prop.faded { opacity: .28; }
+
+/* Mecido: la hoja de poses se recorre a saltos enteros. Nada de interpolar
+   - un fotograma a medias resamplearia el pixel art y lo emborronaria-, por
+   eso `steps`. El desfase lo pone cada prop segun donde esta, para que la
+   racha cruce el mapa en vez de temblar todo a la vez. */
+.prop .sway { animation: sway 3.2s steps(4, jump-none) infinite; }
+@keyframes sway { to { transform: translateX(var(--frames)); } }
+
+/* Destello: el fogonazo ocupa un 4 % del ciclo, asi que cada prop se enciende
+   una vez cada diez segundos y pasa el resto del tiempo apagado. */
+.prop.flashes { animation: flash 10s ease-in-out infinite; }
+@keyframes flash {
+  0%, 94%, 100% { filter: none; }
+  96% { filter: brightness(1.75); }
+  98% { filter: brightness(1.3); }
+}
+
+/* Nada se mueve si el sistema pide calma. */
+@media (prefers-reduced-motion: reduce) {
+  .prop .sway, .prop.flashes { animation: none; }
+}
 .grid-outline { position: absolute; border: 2px dashed rgba(255,255,255,.55); box-shadow: 0 0 0 2px rgba(0,0,0,.25); pointer-events: none; animation: dash 1s steps(2) infinite; }
 @keyframes dash { 50% { border-color: rgba(255,255,255,.25); } }
 
