@@ -1,4 +1,7 @@
-const CACHE_NAME = 'nucleus-idle-v66-lab-card-columns'
+// Lo reescribe la compilacion con el hash del bundle (vite.config.ts). No hace
+// falta tocarlo a mano, y no conviene: subirlo a mano se olvido siete
+// despliegues seguidos y dejo a los jugadores que volvian en una version vieja.
+const CACHE_NAME = 'nucleus-idle-dev'
 const STATIC_FILES = ['./manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './fonts/pixelify-sans-latin.woff2', './fonts/pixelify-sans-latin-ext.woff2', './fonts/press-start-2p-latin.woff2', './fonts/press-start-2p-latin-ext.woff2']
 
 self.addEventListener('install', (event) => {
