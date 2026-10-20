@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "balance": "vitest run src/game/balance.sim.test.ts --reporter=verbose",
-    "mockup": "node tools/pixel/mockup.mjs"
+    "mockup": "node tools/pixel/mockup.mjs",
+    "art": "vitest run --config vite.config.ts --dir src/art --exclude ''"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

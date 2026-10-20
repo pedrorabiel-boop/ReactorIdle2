@@ -17,5 +17,9 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src"],
+  // El taller de sprites genera las hojas de arte: corre en Node, escribe
+  // ficheros y no entra en el bundle. Comprobarlo con la configuración de la
+  // app solo produce errores de tipos de Node que no significan nada aquí.
+  "exclude": ["src/art"]
 }

@@ -8,3 +8,10 @@ dist/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+
+# Hojas de arte y reportes que genera `npm run art`
+docs/mockup-*.html
+docs/applied.txt
+docs/dom-cost.txt
+docs/edges.txt
+docs/upscale-report.txt
