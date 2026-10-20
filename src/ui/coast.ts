@@ -96,20 +96,32 @@ export interface Coast {
  * mas un termino de ruido, que es lo que produce los entrantes y salientes.
  */
 export function buildCoast(
+  /** Toda la tierra: de aqui crece la costa. Incluye salientes e islotes. */
   cells: Array<[number, number]>,
+  /** Solo lo construible: de aqui sale `toGrid`. */
+  grid: Array<[number, number]>,
   unit: number,
   w: number,
   h: number,
   { base = 7, amplitude = 22, scale = 46, seed = 1 } = {},
 ): Coast {
-  const grid = new Uint8Array(w * h)
-  for (const [cx, cy] of cells) {
-    for (let y = cy * unit; y < (cy + 1) * unit; y++) {
-      for (let x = cx * unit; x < (cx + 1) * unit; x++) {
-        if (x >= 0 && x < w && y >= 0 && y < h) grid[y * w + x] = 1
+  const stamp = (list: Array<[number, number]>) => {
+    const mask = new Uint8Array(w * h)
+    for (const [cx, cy] of list) {
+      for (let y = cy * unit; y < (cy + 1) * unit; y++) {
+        for (let x = cx * unit; x < (cx + 1) * unit; x++) {
+          if (x >= 0 && x < w && y >= 0 && y < h) mask[y * w + x] = 1
+        }
       }
     }
+    return mask
   }
+  // Dos mascaras distintas, y conviene no confundirlas: de la primera crece la
+  // costa, de la segunda sale "esto es construible". Compartiendolas, un islote
+  // decorativo quedaba a distancia cero de la grilla y se pintaba como suelo
+  // construible, prometiendo un sitio donde no se puede construir.
+  const seeds = stamp(cells)
+  const buildable = stamp(grid)
   // Recuadro de trabajo: la grilla mas todo lo que la tierra puede crecer.
   const reach = base + amplitude
   const xs = cells.map(([cx]) => cx), ys = cells.map(([, cy]) => cy)
@@ -118,7 +130,7 @@ export function buildCoast(
     x0: Math.min(...xs) * unit - pad, y0: Math.min(...ys) * unit - pad,
     x1: (Math.max(...xs) + 1) * unit + pad, y1: (Math.max(...ys) + 1) * unit + pad,
   }
-  const toGrid = distanceTo(grid, w, h, box)
+  const toSeed = distanceTo(seeds, w, h, box)
 
   // El ruido solo decide dentro de la franja donde la respuesta esta en duda.
   // Por debajo de `base` es tierra seguro y por encima del maximo es agua
@@ -127,8 +139,8 @@ export function buildCoast(
   for (let y = Math.max(0, box.y0); y <= Math.min(h - 1, box.y1); y++)
   for (let x = Math.max(0, box.x0); x <= Math.min(w - 1, box.x1); x++) {
     const i = y * w + x
-    const d = toGrid[i]
-    if (grid[i] || d < base) { land[i] = 1; continue }
+    const d = toSeed[i]
+    if (seeds[i] || d < base) { land[i] = 1; continue }
     if (d >= reach) continue
     // La casilla construible es tierra si o si; el ruido solo crece hacia fuera.
     land[i] = d < base + amplitude * fbm(x, y, scale, seed) ? 1 : 0
@@ -142,7 +154,7 @@ export function buildCoast(
     const here = land[i]
     if (land[i - 1] !== here || land[i + 1] !== here || land[i - w] !== here || land[i + w] !== here) edge[i] = 1
   }
-  return { w, h, land, toEdge: distanceTo(edge, w, h, box), toGrid }
+  return { w, h, land, toEdge: distanceTo(edge, w, h, box), toGrid: distanceTo(buildable, w, h, box) }
 }
 
 /** Una costa por sector: calcularla cuesta medio millon de pixeles. */
@@ -151,13 +163,14 @@ const cache = new Map<string, Coast>()
 export function coastFor(
   key: string,
   cells: Array<[number, number]>,
+  grid: Array<[number, number]>,
   unit: number,
   w: number,
   h: number,
-  options?: Parameters<typeof buildCoast>[4],
+  options?: Parameters<typeof buildCoast>[5],
 ): Coast {
-  const id = `${key}:${w}x${h}:${cells.length}`
+  const id = `${key}:${w}x${h}:${cells.length}:${grid.length}`
   let coast = cache.get(id)
-  if (!coast) { coast = buildCoast(cells, unit, w, h, options); cache.set(id, coast) }
+  if (!coast) { coast = buildCoast(cells, grid, unit, w, h, options); cache.set(id, coast) }
   return coast
 }

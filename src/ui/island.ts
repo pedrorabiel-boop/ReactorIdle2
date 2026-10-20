@@ -5,11 +5,14 @@ import type { EnvironmentKey, Neighbors, TerrainKind } from './pixel/sprites'
 export const TILE = 64 // 32 px de arte × 2
 
 /**
- * El tile pasó de 48 a 64 px al doblar la resolución del arte. Este factor
- * devuelve el encuadre por defecto al que tenia antes, para que el zoom que ve
- * el jugador siga siendo 100 % = la vista de siempre.
+ * Escala real de una casilla por cada punto de zoom del HUD.
+ *
+ * Empezó en 48/64 para devolver el encuadre que había antes de doblar la
+ * resolución del arte. Ahora es 0,6: el juego se lee mejor un poco más
+ * alejado, así que lo que era el 80 % pasa a ser el 100 %, y el rango del HUD
+ * (60–160 %) se mantiene, solo que todo queda un quinto más lejos.
  */
-export const ZOOM_BASE = 48 / 64
+export const ZOOM_BASE = 0.6
 export const WATER_MARGIN = 3 // tiles de agua alrededor de la grilla (los salientes ocupan el primero)
 export const FRAME_DEPTH = 3 // grosor del marco de cactus y montañas del Test Site
 
@@ -37,10 +40,9 @@ export interface Island {
 // ambos llevan siempre árbol o roca para que se lea que no son construibles.
 // Coordenadas relativas a la esquina superior izquierda de la grilla.
 const SHAPES: Record<SectorKey, { bumps: Array<[number, number]>; islets: Array<[number, number]> }> = {
-  coast: {
-    bumps: [[2, -1], [3, -1], [-1, 2], [8, 4], [8, 5], [-1, 7], [5, 10], [3, 10]],
-    islets: [[-3, 11], [-2, 11], [-2, 12], [10, -3], [11, -3], [11, -2], [-3, 3], [10, 12]],
-  },
+  // La costa ya no lleva salientes ni islotes decorativos: pasaron a ser
+  // casillas construibles de pleno derecho (COAST_OUTLYING).
+  coast: { bumps: [], islets: [] },
   testsite: { bumps: [], islets: [] },
   desert: {
     bumps: [],

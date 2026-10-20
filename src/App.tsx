@@ -107,8 +107,9 @@ function App() {
   // pixeles y tres transformadas de distancia.
   const coast = useMemo(() => {
     if (!environmentDefinition.coast) return undefined
-    const cells = island.tiles.filter((tile) => tile.kind === 'land').map((tile) => [tile.x, tile.y] as [number, number])
-    return coastFor(game.activeSector, cells, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, environmentDefinition.coast)
+    const land = island.tiles.filter((tile) => tile.kind === 'land').map((tile) => [tile.x, tile.y] as [number, number])
+    const grid = island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => [tile.x, tile.y] as [number, number])
+    return coastFor(game.activeSector, land, grid, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, environmentDefinition.coast)
   }, [island, environmentDefinition, game.activeSector])
 
   const scenery = useMemo(

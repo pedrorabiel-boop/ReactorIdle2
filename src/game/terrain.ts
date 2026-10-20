@@ -3,7 +3,28 @@ import type { SectorKey } from './types'
 // Isla inicial: 36 celdas conectadas en una silueta asimétrica dentro de la
 // matriz 10×8. Mantener los índices aquí permite migrar partidas sin perder
 // edificios y compartir la misma regla entre motor y presentación.
+/**
+ * Salientes e islotes de la costa, que antes eran decoracion y ahora se
+ * construyen. Van en indices que la silueta principal deja libres, asi que la
+ * rejilla sigue siendo de 80 y ninguna partida guardada cambia de forma: donde
+ * antes habia un hueco vacio ahora puede haber una torre.
+ *
+ * Las coordenadas son relativas al origen de la grilla y salen de ella a
+ * proposito; `cellPosition` las devuelve tal cual y la vecindad se deduce del
+ * dibujo, asi que un islote suelto queda sin vecinos y no conduce calor.
+ */
+export const COAST_OUTLYING: Record<number, readonly [number, number]> = {
+  62: [2, -1], 63: [3, -1], 64: [-1, 2], 65: [8, 4],
+  66: [8, 5], 67: [-1, 7], 68: [5, 10], 69: [3, 10],
+  70: [-3, 11], 71: [-2, 11], 72: [-2, 12], 73: [10, -3],
+  74: [11, -3], 75: [11, -2], 76: [-3, 3], 77: [10, 12],
+}
+
+/** Ancho de la rejilla de la costa. El reparto de arriba solo vale para ella. */
+const COAST_COLS = 8
+
 export const COAST_BUILDABLE_INDICES = [
+  ...Object.keys(COAST_OUTLYING).map(Number),
   11, 12,
   18, 19, 20, 21,
   25, 26, 27, 28, 29, 30,
@@ -71,6 +92,12 @@ const CYBERPUNK_SECONDARY_SHIFT = [1, 1, 0, 0, 0, 1, 1, 0]
 export function cellPosition(sector: SectorKey, index: number, cols: number): { x: number; y: number } {
   const row = Math.floor(index / cols)
   const col = index % cols
+  if (sector === 'coast') {
+    // Solo en la rejilla de verdad: las pruebas arman rejillas pequenas con
+    // otro ancho, y ahi un indice alto significa otra cosa.
+    const outlying = cols === COAST_COLS ? COAST_OUTLYING[index] : undefined
+    return outlying ? { x: outlying[0], y: outlying[1] } : { x: col, y: row }
+  }
   if (sector !== 'desert') return { x: col, y: row }
   if (row < 6) return { x: row + CYBERPUNK_MAIN_SHIFT[col], y: col }
   if (row >= 7) return { x: 11 + (row - 7) + CYBERPUNK_SECONDARY_SHIFT[col], y: 2 + col }

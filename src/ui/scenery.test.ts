@@ -14,7 +14,7 @@ const swamp = () => {
   const island = buildIsland(10, 8, 'desert')
   const cells = island.tiles.filter((t) => t.kind === 'land').map((t) => [t.x, t.y] as [number, number])
   const grid = island.tiles.filter((t) => t.gridIndex !== null).map((t) => [t.x, t.y] as [number, number])
-  const coast = buildCoast(cells, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, CYBERPUNK_ENVIRONMENT.coast)
+  const coast = buildCoast(cells, grid, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, CYBERPUNK_ENVIRONMENT.coast)
   return { island, coast, buildable: new Set(grid.map(([x, y]) => `${x},${y}`)) }
 }
 
@@ -128,7 +128,8 @@ describe('que casillas prometen ser construibles', () => {
     it(`${nombre}: el suelo del interior solo aparece sobre casillas construibles`, () => {
       const island = buildIsland(10, 8, sector)
       const land = island.tiles.filter((t) => t.kind === 'land').map((t) => [t.x, t.y] as [number, number])
-      const coast = buildCoast(land, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, env.coast)
+      const grid = island.tiles.filter((t) => t.gridIndex !== null).map((t) => [t.x, t.y] as [number, number])
+      const coast = buildCoast(land, grid, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, env.coast)
       const style = env.coast!
 
       // La tierra que el ruido hizo crecer fuera de la grilla tiene que verse
@@ -141,6 +142,24 @@ describe('que casillas prometen ser construibles', () => {
       }
       expect(lejosDeLaGrilla).toBeGreaterThan(500)
       expect(style.outside).toBeDefined()
+
+      // Lo que de verdad importa: `toGrid` mide hasta lo CONSTRUIBLE, no hasta
+      // cualquier tierra. Sembrando las dos cosas de la misma lista, un tile
+      // decorativo quedaba a distancia cero y se pintaba como suelo del
+      // interior. La version anterior de este test no lo pescaba.
+      const construibles = new Set(island.tiles.filter((t) => t.gridIndex !== null).map((t) => `${t.x},${t.y}`))
+      const decorativos = island.tiles.filter((t) => t.kind === 'land' && !construibles.has(`${t.x},${t.y}`))
+      for (const tile of decorativos) {
+        const px = tile.x * TERRAIN_UNIT + TERRAIN_UNIT / 2
+        const py = tile.y * TERRAIN_UNIT + TERRAIN_UNIT / 2
+        expect(coast.toGrid[py * coast.w + px], `${tile.x},${tile.y} se cuenta como grilla`).toBeGreaterThan(0)
+      }
+      // Y al reves: dentro de una casilla construible siempre es cero.
+      for (const tile of island.tiles.filter((t) => t.gridIndex !== null)) {
+        const px = tile.x * TERRAIN_UNIT + TERRAIN_UNIT / 2
+        const py = tile.y * TERRAIN_UNIT + TERRAIN_UNIT / 2
+        expect(coast.toGrid[py * coast.w + px]).toBe(0)
+      }
       // Y la ranura de fuera no puede ser ninguna de las del suelo interior.
       expect([style.ground.light, style.ground.dark, '1']).not.toContain(style.outside)
     })
