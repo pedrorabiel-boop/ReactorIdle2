@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { fbm, type Coast } from '../coast'
-import { CORAL_PROPS, SWAMP_PROPS } from './props'
+import { ALL_PROPS } from './props'
 import type { PlacedProp } from '../scenery'
 import { ENVIRONMENTS, envCssVars, PALETTE, rowsToRects, SPRITES, spriteBox, terrainRows, toDataUri, type Band, type PaletteKey, type CoastStyle, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
 
@@ -98,7 +98,7 @@ const propCache = new Map<string, string>()
 function propSymbol(name: string): string {
   const cached = propCache.get(name)
   if (cached) return cached
-  const prop = SWAMP_PROPS[name] ?? CORAL_PROPS[name]
+  const prop = ALL_PROPS[name]
   const byColor = new Map<string, string[]>()
   prop.rows.forEach((row, y) => {
     let x = 0

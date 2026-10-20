@@ -1,6 +1,6 @@
 import type { Coast } from './coast'
 import type { Island } from './island'
-import { CORAL_PROPS, SWAMP_PROPS, type PropSprite } from './pixel/props'
+import { CORAL_PROPS, NUKETOWN_PROPS, SWAMP_PROPS, type PropSprite } from './pixel/props'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reparto de los props de escenario.
@@ -65,6 +65,22 @@ export const CORAL_PLAN: SceneryPlan = {
     { names: ['palm', 'palm-b', 'bush', 'bush-b', 'boulder'], on: 'land', chance: 0.85 },
     { names: ['shell', 'starfish'], on: 'shore', chance: 0.3 },
     { names: ['coral', 'coral-b', 'fish', 'fish-b'], on: 'open', chance: 0.22 },
+  ],
+}
+
+export const NUKETOWN_PLAN: SceneryPlan = {
+  props: NUKETOWN_PROPS,
+  // Nada de estos props trae suelo propio: se apoyan en el terreno del marco,
+  // asi que su base es solo lo que pintan por abajo.
+  soil: new Set<string>(),
+  anchored: [
+    { names: ['house', 'house-b', 'watchtower'], on: 'land', chance: 0.6, gap: [4, 4] },
+    { names: ['mesa', 'mesa-b'], on: 'open', chance: 0.55, gap: [4, 4] },
+  ],
+  scatter: [
+    { names: ['truck', 'crater', 'crater-b', 'cactus', 'cactus-b', 'shrub', 'shrub-b', 'barrel', 'sign'], on: 'land', chance: 0.8 },
+    { names: ['rubble', 'rubble-b'], on: 'shore', chance: 0.4 },
+    { names: ['rubble', 'rubble-b', 'shrub', 'shrub-b'], on: 'open', chance: 0.3 },
   ],
 }
 

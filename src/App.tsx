@@ -16,8 +16,9 @@ import { buildIsland, environmentFor } from './ui/island'
 import { MapViewport } from './ui/MapViewport'
 import { CYBERPUNK_ENVIRONMENT } from './ui/pixel/cyberpunk'
 import { CORAL_ENVIRONMENT } from './ui/pixel/coral'
+import { NUKETOWN_ENVIRONMENT } from './ui/pixel/nuketown'
 import { coastFor } from './ui/coast'
-import { CORAL_PLAN, sceneryFor, SWAMP_PLAN } from './ui/scenery'
+import { CORAL_PLAN, NUKETOWN_PLAN, sceneryFor, SWAMP_PLAN } from './ui/scenery'
 import { TERRAIN_UNIT } from './ui/pixel/sprites'
 import { environmentStyle, Sprite, SpriteDefs } from './ui/pixel/Sprite'
 import { ENVIRONMENTS } from './ui/pixel/sprites'
@@ -93,8 +94,11 @@ function App() {
   const environment = environmentFor(game)
   const environmentDefinition = environment === 'futuristic' ? CYBERPUNK_ENVIRONMENT
     : environment === 'terrestrial' ? CORAL_ENVIRONMENT
-      : ENVIRONMENTS[environment]
-  const sceneryPlan = environment === 'futuristic' ? SWAMP_PLAN : environment === 'terrestrial' ? CORAL_PLAN : null
+      : environment === 'wasteland' ? NUKETOWN_ENVIRONMENT
+        : ENVIRONMENTS[environment]
+  const sceneryPlan = environment === 'futuristic' ? SWAMP_PLAN
+    : environment === 'terrestrial' ? CORAL_PLAN
+      : environment === 'wasteland' ? NUKETOWN_PLAN : null
   const activeBuildableSet = game.activeSector === 'coast' ? COAST_BUILDABLE_SET : CYBERPUNK_BUILDABLE_SET
   const extraOccupiedIndices = game.tiles.flatMap((tile, index) => tile && !activeBuildableSet.has(index) ? [index] : [])
   const extraOccupiedSignature = extraOccupiedIndices.join(',')

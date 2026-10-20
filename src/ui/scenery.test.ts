@@ -4,6 +4,7 @@ import { buildCoast } from './coast'
 import { CORAL_PLAN, fadedProps, placeScenery, SWAMP_PLAN } from './scenery'
 import { CYBERPUNK_ENVIRONMENT } from './pixel/cyberpunk'
 import { CORAL_ENVIRONMENT } from './pixel/coral'
+import { NUKETOWN_ENVIRONMENT } from './pixel/nuketown'
 import { SWAMP_PROPS } from './pixel/props'
 import { TERRAIN_UNIT } from './pixel/sprites'
 
@@ -120,6 +121,7 @@ describe('que casillas prometen ser construibles', () => {
   const biomas = [
     { nombre: 'pantano', sector: 'desert' as const, env: CYBERPUNK_ENVIRONMENT },
     { nombre: 'isla coral', sector: 'coast' as const, env: CORAL_ENVIRONMENT },
+    { nombre: 'nuketown', sector: 'testsite' as const, env: NUKETOWN_ENVIRONMENT },
   ]
 
   for (const { nombre, sector, env } of biomas) {
