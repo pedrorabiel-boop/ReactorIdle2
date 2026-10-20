@@ -40,9 +40,12 @@ export interface Island {
 // ambos llevan siempre árbol o roca para que se lea que no son construibles.
 // Coordenadas relativas a la esquina superior izquierda de la grilla.
 const SHAPES: Record<SectorKey, { bumps: Array<[number, number]>; islets: Array<[number, number]> }> = {
-  // La costa ya no lleva salientes ni islotes decorativos: pasaron a ser
-  // casillas construibles de pleno derecho (COAST_OUTLYING).
-  coast: { bumps: [], islets: [] },
+  // Los salientes pasaron a ser casillas construibles (COAST_OUTLYING). Los
+  // islotes sueltos siguen siendo decoracion y por eso se quedan aqui.
+  coast: {
+    bumps: [],
+    islets: [[-3, 11], [-2, 11], [-2, 12], [10, -3], [11, -3], [11, -2], [-3, 3], [10, 12]],
+  },
   testsite: { bumps: [], islets: [] },
   desert: {
     bumps: [],

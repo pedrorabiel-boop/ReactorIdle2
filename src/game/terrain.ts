@@ -4,20 +4,23 @@ import type { SectorKey } from './types'
 // matriz 10×8. Mantener los índices aquí permite migrar partidas sin perder
 // edificios y compartir la misma regla entre motor y presentación.
 /**
- * Salientes e islotes de la costa, que antes eran decoracion y ahora se
- * construyen. Van en indices que la silueta principal deja libres, asi que la
- * rejilla sigue siendo de 80 y ninguna partida guardada cambia de forma: donde
- * antes habia un hueco vacio ahora puede haber una torre.
+ * Salientes de la costa, que antes eran decoracion y ahora se construyen. Van
+ * en indices que la silueta principal deja libres, asi que la rejilla sigue
+ * siendo de 80 y ninguna partida guardada cambia de forma: donde antes habia un
+ * hueco vacio ahora puede haber una torre.
+ *
+ * Son los que abrazan la isla, incluido el apendice de la derecha -el unico par
+ * que de verdad toca la silueta y conduce calor hacia ella-. Los islotes
+ * sueltos de mas afuera siguen siendo decoracion: se dibujan en arena, que ya
+ * dice por si sola que ahi no se construye.
  *
  * Las coordenadas son relativas al origen de la grilla y salen de ella a
  * proposito; `cellPosition` las devuelve tal cual y la vecindad se deduce del
- * dibujo, asi que un islote suelto queda sin vecinos y no conduce calor.
+ * dibujo.
  */
 export const COAST_OUTLYING: Record<number, readonly [number, number]> = {
   62: [2, -1], 63: [3, -1], 64: [-1, 2], 65: [8, 4],
   66: [8, 5], 67: [-1, 7], 68: [5, 10], 69: [3, 10],
-  70: [-3, 11], 71: [-2, 11], 72: [-2, 12], 73: [10, -3],
-  74: [11, -3], 75: [11, -2], 76: [-3, 3], 77: [10, 12],
 }
 
 /** Ancho de la rejilla de la costa. El reparto de arriba solo vale para ella. */

@@ -14,11 +14,11 @@ function withStored(state: GameState, energyStored: number): GameState { return 
 
 describe('economy v2', () => {
   it('starts with the promoted credits and separate resource stores', () => { const state = createInitialState(); expect(state.credits).toBe(ECONOMY.startingCredits); expect(state.credits).toBe(1); expect(sectorEnergyStored(state)).toBe(0); expect(state.researchPoints).toBe(0); expect(state.version).toBe(23) })
-  it('uses an irregular 52-cell coast, counting the outlying ones, for new games', () => {
+  it('uses an irregular 44-cell coast, counting the outlying ones, for new games', () => {
     const cells = buildIsland(10, 8, 'coast').tiles.filter((tile) => tile.gridIndex !== null)
-    // 36 de la silueta principal mas los 16 salientes e islotes, que antes eran
-    // decoracion y ahora se construyen.
-    expect(cells).toHaveLength(52)
+    // 36 de la silueta principal mas los 8 salientes, que antes eran decoracion
+    // y ahora se construyen. Los islotes sueltos siguen siendo decoracion.
+    expect(cells).toHaveLength(44)
     const rowWidths = new Set(cells.map((tile) => tile.y).map((row) => cells.filter((tile) => tile.y === row).length))
     expect(rowWidths.size).toBeGreaterThan(2)
     // Los sueltos quedan sin vecinos: se puede construir en ellos, pero no
