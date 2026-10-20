@@ -264,16 +264,22 @@ export const ART: Record<string, string[]> = {
       '.###.',
       '..#..',
     ], 'Y', 1)
-    // Retranqueos estrechos y muchos pisos: lo que lo hace rascacielos y no
-    // ziguriat es que crezca mas en alto que en ancho.
-    const floors: Array<[number, number, number]> = [[10, 16, 5], [16, 24, 7], [24, 30, 10]]
+    // La base ocupa 28 px de los 32: con 20 se veia claramente mas flaca que el
+    // resto de las torres. Los retranqueos son de un pixel por lado, no
+    // escalones: ensanchandolos por igual se convertia en un ziguriat.
+    const floors: Array<[number, number, number]> = [[8, 16, 12], [16, 23, 13], [23, 30, 14]]
     for (const [top, bottom, half] of floors) {
       c.rect(16 - half, top, 16 + half - 1, bottom, 'Y')
       c.rect(16 - half, top, 16 + half - 1, top, 'O')
-      for (let y = top + 2; y < bottom - 1; y += 3) {
-        for (let x = 17 - half; x < 15 + half; x += 3) c.rect(x, y, x + 1, y + 1, 'T')
+      // Ventanas en franjas verticales, cortadas por las plantas: las franjas
+      // enteras le daban aire de columnata, y la cuadricula le devuelve la
+      // verticalidad sin que parezca un templo.
+      for (let x = 17 - half; x < 15 + half; x += 4) {
+        for (let y = top + 2; y <= bottom - 1; y += 3) c.rect(x, y, x + 1, Math.min(y + 1, bottom - 1), 'T')
       }
     }
+    // Juntas entre pisos, para que no se lea como un unico bloque.
+    for (const [, bottom] of floors) c.rect(16 - 14, bottom, 16 + 13, bottom, 'O')
   }),
 
   // Laboratorio: bloque bajo y ancho, azotea con ductos de extraccion, banda
