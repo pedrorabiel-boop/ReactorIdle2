@@ -66,7 +66,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .viewport { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch;
   /* El mar cubre toda la pantalla: el tile se repite alineado con el mundo y se desplaza junto a él. */
   background-color: var(--px-4); background-image: var(--sea, none); background-repeat: repeat; background-attachment: local;
-  background-position: var(--sea-x, 0px) var(--sea-y, 0px); background-size: var(--sea-size, 48px) var(--sea-size, 48px); }
+  background-position: var(--sea-x, 0px) var(--sea-y, 0px); background-size: var(--sea-size, 64px) var(--sea-size, 64px); }
 .viewport::-webkit-scrollbar { display: none; }
 .world-stage { position: relative; margin: 110px auto 240px; }
 .world { position: relative; background: var(--px-4); transform-origin: 0 0; }
@@ -76,7 +76,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .zoom-controls button { height: 100%; border: 0; background: transparent; color: var(--gold); font: 20px var(--font-ui); }
 .zoom-controls button:disabled { opacity: .3; }
 .zoom-controls span { text-align: center; color: var(--muted); font: 7px var(--font-num); }
-.cell { position: absolute; width: 48px; height: 48px; }
+.cell { position: absolute; width: var(--tile, 64px); height: var(--tile, 64px); }
 .terrain-layer { position: absolute; left: 0; top: 0; }
 .grid-outline { position: absolute; border: 2px dashed rgba(255,255,255,.55); box-shadow: 0 0 0 2px rgba(0,0,0,.25); pointer-events: none; animation: dash 1s steps(2) infinite; }
 @keyframes dash { 50% { border-color: rgba(255,255,255,.25); } }
@@ -104,17 +104,17 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 @keyframes flow { from { opacity: .7; transform: scale(.9); } to { opacity: 0; transform: scale(1.05); } }
 @keyframes danger { 50% { background: rgba(255, 93, 93, .35); } }
 
-.heat-bar, .fuel-bar, .charge-bar { inset: auto 6px 3px 6px; height: 4px; }
+.heat-bar, .fuel-bar, .charge-bar { inset: auto 8px 4px 8px; height: 5px; }
 .heat-bar { display: flex; gap: 1px; }
 .heat-bar i { flex: 1; background: rgba(0,0,0,.4); border: 1px solid rgba(0,0,0,.6); }
 .heat-bar.h1 i:nth-child(-n+1), .heat-bar.h2 i:nth-child(-n+2), .heat-bar.h3 i:nth-child(-n+3), .heat-bar.h4 i:nth-child(-n+4), .heat-bar.h5 i:nth-child(-n+5) { background: var(--green); }
 .heat-bar.h3 i:nth-child(3), .heat-bar.h4 i:nth-child(3), .heat-bar.h5 i:nth-child(3) { background: var(--gold); }
 .heat-bar.h4 i:nth-child(4), .heat-bar.h5 i:nth-child(4) { background: #ff9a3d; }
 .heat-bar.h5 i:nth-child(5) { background: var(--red); }
-.fuel-bar, .charge-bar { bottom: 8px; height: 3px; background: rgba(0,0,0,.45); }
+.fuel-bar, .charge-bar { bottom: 11px; height: 4px; background: rgba(0,0,0,.45); }
 .fuel-bar i, .charge-bar i { display: block; height: 100%; background: var(--gold); }
 .charge-bar i { background: var(--cyan); }
-.cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.generator2):not(.cooler):not(.exchanger):not(.pipe):not(.pipe2):not(.accumulator) .fuel-bar, .cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.generator2):not(.cooler):not(.exchanger):not(.pipe):not(.pipe2):not(.accumulator) .charge-bar { bottom: 3px; }
+.cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.generator2):not(.cooler):not(.exchanger):not(.pipe):not(.pipe2):not(.accumulator) .fuel-bar, .cell:not(.core):not(.thorium):not(.fusion):not(.generator):not(.generator2):not(.cooler):not(.exchanger):not(.pipe):not(.pipe2):not(.accumulator) .charge-bar { bottom: 4px; }
 .flow-tag { inset: 2px 3px auto auto; font: 7px var(--font-num); color: #fff; text-shadow: 1px 1px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); text-align: right; }
 .worn-tag { inset: 1px auto auto 3px; font-size: 11px; color: var(--gold); text-shadow: 1px 1px 0 var(--ink); }
 .off-tag { inset: 1px auto auto 3px; font-size: 11px; color: var(--red); text-shadow: 1px 1px 0 var(--ink); }

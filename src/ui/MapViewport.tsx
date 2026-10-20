@@ -264,7 +264,10 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   return (
     <div className={`viewport ${armed ? 'armed' : ''} mode-${toolMode}`} ref={viewportRef}>
       <div className="world-stage" data-tour="map" ref={stageRef} style={{ width: island.cols * TILE * mapScale, height: island.rows * TILE * mapScale }}>
-      <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${mapScale})` }} onPointerMove={onGridPointerMove}>
+      {/* `--tile` baja a la hoja de estilos para que la casilla no pueda
+          desincronizarse del tile: al pasar de 48 a 64 se quedó atrás y dejó
+          una banda muerta de 16 px en cada casilla. */}
+      <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${mapScale})`, ['--tile' as string]: `${TILE}px` }} onPointerMove={onGridPointerMove}>
         <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} />
         {island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => {
           const index = tile.gridIndex as number
