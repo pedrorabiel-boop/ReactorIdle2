@@ -1,8 +1,8 @@
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import { fbm, type Coast } from '../coast'
 import { CORAL_PROPS, SWAMP_PROPS } from './props'
 import type { PlacedProp } from '../scenery'
-import { ENVIRONMENTS, envCssVars, rowsToRects, SPRITES, spriteBox, terrainRows, toDataUri, type Band, type CoastStyle, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
+import { ENVIRONMENTS, envCssVars, PALETTE, rowsToRects, SPRITES, spriteBox, terrainRows, toDataUri, type Band, type PaletteKey, type CoastStyle, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
 
 const SYMBOL_PREFIX = 'px-'
 
@@ -47,6 +47,8 @@ interface TerrainLayerProps {
   /** Si viene, el terreno se dibuja con costa organica en vez de autotilearse. */
   coast?: Coast
   coastStyle?: CoastStyle
+  /** Hace falta para resolver colores: dentro de una imagen no hay variables CSS. */
+  env?: Environment
 }
 
 const terrainCache = new Map<string, { base: string; sparkle: string }>()
@@ -130,15 +132,15 @@ const organicCache = new Map<Coast, Map<CoastStyle, string>>()
  * Las franjas vienen del ambiente, no cableadas: el pantano quiere un filo de
  * tres pixeles y la isla tropical una playa ancha con espuma y bajo.
  */
-function organicTerrain(coast: Coast, style: CoastStyle): string {
+function organicTerrain(coast: Coast, style: CoastStyle, colorOf: (slot: string) => string): string {
   const byStyle = organicCache.get(coast) ?? new Map<CoastStyle, string>()
   const cached = byStyle.get(style)
   if (cached) return cached
 
-  const { w, h, land, toEdge } = coast
+  const { w, h, land, toEdge, toGrid } = coast
   const slots = [...new Set([
     ...style.land.map((b) => b.slot), ...style.water.map((b) => b.slot),
-    style.ground.light, style.ground.dark, '1', '4', ...(style.open ? [style.open.slot] : []),
+    style.ground.light, style.ground.dark, style.outside, '1', '4', ...(style.open ? [style.open.slot] : []),
   ])]
   const index = new Map(slots.map((slot, i) => [slot, i]))
   const pick = new Uint8Array(w * h)
@@ -150,11 +152,19 @@ function organicTerrain(coast: Coast, style: CoastStyle): string {
       const d = toEdge[i]
       let slot: string
       if (land[i]) {
-        slot = bandOf(style.land, d) ?? (() => {
+        // Dentro de la grilla siempre es suelo, pase lo que pase con las
+        // franjas: asi el suelo del interior significa exactamente "aqui se
+        // puede construir", y lo que crecio fuera se ve distinto.
+        //
+        // El limite se denta dos pixeles para que no sea una escalera de
+        // angulos rectos al lado de una costa organica. A esa escala la casilla
+        // sigue siendo inconfundiblemente de un lado o del otro.
+        const inside = toGrid[i] === 0 || (toGrid[i] < 2.5 && fbm(x * 2, y * 2, 9, 31) > toGrid[i] / 2.5)
+        if (inside) {
           const n = fbm(x, y, style.ground.scale, 5)
           const edge = style.ground.spread
-          return n > 0.5 + edge ? style.ground.light : n < 0.5 - edge ? style.ground.dark : '1'
-        })()
+          slot = n > 0.5 + edge ? style.ground.light : n < 0.5 - edge ? style.ground.dark : '1'
+        } else slot = bandOf(style.land, d) ?? style.outside
       } else {
         slot = bandOf(style.water, d)
           ?? (style.open && fbm(x * style.open.stretch, y * 2.1, 22, 9) > style.open.amount ? style.open.slot : '4')
@@ -163,23 +173,46 @@ function organicTerrain(coast: Coast, style: CoastStyle): string {
     }
   }
 
+  // Tiradas fusionadas tambien en vertical. Emitiendo un rectangulo por fila,
+  // un area lisa de agua se convertia en cientos de tiras de un pixel: miles de
+  // subtrazados que el navegador tiene que rasterizar cada vez que rehace una
+  // baldosa al desplazar el mapa, y por eso el terreno tardaba en reaparecer.
+  interface Span { x: number; len: number; k: number; top: number }
   const runs: string[][] = slots.map(() => [])
+  const close = (s: Span, bottom: number) =>
+    runs[s.k].push(`M${s.x} ${s.top}h${s.len}v${bottom - s.top}h-${s.len}z`)
+
+  let open: Span[] = []
   for (let y = 0; y < h; y++) {
+    const row: Span[] = []
     let x = 0
     while (x < w) {
       const k = pick[y * w + x]
       let len = 1
       while (x + len < w && pick[y * w + x + len] === k) len++
-      runs[k].push(`M${x} ${y}h${len}v1h-${len}z`)
+      row.push({ x, len, k, top: y })
       x += len
     }
+    const next: Span[] = []
+    let i = 0
+    for (const cur of row) {
+      while (i < open.length && open[i].x < cur.x) close(open[i++], y)
+      if (i < open.length && open[i].x === cur.x) {
+        if (open[i].len === cur.len && open[i].k === cur.k) next.push(open[i++])
+        else { close(open[i++], y); next.push(cur) }
+      } else next.push(cur)
+    }
+    while (i < open.length) close(open[i++], y)
+    open = next
   }
-  const path = (k: number) => runs[k].length ? `<path fill="var(--px-${slots[k]})" d="${runs[k].join('')}"/>` : ''
-  // El destello del mar va aparte cuando el ambiente lo pide, para poder
-  // atenuarlo sin tocar el resto del agua.
-  const dim = style.open?.sparkle ? index.get(style.open.slot) : undefined
-  const markup = slots.map((_, k) => k === dim ? '' : path(k)).join('')
-    + (dim !== undefined && runs[dim].length ? `<g class="sea-sparkle">${path(dim)}</g>` : '')
+  for (const s of open) close(s, h)
+
+  const path = (k: number) => runs[k].length ? `<path fill="${colorOf(slots[k])}" d="${runs[k].join('')}"/>` : ''
+  // El destello del mar lleva su atenuado horneado: dentro de una imagen la
+  // regla CSS que lo atenuaba no llega.
+  const soft = style.open && style.open.dim < 1 ? index.get(style.open.slot) : undefined
+  const markup = slots.map((_, k) => k === soft ? '' : path(k)).join('')
+    + (soft !== undefined && runs[soft].length ? `<g opacity="${style.open!.dim}">${path(soft)}</g>` : '')
 
   byStyle.set(style, markup)
   organicCache.set(coast, byStyle)
@@ -187,18 +220,47 @@ function organicTerrain(coast: Coast, style: CoastStyle): string {
 }
 
 /**
- * Todo el terreno y su decoración en un único SVG: sin costuras entre tiles
- * al escalar y con un solo nodo en el DOM.
+ * Todo el terreno en un unico nodo.
  *
- * Cada forma de tile se define UNA vez en <defs> y los cientos de tiles la
- * referencian con <use>. Antes se repetían los rects en cada tile: con el
- * terreno a 32×32 eso serían más de cien mil nodos, y así son unas pocas
- * decenas de definiciones.
+ * Con costa organica sale a un <canvas>, no a un SVG. El dibujo es estatico y
+ * tiene casi diez mil subtrazados; dejandolo como SVG dentro de una capa
+ * escalada, el navegador lo rerasteriza cada vez que rehace una baldosa al
+ * desplazar el mapa, y el terreno tardaba en reaparecer al volver a una zona
+ * que habia salido de pantalla. Un bitmap se compone y ya.
+ *
+ * Eso obliga a resolver los colores aqui: dentro de una imagen las variables
+ * CSS del ambiente no existen.
  */
-export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize, coast, coastStyle }: TerrainLayerProps) {
-  const markup = useMemo(() => {
-    const unit = terrainUnit()
-    if (coast && coastStyle) return organicTerrain(coast, coastStyle)
+export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize, coast, coastStyle, env }: TerrainLayerProps) {
+  const unit = terrainUnit()
+  const width = cols * unit, height = rows * unit
+
+  const organic = useMemo(() => {
+    if (!coast || !coastStyle || !env) return null
+    const colorOf = (slot: string) => slot in env.terrain ? env.terrain[slot] : PALETTE[(env.recolor[slot] ?? slot) as PaletteKey]
+    return organicTerrain(coast, coastStyle, colorOf)
+  }, [coast, coastStyle, env])
+
+  const canvas = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const target = canvas.current
+    if (!target || !organic) return
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges">${organic}</svg>`
+    const image = new Image()
+    let vivo = true
+    image.onload = () => {
+      if (!vivo) return
+      const ctx = target.getContext('2d')
+      if (!ctx) return
+      ctx.clearRect(0, 0, width, height)
+      ctx.drawImage(image, 0, 0)
+    }
+    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+    return () => { vivo = false }
+  }, [organic, width, height])
+
+  const tiled = useMemo(() => {
+    if (organic) return null
     const defs = new Map<string, string>()
     const bases: string[] = []
     const sparkles: string[] = []
@@ -218,17 +280,29 @@ export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tile
     return `<defs>${[...defs.values()].join('')}</defs>${bases.join('')}`
       + (sparkles.length ? `<g class="sea-sparkle">${sparkles.join('')}</g>` : '')
       + decors.join('')
-  }, [tiles, coast, coastStyle])
-  const unit = terrainUnit()
+  }, [tiles, organic, unit])
+
+  if (organic) {
+    return (
+      <canvas
+        className="sprite terrain-layer"
+        ref={canvas}
+        width={width}
+        height={height}
+        style={{ width: cols * tileSize, height: rows * tileSize, imageRendering: 'pixelated' }}
+        aria-hidden="true"
+      />
+    )
+  }
   return (
     <svg
       className="sprite terrain-layer"
-      viewBox={`0 0 ${cols * unit} ${rows * unit}`}
+      viewBox={`0 0 ${width} ${height}`}
       width={cols * tileSize}
       height={rows * tileSize}
       shapeRendering="crispEdges"
       aria-hidden="true"
-      dangerouslySetInnerHTML={{ __html: markup }}
+      dangerouslySetInnerHTML={{ __html: tiled ?? '' }}
     />
   )
 })

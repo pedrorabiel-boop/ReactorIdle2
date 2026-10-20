@@ -21,6 +21,9 @@ export const CYBERPUNK_ENVIRONMENT: Environment = {
     6: '#21372a', // suelo en sombra
     7: '#a3387a', // resplandor del filo sobre el agua
     8: '#15303a', // halo del agua junto a la orilla
+    // Ranura propia para la tierra de fuera de la grilla. No vale reusar el
+    // tono oscuro del moteado: una mancha del interior se veria igual.
+    9: '#16261c',
   },
   // Letras de los props del bioma: manglares, helechos, hongos.
   props: PROP_COLORS,
@@ -34,7 +37,10 @@ export const CYBERPUNK_ENVIRONMENT: Environment = {
     // Un filo estrecho, no una playa: aquí la orilla es una línea de luz.
     land: [{ until: 3, slot: '3' }],
     water: [{ until: 2, slot: '7' }, { until: 5, slot: '8' }],
+    // Fuera de la grilla, un suelo mas apagado: misma regla que en la coral.
+    outside: '9',
     ground: { light: '2', dark: '6', scale: 26, spread: 0.13 },
-    open: { slot: '5', amount: 0.69, stretch: 0.28, sparkle: true },
+    // La veta va al 8 %, que es donde la dejaba la regla CSS que la atenuaba.
+    open: { slot: '5', amount: 0.69, stretch: 0.28, dim: 0.08 },
   },
 }

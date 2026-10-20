@@ -43,12 +43,17 @@ export interface CoastStyle {
   /** Franjas desde la orilla hacia el agua; lo que sobra es mar abierto. */
   water: Band[]
   /**
+   * Ranura para la tierra que crecio fuera de la grilla. Es lo que mantiene la
+   * regla legible: el suelo del interior significa siempre casilla construible.
+   */
+  outside: string
+  /**
    * Moteado del suelo. El pantano lo quiere marcado y la isla tropical apenas,
    * porque ahi el verde plano es parte de la lectura.
    */
   ground: { light: string; dark: string; scale: number; spread: number }
   /** Textura del mar abierto, estirada en x para que salgan vetas. */
-  open?: { slot: string; amount: number; stretch: number; sparkle: boolean }
+  open?: { slot: string; amount: number; stretch: number; dim: number }
 }
 
 export const PALETTE = {

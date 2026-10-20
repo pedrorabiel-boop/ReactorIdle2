@@ -81,6 +81,13 @@ export interface Coast {
    * filo y del halo, no medidas finas.
    */
   toEdge: Float32Array
+  /**
+   * Distancia a la casilla construible mas cercana; 0 dentro de una. Permite
+   * pintar distinto la tierra que el ruido hizo crecer fuera de la grilla: sin
+   * eso se ve igual que la construible y promete un sitio donde no se puede
+   * construir.
+   */
+  toGrid: Float32Array
 }
 
 /**
@@ -135,7 +142,7 @@ export function buildCoast(
     const here = land[i]
     if (land[i - 1] !== here || land[i + 1] !== here || land[i - w] !== here || land[i + w] !== here) edge[i] = 1
   }
-  return { w, h, land, toEdge: distanceTo(edge, w, h, box) }
+  return { w, h, land, toEdge: distanceTo(edge, w, h, box), toGrid }
 }
 
 /** Una costa por sector: calcularla cuesta medio millon de pixeles. */

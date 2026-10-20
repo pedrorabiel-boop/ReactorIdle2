@@ -115,3 +115,32 @@ describe('transparencia de copa', () => {
     expect(fadedProps(placed, { building: false, buildable, inspected: null }).size).toBe(0)
   })
 })
+
+describe('que casillas prometen ser construibles', () => {
+  const biomas = [
+    { nombre: 'pantano', sector: 'desert' as const, env: CYBERPUNK_ENVIRONMENT },
+    { nombre: 'isla coral', sector: 'coast' as const, env: CORAL_ENVIRONMENT },
+  ]
+
+  for (const { nombre, sector, env } of biomas) {
+    it(`${nombre}: el suelo del interior solo aparece sobre casillas construibles`, () => {
+      const island = buildIsland(10, 8, sector)
+      const land = island.tiles.filter((t) => t.kind === 'land').map((t) => [t.x, t.y] as [number, number])
+      const coast = buildCoast(land, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, env.coast)
+      const style = env.coast!
+
+      // La tierra que el ruido hizo crecer fuera de la grilla tiene que verse
+      // distinta: si se pinta igual que la construible, promete un sitio donde
+      // no se puede construir. Se tolera el dentado de 2 px del limite.
+      let lejosDeLaGrilla = 0
+      for (let i = 0; i < coast.land.length; i++) {
+        if (!coast.land[i] || coast.toGrid[i] <= 3) continue
+        lejosDeLaGrilla++
+      }
+      expect(lejosDeLaGrilla).toBeGreaterThan(500)
+      expect(style.outside).toBeDefined()
+      // Y la ranura de fuera no puede ser ninguna de las del suelo interior.
+      expect([style.ground.light, style.ground.dark, '1']).not.toContain(style.outside)
+    })
+  }
+})

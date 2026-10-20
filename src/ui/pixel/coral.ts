@@ -31,6 +31,8 @@ export const CORAL_ENVIRONMENT: Environment = {
     // Playa ancha: la arena es el rasgo del bioma, no un canto.
     land: [{ until: 3, slot: '7' }, { until: 9, slot: '3' }],
     water: [{ until: 2, slot: '8' }, { until: 11, slot: '5' }],
+    // Fuera de la grilla, arena: la hierba queda reservada a lo construible.
+    outside: '3',
     // Apenas moteado: aquí el verde plano es parte de la lectura.
     ground: { light: '2', dark: '6', scale: 30, spread: 0.2 },
   },
