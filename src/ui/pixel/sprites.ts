@@ -12,6 +12,14 @@ export interface Environment {
   recolor: Record<string, string>
   decoration: string
   glow: string
+  /**
+   * Si esta, el terreno no se autotilea por casillas: se calcula una mascara de
+   * tierra a nivel de pixel sobre todo el mapa y el limite se mueve con ruido.
+   * Es la unica forma de que el contorno quede enmaranado en vez de escalonado.
+   * El ruido solo anade tierra hacia afuera, nunca quita, asi que toda casilla
+   * construible sigue siendo tierra entera.
+   */
+  coast?: { base: number; amplitude: number; scale: number; seed: number }
 }
 
 export const PALETTE = {
@@ -1833,6 +1841,8 @@ export function toSvg(name: string, env?: Environment, opts?: SvgOptions): strin
 // El pasto también asoma 1–2 px de forma irregular dentro de la franja para que
 // el límite pasto/arena no sea una recta.
 export const TERRAIN_KINDS: TerrainKind[] = ['water', 'land']
+/** Lado del tile de terreno en pixeles de arte. */
+export const TERRAIN_UNIT = SPRITES.water.length
 // Ondulaciones a lo largo de un lado (empiezan y terminan igual para que sean
 // continuas entre tiles vecinos). Van a la resolución del tile: al doblarla no
 // se duplicó cada valor, se redibujó la onda con el detalle que ahora cabe.
@@ -1918,6 +1928,10 @@ export function envCssVars(env: Environment): string {
   for (const ch of Object.keys(PALETTE)) {
     const color = ch in env.terrain ? env.terrain[ch] : PALETTE[(env.recolor[ch] ?? ch) as PaletteKey]
     decls.push(`--px-${ch}:${color}`)
+  }
+  // Letras que solo existen en este bioma: las de sus props de escenario.
+  for (const [ch, color] of Object.entries(env.terrain)) {
+    if (!(ch in PALETTE)) decls.push(`--px-${ch}:${color}`)
   }
   return decls.join(';')
 }

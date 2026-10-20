@@ -15,6 +15,9 @@ import { Hud } from './ui/Hud'
 import { buildIsland, environmentFor } from './ui/island'
 import { MapViewport } from './ui/MapViewport'
 import { CYBERPUNK_ENVIRONMENT } from './ui/pixel/cyberpunk'
+import { coastFor } from './ui/coast'
+import { sceneryFor } from './ui/scenery'
+import { TERRAIN_UNIT } from './ui/pixel/sprites'
 import { environmentStyle, Sprite, SpriteDefs } from './ui/pixel/Sprite'
 import { ENVIRONMENTS } from './ui/pixel/sprites'
 import { DebugSheet } from './ui/sheets/DebugSheet'
@@ -92,6 +95,19 @@ function App() {
   const extraOccupiedIndices = game.tiles.flatMap((tile, index) => tile && !activeBuildableSet.has(index) ? [index] : [])
   const extraOccupiedSignature = extraOccupiedIndices.join(',')
   const island = useMemo(() => buildIsland(game.rows, game.cols, game.activeSector, extraOccupiedIndices), [game.rows, game.cols, game.activeSector, extraOccupiedSignature])
+  // La costa organica se calcula una vez por sector: son medio millon de
+  // pixeles y tres transformadas de distancia.
+  const coast = useMemo(() => {
+    if (!environmentDefinition.coast) return undefined
+    const cells = island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => [tile.x, tile.y] as [number, number])
+    return coastFor(game.activeSector, cells, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, environmentDefinition.coast)
+  }, [island, environmentDefinition, game.activeSector])
+
+  const scenery = useMemo(
+    () => coast ? sceneryFor(game.activeSector, island, coast, TERRAIN_UNIT) : undefined,
+    [coast, island, game.activeSector],
+  )
+
   const inspectedRefuel = inspectedIndex === null ? 0 : refuelPrice(game, inspectedIndex) ?? 0
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
   const affordableTechs = pendingTechs(game).filter((key) => canUnlockTech(game, key)).length + pendingAutoRebuilds(game).filter((kind) => canUnlockAutoRebuild(game, kind)).length
@@ -146,7 +162,7 @@ function App() {
   function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Distrito Neón adquirido.') }
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
-    <MapViewport game={game} island={island} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
+    <MapViewport game={game} island={island} coast={coast} scenery={scenery} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
     {!buildFocus && <Hud game={game} zoom={zoom} onZoom={changeZoom} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
