@@ -27,7 +27,24 @@ export const CYBERPUNK_ENVIRONMENT: Environment = {
   },
   // Letras de los props del bioma: manglares, helechos, hongos.
   props: PROP_COLORS,
-  recolor: { B: 'P', b: 'C', E: 'C', e: 'p', O: 'R', Y: 'C', R: 'P', r: 'p', T: 'D', t: 'G' },
+  /**
+   * Musgo y oro: la maquinaria lleva años aquí y el pantano se la ha comido.
+   *
+   * El mapa anterior mandaba azul claro, verde y amarillo a la MISMA ranura de
+   * cian, así que tres funciones distintas acababan del mismo color, y el
+   * naranja al rojo. Aquí no se colapsa ningún par que importe y los tres
+   * reactores vuelven a distinguirse por tono: ámbar el núcleo, verde el torio
+   * y púrpura la fusión.
+   */
+  recolor: {
+    B: 'v', b: 'e', // azules → musgo; el panel solar se lee como panel
+    E: 'E', e: 'e', // verdes se quedan: son lo que separa al torio
+    O: 'O', Y: 'Y', // ámbar y oro: todo lo que está encendido
+    R: 'O', r: 'Y', // el rojo sube a ámbar en vez de apagarse a cobre
+    C: 'c', // cian → coral pálido: el acento propio de las torres de nivel II
+    P: 'P', p: 'p', // púrpura se queda: es la identidad de la fusión
+    T: 'n', t: 'v', // maderas → musgo
+  },
   decoration: 'pylon',
   glow: 'rgba(255,95,200,.26)',
   // Cuánto avanza la tierra hacia las casillas inútiles: un mínimo fijo más un

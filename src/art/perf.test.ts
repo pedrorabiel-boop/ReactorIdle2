@@ -12,7 +12,7 @@ describe('coste de la costa organica', () => {
     const runs: number[] = []
     for (let i = 0; i < 5; i++) {
       const t0 = performance.now()
-      buildCoast(cells, TERRAIN_UNIT, w, h, CYBERPUNK_ENVIRONMENT.coast)
+      buildCoast(cells, cells, TERRAIN_UNIT, w, h, CYBERPUNK_ENVIRONMENT.coast)
       runs.push(performance.now() - t0)
     }
     const best = Math.min(...runs)
