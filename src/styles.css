@@ -4,6 +4,10 @@
 @font-face { font-family: 'Press Start 2P'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/press-start-2p-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: 'Press Start 2P'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/press-start-2p-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
+/* Orden de apilado de la interfaz, de atras hacia adelante:
+   hud 10 · barra de construccion 12 · joystick 13 · hojas 15 · dock 16 ·
+   aviso 20 · tutorial 60. Los menus que se abren desde abajo van por encima
+   del resto del HUD: antes el joystick y la barra superior se les montaban. */
 /* ─── Tokens ─── */
 :root {
   --ink: #12121f;
@@ -181,7 +185,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .map-joystick > i { position: absolute; z-index: 1; left: calc(50% - 16px); top: calc(50% - 16px); width: 32px; height: 32px; border: 3px solid var(--edge); border-radius: 50%; background: var(--gold); box-shadow: inset -4px -4px 0 var(--gold-dark), 0 3px 0 rgba(0,0,0,.5); pointer-events: none; }
 
 /* ─── Dock ─── */
-.dock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; padding: 0 0 calc(6px + var(--safe-bottom)); pointer-events: none; }
+.dock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 16; padding: 0 0 calc(6px + var(--safe-bottom)); pointer-events: none; }
 .dock > * { pointer-events: auto; }
 .tabs { display: flex; gap: 5px; margin: 0 6px; }
 .tab { position: relative; flex: 1; min-width: 0; height: var(--tabs-height); display: grid; justify-items: center; align-content: center; gap: 4px; padding: 4px 2px; color: var(--muted); font: 600 10px var(--font-ui); }
@@ -213,7 +217,7 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .card-stat b { font: 6px var(--font-num); white-space: nowrap; }
 
 /* ─── Sheets ─── */
-.sheet { position: absolute; left: 6px; right: 6px; bottom: calc(var(--tabs-height) + 12px + var(--safe-bottom)); z-index: 9; max-height: min(64vh, 540px); display: flex; flex-direction: column; padding: 10px 12px 12px; }
+.sheet { position: absolute; left: 6px; right: 6px; bottom: calc(var(--tabs-height) + 12px + var(--safe-bottom)); z-index: 15; max-height: min(64vh, 540px); display: flex; flex-direction: column; padding: 10px 12px 12px; }
 .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .sheet-head h2 { font: 700 16px var(--font-ui); }
 .sheet-body { flex: 1; min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
