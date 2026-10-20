@@ -46,8 +46,6 @@ interface TerrainLayerProps {
   tileSize: number
   /** Si viene, el terreno se dibuja con costa organica en vez de autotilearse. */
   coast?: Coast
-  /** Props de escenario, ya repartidos y ordenados por la fila donde se apoyan. */
-  scenery?: PlacedProp[]
 }
 
 const terrainCache = new Map<string, { base: string; sparkle: string }>()
@@ -174,20 +172,10 @@ function organicTerrain(coast: Coast): string {
  * terreno a 32×32 eso serían más de cien mil nodos, y así son unas pocas
  * decenas de definiciones.
  */
-export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize, coast, scenery }: TerrainLayerProps) {
+export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize, coast }: TerrainLayerProps) {
   const markup = useMemo(() => {
     const unit = terrainUnit()
-    if (coast) {
-      if (!scenery?.length) return organicTerrain(coast)
-      // Cada forma de prop se define una vez y cada ejemplar la referencia.
-      const names = [...new Set(scenery.map((p) => p.name))]
-      const defs = names.map(propSymbol).join('')
-      const props = scenery.map((p) => {
-        const size = p.tiles * unit
-        return `<use href="#${SYMBOL_PREFIX}prop-${p.name}" x="${p.x}" y="${p.y}" width="${size}" height="${size}"/>`
-      })
-      return organicTerrain(coast) + `<defs>${defs}</defs>` + props.join('')
-    }
+    if (coast) return organicTerrain(coast)
     const defs = new Map<string, string>()
     const bases: string[] = []
     const sparkles: string[] = []
@@ -207,7 +195,7 @@ export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tile
     return `<defs>${[...defs.values()].join('')}</defs>${bases.join('')}`
       + (sparkles.length ? `<g class="sea-sparkle">${sparkles.join('')}</g>` : '')
       + decors.join('')
-  }, [tiles, coast, scenery])
+  }, [tiles, coast])
   const unit = terrainUnit()
   return (
     <svg
@@ -235,3 +223,52 @@ export function environmentStyle(env: EnvironmentKey | Environment): Record<stri
   style['--sea'] = `url("${toDataUri('water', environment)}")`
   return style
 }
+
+interface SceneryLayerProps {
+  scenery: PlacedProp[]
+  tileSize: number
+  /** Indices de los props que deben atenuarse ahora mismo. */
+  faded: ReadonlySet<number>
+}
+
+/**
+ * Los props de escenario, cada uno en su propio elemento posicionado.
+ *
+ * No van dentro del SVG del terreno porque entonces quedarian todos por debajo
+ * de todas las torres, y la profundidad no funciona asi: un manglar tapa a la
+ * torre que tiene detras y queda tapado por la que tiene delante. El `z-index`
+ * sale de la fila donde se apoya cada cosa -lo que esta mas abajo en pantalla
+ * esta mas cerca de la camara- y el navegador hace el orden de pintor solo.
+ *
+ * Las casillas usan `fila * 2 + 1` y los props `fila * 2`, asi que en un empate
+ * la torre de esa misma fila queda delante del prop anclado ahi.
+ */
+export const SceneryLayer = memo(function SceneryLayer({ scenery, tileSize, faded }: SceneryLayerProps) {
+  const unit = terrainUnit()
+  const defs = useMemo(
+    () => [...new Set(scenery.map((prop) => prop.name))].map(propSymbol).join(''),
+    [scenery],
+  )
+  const scale = tileSize / unit
+  return <>
+    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: defs }} />
+    {scenery.map((prop, i) => (
+      <svg
+        key={`${prop.name}-${prop.x}-${prop.y}`}
+        className={faded.has(i) ? 'prop faded' : 'prop'}
+        viewBox={`0 0 ${prop.tiles * unit} ${prop.tiles * unit}`}
+        shapeRendering="crispEdges"
+        aria-hidden="true"
+        style={{
+          left: prop.x * scale,
+          top: prop.y * scale,
+          width: prop.tiles * tileSize,
+          height: prop.tiles * tileSize,
+          zIndex: prop.anchor * 2,
+        }}
+      >
+        <use href={`#${SYMBOL_PREFIX}prop-${prop.name}`} />
+      </svg>
+    ))}
+  </>
+})

@@ -117,3 +117,31 @@ export function sceneryFor(key: string, island: Island, coast: Coast, unit: numb
   if (!scenery) { scenery = placeScenery(island, coast, unit); cache.set(key, scenery) }
   return scenery
 }
+
+export interface FadeContext {
+  /** La herramienta de construir esta armada: hace falta ver el tablero entero. */
+  building: boolean
+  /** Casillas construibles del mapa. */
+  buildable: ReadonlySet<string>
+  /** Casilla que el jugador esta mirando, si hay alguna. */
+  inspected: string | null
+}
+
+/**
+ * Que props deben desvanecerse ahora mismo.
+ *
+ * Son dos disparadores distintos a proposito. Al mirar una casilla solo se
+ * aparta lo que tapa ESA casilla; con la herramienta armada se apartan todos
+ * los que vuelan sobre la grilla, porque entonces hace falta leer el tablero
+ * completo. Desvanecerlos todos siempre seria un parpadeo constante.
+ */
+export function fadedProps(scenery: PlacedProp[], { building, buildable, inspected }: FadeContext): Set<number> {
+  const out = new Set<number>()
+  scenery.forEach((prop, i) => {
+    const hides = building
+      ? prop.covers.some((key) => buildable.has(key))
+      : inspected !== null && prop.covers.includes(inspected)
+    if (hides) out.add(i)
+  })
+  return out
+}

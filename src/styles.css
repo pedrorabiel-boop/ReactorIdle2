@@ -78,6 +78,11 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .zoom-controls span { text-align: center; color: var(--muted); font: 7px var(--font-num); }
 .cell { position: absolute; width: var(--tile, 64px); height: var(--tile, 64px); }
 .terrain-layer { position: absolute; left: 0; top: 0; }
+/* Props de escenario: se apilan por la fila donde se apoyan, igual que las
+   casillas, para que una torre pueda quedar delante o detras de un manglar. */
+.prop { position: absolute; pointer-events: none; transition: opacity .18s ease; }
+/* La copa que vuela sobre terreno construible se desvanece al interactuar. */
+.prop.faded { opacity: .28; }
 .grid-outline { position: absolute; border: 2px dashed rgba(255,255,255,.55); box-shadow: 0 0 0 2px rgba(0,0,0,.25); pointer-events: none; animation: dash 1s steps(2) infinite; }
 @keyframes dash { 50% { border-color: rgba(255,255,255,.25); } }
 

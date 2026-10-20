@@ -108,6 +108,10 @@ function App() {
     [coast, island, game.activeSector],
   )
 
+  // Gancho de desarrollo: el reparto del escenario es dificil de comprobar a
+  // ojo, porque la huella de un prop son sus pixeles y no su recuadro.
+  if (import.meta.env.DEV && typeof window !== 'undefined') (window as unknown as Record<string, unknown>).__scenery = scenery
+
   const inspectedRefuel = inspectedIndex === null ? 0 : refuelPrice(game, inspectedIndex) ?? 0
   const inspectedRepair = inspectedIndex === null ? 0 : repairPrice(game, inspectedIndex) ?? 0
   const affordableTechs = pendingTechs(game).filter((key) => canUnlockTech(game, key)).length + pendingAutoRebuilds(game).filter((kind) => canUnlockAutoRebuild(game, kind)).length

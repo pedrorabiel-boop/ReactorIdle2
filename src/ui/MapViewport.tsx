@@ -6,8 +6,8 @@ import type { ComponentKind, GameState, Tile, ToolMode } from '../game/types'
 import { formatDecimal } from './format'
 import { TILE, ZOOM_BASE, type Island } from './island'
 import type { Coast } from './coast'
-import type { PlacedProp } from './scenery'
-import { Sprite, TerrainLayer } from './pixel/Sprite'
+import { fadedProps, type PlacedProp } from './scenery'
+import { SceneryLayer, Sprite, TerrainLayer } from './pixel/Sprite'
 
 const JOYSTICK_PAN_SPEED = 4
 const JOYSTICK_KEY_STEP = 24
@@ -89,7 +89,7 @@ const Cell = memo(function Cell({ game, tile, index, tour, x, y, armed, toolMode
   return (
     <button
       className={classes.join(' ')}
-      style={{ left: x * TILE, top: y * TILE }}
+      style={{ left: x * TILE, top: y * TILE, zIndex: y * 2 + 1 }}
       data-cell-index={index}
       data-tour={tour}
       aria-label={cellLabel(tile, game, index)}
@@ -139,6 +139,22 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     viewport.style.setProperty('--sea-y', `${stage.offsetTop}px`)
     viewport.style.setProperty('--sea-size', `${TILE * mapScale}px`)
   }
+  // Que props deben desvanecerse: los que tapan la casilla que estas mirando,
+  // y con la herramienta armada todos los que vuelan sobre la grilla, porque
+  // entonces necesitas ver el tablero entero.
+  const buildableKeys = useMemo(
+    () => new Set(island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => `${tile.x},${tile.y}`)),
+    [island],
+  )
+  const inspectedKey = useMemo(() => {
+    const tile = inspectedIndex === null ? undefined : island.tiles.find((candidate) => candidate.gridIndex === inspectedIndex)
+    return tile ? `${tile.x},${tile.y}` : null
+  }, [island, inspectedIndex])
+  const faded = useMemo(
+    () => fadedProps(scenery ?? [], { building: armed && toolMode === 'build', buildable: buildableKeys, inspected: inspectedKey }),
+    [scenery, armed, toolMode, inspectedKey, buildableKeys],
+  )
+
   const terrainTiles = useMemo(
     () => island.tiles.map((tile) => {
       const decor = tile.gridIndex !== null && game.tiles[tile.gridIndex] ? null : tile.decor
@@ -272,7 +288,8 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
           desincronizarse del tile: al pasar de 48 a 64 se quedó atrás y dejó
           una banda muerta de 16 px en cada casilla. */}
       <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${mapScale})`, ['--tile' as string]: `${TILE}px` }} onPointerMove={onGridPointerMove}>
-        <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} coast={coast} scenery={scenery} />
+        <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} coast={coast} />
+        {scenery && <SceneryLayer scenery={scenery} tileSize={TILE} faded={faded} />}
         {island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => {
           const index = tile.gridIndex as number
           return (

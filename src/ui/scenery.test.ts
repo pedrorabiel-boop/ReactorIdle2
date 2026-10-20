@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildIsland } from './island'
 import { buildCoast } from './coast'
-import { placeScenery } from './scenery'
+import { fadedProps, placeScenery } from './scenery'
 import { CYBERPUNK_ENVIRONMENT } from './pixel/cyberpunk'
 import { SWAMP_PROPS } from './pixel/props'
 import { TERRAIN_UNIT } from './pixel/sprites'
@@ -79,5 +79,37 @@ describe('reparto del escenario', () => {
   it('reparte el mismo escenario en cada partida', () => {
     const a = swamp(), b = swamp()
     expect(placeScenery(a.island, a.coast, TERRAIN_UNIT)).toEqual(placeScenery(b.island, b.coast, TERRAIN_UNIT))
+  })
+})
+
+describe('transparencia de copa', () => {
+  it('al mirar una casilla solo aparta lo que tapa esa casilla', () => {
+    const { island, coast, buildable } = swamp()
+    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    const overhang = placed.filter((p) => p.covers.some((key) => buildable.has(key)))
+    expect(overhang.length).toBeGreaterThan(0)
+
+    const target = overhang[0].covers.find((key) => buildable.has(key))!
+    const faded = fadedProps(placed, { building: false, buildable, inspected: target })
+    expect(faded.size).toBeGreaterThan(0)
+    // Nada que no tape esa casilla concreta se desvanece.
+    for (const i of faded) expect(placed[i].covers).toContain(target)
+  })
+
+  it('con la herramienta armada aparta todo lo que vuela sobre la grilla', () => {
+    const { island, coast, buildable } = swamp()
+    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    const faded = fadedProps(placed, { building: true, buildable, inspected: null })
+    const overhang = placed.filter((p) => p.covers.some((key) => buildable.has(key)))
+    expect(faded.size).toBe(overhang.length)
+    // Y lo que esta sobre agua abierta se queda entero: si no, seria un
+    // parpadeo de todo el escenario cada vez que abres construir.
+    expect(faded.size).toBeLessThan(placed.length)
+  })
+
+  it('no aparta nada cuando no estas tocando el mapa', () => {
+    const { island, coast, buildable } = swamp()
+    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    expect(fadedProps(placed, { building: false, buildable, inspected: null }).size).toBe(0)
   })
 })
