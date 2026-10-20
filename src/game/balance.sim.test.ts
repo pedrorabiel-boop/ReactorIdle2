@@ -20,7 +20,7 @@ describe('promoted official balance', () => {
       battery: { cost: 25_000, capacity: 0, storageCapacity: 10_000 },
       research: { cost: 500, capacity: 0, researchRate: 1 },
       research2: { cost: 50_000_000, capacity: 0, researchRate: 500 },
-      controller: { cost: 1_000_000_000, capacity: 0, controllerBonus: 0.05, controllerAutonomy: 0.02 },
+      controller: { cost: 2_000_000_000, capacity: 0, controllerBonus: 0.05, controllerAutonomy: 0.02 },
       core: { cost: 1_000_000, capacity: 20_000, production: 7_500, fuelCycles: 200, refuelCost: 1_000_000 },
       thorium: { cost: 100_000_000, capacity: 2_500_000, production: 500_000, fuelCycles: 300, refuelCost: 100_000_000 },
       fusion: { cost: 2_000_000_000, capacity: 100_000_000, production: 10_000_000, fuelCycles: 300, refuelCost: 2_000_000_000 },

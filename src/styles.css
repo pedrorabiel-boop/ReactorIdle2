@@ -139,8 +139,19 @@ button.frame:not(:disabled):active { transform: translateY(2px); box-shadow: ins
 .res .rate { grid-column: 2; margin-top: 4px; font: 7px var(--font-num); color: var(--green); white-space: nowrap; overflow: hidden; }
 .resource-button { text-align: left; color: inherit; }
 .resource-button.on { border-color: var(--cyan); }
-.hud-exact { display: block; width: 100%; margin-top: 6px; padding: 7px 9px; overflow-x: auto; color: var(--cyan); text-align: left; white-space: nowrap; font: 7px var(--font-num); scrollbar-width: none; }
-.hud-exact::-webkit-scrollbar { display: none; }
+.hud-exact { display: block; width: 100%; margin-top: 6px; padding: 7px 9px; overflow: hidden; color: var(--cyan); text-align: left; white-space: nowrap; font: 7px var(--font-num); }
+/* El renglón no se corta ni se parte: se desplaza. Dos copias que se relevan,
+   cada una trasladada el 100 % de SU ancho, dejan el bucle sin costura. */
+.hud-marquee { display: flex; width: 100%; overflow: hidden; }
+.hud-marquee-run { flex: 0 0 auto; white-space: nowrap; }
+.hud-marquee[data-scroll] .hud-marquee-run { padding-right: 46px; animation: hud-marquee var(--marquee-duration, 20s) linear infinite; }
+@keyframes hud-marquee { to { transform: translateX(-100%); } }
+/* Sin movimiento, el renglón se arrastra a mano en vez de quedar cortado. */
+@media (prefers-reduced-motion: reduce) {
+  .hud-marquee { overflow-x: auto; scrollbar-width: none; }
+  .hud-marquee::-webkit-scrollbar { display: none; }
+  .hud-marquee[data-scroll] .hud-marquee-run { animation: none; }
+}
 .energy-bank.warning { border-color: var(--gold); background: #3a351d; }
 .energy-bank.warning .val { color: var(--gold); }
 .energy-bank.danger { border-color: var(--red); background: #422326; animation: bank-alert .8s steps(2) infinite; }

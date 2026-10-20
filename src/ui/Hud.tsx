@@ -1,9 +1,36 @@
-import { useState } from 'react'
-import { sectorEnergyStored, sectorSalesCapacity, sectorStorageCapacity } from '../game/engine'
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { controllerMultiplier, sectorEnergyStored, sectorSalesCapacity, sectorStorageCapacity } from '../game/engine'
+import { controllerAutonomyMultiplier } from '../game/research'
 import { hasInfiniteMoney } from '../game/debug'
 import type { GameState } from '../game/types'
 import { formatCompact, formatDecimal, formatExact, formatNumber } from './format'
 import { Sprite } from './pixel/Sprite'
+
+/**
+ * Un renglon que se desplaza solo para que se alcance a leer completo.
+ *
+ * El texto cambia cada segundo, asi que la animacion no puede depender de
+ * remontar el nodo: va en CSS sobre dos copias que se relevan, y de JS sale
+ * nada mas la duracion. Se redondea a segundos enteros para que no se mueva
+ * con cada digito que entra o sale, y si el texto ya cabe no se desplaza.
+ */
+const MARQUEE_SPEED = 45 // px/s
+
+function Marquee({ text }: { text: string }) {
+  const frame = useRef<HTMLSpanElement>(null)
+  const [seconds, setSeconds] = useState(0)
+  useLayoutEffect(() => {
+    const node = frame.current
+    const run = node?.firstElementChild as HTMLElement | null
+    if (!node || !run) return
+    setSeconds(run.offsetWidth > node.clientWidth ? Math.max(1, Math.round(run.offsetWidth / MARQUEE_SPEED)) : 0)
+  }, [text])
+  const scrolling = seconds > 0
+  return <span className="hud-marquee" ref={frame} data-scroll={scrolling ? '' : undefined} style={scrolling ? { '--marquee-duration': `${seconds}s` } as CSSProperties : undefined}>
+    <span className="hud-marquee-run">{text}</span>
+    {scrolling && <span className="hud-marquee-run" aria-hidden="true">{text}</span>}
+  </span>
+}
 
 interface HudProps { game: GameState; zoom: number; onZoom: (delta: number) => void; musicOn: boolean; onToggleMusic: () => void; onSellEnergy: () => void; onToggleBoost: () => void; onOpenMenu: () => void }
 
@@ -15,10 +42,11 @@ export function Hud({ game, zoom, onZoom, musicOn, onToggleMusic, onSellEnergy, 
   const fill = capacity > 0 ? stored / capacity : 0
   const bankState = report.wastedEnergy > 0 || fill >= 1 ? 'danger' : fill >= 0.75 ? 'warning' : ''
   const credits = hasInfiniteMoney(game) ? '∞' : formatCompact(game.credits)
+  const salesCapacity = sectorSalesCapacity(game)
   const exactCopy = exactResource === 'credits'
-    ? `Dinero: ${hasInfiniteMoney(game) ? '∞' : `₡ ${formatExact(game.credits)}`} · Ingreso: ₡ ${formatExact(report.earnedCredits)}/s`
+    ? `Dinero: ${hasInfiniteMoney(game) ? '∞' : `₡ ${formatExact(game.credits)}`} · Ingreso: ₡ ${formatExact(report.earnedCredits)}/s · Poder total de venta: ${formatExact(salesCapacity)} E/s · Multiplicador de venta: ×${formatDecimal(controllerMultiplier(game))}`
     : exactResource === 'energy'
-      ? `Energía: ${formatExact(stored)} / ${formatExact(capacity)} E · Producción: ${formatExact(report.producedEnergy)}/s · Venta: ${formatExact(report.soldEnergy)} / ${formatExact(sectorSalesCapacity(game))}/s`
+      ? `Energía: ${formatExact(stored)} / ${formatExact(capacity)} E · Producción: ${formatExact(report.producedEnergy)}/s · Venta: ${formatExact(report.soldEnergy)} / ${formatExact(salesCapacity)}/s · Multiplicador de autonomía: ×${formatDecimal(controllerAutonomyMultiplier(game))}`
       : exactResource === 'research'
         ? `Investigación: ${formatExact(game.researchPoints)} RP · Producción: ${formatExact(report.generatedResearch)} RP/s`
         : null
@@ -26,10 +54,10 @@ export function Hud({ game, zoom, onZoom, musicOn, onToggleMusic, onSellEnergy, 
   return <header className="hud">
     <div className="hud-row">
       <button type="button" data-tour="hud-credits" className={`res resource-button frame ${exactResource === 'credits' ? 'on' : ''}`} aria-label={`Créditos ${hasInfiniteMoney(game) ? 'infinitos' : formatExact(game.credits)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'credits'} onClick={() => toggleExact('credits')}><Sprite name="icon-coin" size={18} /><span className="val">{credits}</span><span className="rate">+{formatDecimal(report.earnedCredits)}/s</span></button>
-      <button type="button" data-tour="hud-energy" className={`res resource-button energy-bank frame ${bankState} ${exactResource === 'energy' ? 'on' : ''}`} aria-label={`Energía ${formatExact(stored)} de ${formatExact(capacity)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'energy'} onClick={() => toggleExact('energy')}><Sprite name="icon-bolt" size={18} /><span className="val">{formatNumber(Math.floor(stored))}/{formatNumber(Math.floor(capacity))}</span><span className="rate">{formatDecimal(report.producedEnergy)} prod · {formatDecimal(report.soldEnergy)}/{formatDecimal(sectorSalesCapacity(game))} venta</span></button>
+      <button type="button" data-tour="hud-energy" className={`res resource-button energy-bank frame ${bankState} ${exactResource === 'energy' ? 'on' : ''}`} aria-label={`Energía ${formatExact(stored)} de ${formatExact(capacity)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'energy'} onClick={() => toggleExact('energy')}><Sprite name="icon-bolt" size={18} /><span className="val">{formatNumber(Math.floor(stored))}/{formatNumber(Math.floor(capacity))}</span><span className="rate">{formatDecimal(report.producedEnergy)} prod · {formatDecimal(report.soldEnergy)}/{formatDecimal(salesCapacity)} venta</span></button>
       <button type="button" data-tour="hud-research" className={`res resource-button frame ${exactResource === 'research' ? 'on' : ''}`} aria-label={`Research ${formatExact(game.researchPoints)} RP; tocar para ver valor exacto`} aria-expanded={exactResource === 'research'} onClick={() => toggleExact('research')}><Sprite name="icon-flask" size={18} /><span className="val">{formatCompact(game.researchPoints)} RP</span><span className="rate">+{formatDecimal(report.generatedResearch)}/s</span></button>
     </div>
-    {exactCopy && <button type="button" className="hud-exact frame" onClick={() => setExactResource(null)} aria-label={`${exactCopy}; cerrar detalle`}>{exactCopy}</button>}
+    {exactCopy && <button type="button" className="hud-exact frame" onClick={() => setExactResource(null)} aria-label={`${exactCopy}; cerrar detalle`}><Marquee text={exactCopy} /></button>}
     <div className="hud-row hud-secondary">
       <button
         type="button"

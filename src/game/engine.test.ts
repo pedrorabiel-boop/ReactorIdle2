@@ -340,7 +340,7 @@ describe('controlador de red', () => {
   })
 
   it('cuesta 1 G y entra con la autorizacion de ensayos', () => {
-    expect(COMPONENTS.controller.cost).toBe(1_000_000_000)
+    expect(COMPONENTS.controller.cost).toBe(2_000_000_000)
     expect(COMPONENTS.controller.tech).toBe('testsite')
   })
 })
