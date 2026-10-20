@@ -4,7 +4,7 @@ export type TechKey = 'solar' | 'thermal' | 'thorium' | 'fusion' | 'expansion' |
 export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
 export type SectorKey = 'coast' | 'desert' | 'testsite'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
-export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus'
+export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus' | 'controllerAutonomy'
 export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier' | 'prestigeCostMultiple' | 'prestigeSalesBonus'
 
 export interface DebugSettings {
@@ -24,7 +24,7 @@ export interface EnergyContract { id: string; kind: ContractKind; title: string;
 export interface ComponentDefinition {
   kind: ComponentKind; name: string; shortName: string; description: string; icon: string; cost: number; capacity: number; tech?: TechKey
   directEnergy?: number; production?: number; referenceTransferRate?: number; thermalResistance?: number; conversionRate?: number; coolingRate?: number; fuelCycles?: number
-  refuelCost?: number; storageCapacity?: number; salesRate?: number; researchRate?: number; controllerBonus?: number
+  refuelCost?: number; storageCapacity?: number; salesRate?: number; researchRate?: number; controllerBonus?: number; controllerAutonomy?: number
 }
 
 export interface Tile { id: string; kind: ComponentKind; heat: number; enabled: boolean; damaged: boolean; flow: number; fuel: number; autoRefuel: boolean }

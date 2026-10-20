@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AUTO_REBUILD_COSTS, BOOST_TICKS_PER_SECOND, ECONOMY, GIFT_TICKS_PER_THERMAL_TECH, LIFETIME_ORDER, TECHNOLOGIES, levelMultiplier, offlineProductiveSeconds } from './balance'
 import { COMPONENTS } from './catalog'
-import { buyDesertSector, claimContract, createInitialState, demolitionRefund, globalSalesCapacity, globalStorageCapacity, isComponentUnlocked, placeTile, refuelTile, repairTile, sectorEnergyStored, sellStoredEnergy, sellTile, isAutoRebuildActive, simulateMany, simulateSecond, simulateTick, switchSector, totalHeat } from './engine'
+import { buyDesertSector, claimContract, createInitialState, demolitionRefund, globalSalesCapacity, globalStorageCapacity, isComponentUnlocked, placeTile, refuelTile, repairTile, sectorEnergyStored, sellStoredEnergy, sellTile, isAutoRebuildActive, simulateMany, simulateSecond, simulateTick, switchSector, toggleTile, totalHeat } from './engine'
 import { importGame, normalizeGameState, simulateOffline } from './persistence'
-import { canUnlockAutoRebuild, canUnlockTech, componentCapacity, componentLevel, conversionRate, coolingRate, directEnergyRate, fuelCapacity, maxUpgradeLevel, nextUpgradeGainPercent, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingType, upgradeCost } from './research'
+import { canUnlockAutoRebuild, canUnlockTech, componentCapacity, componentLevel, conversionRate, coolingRate, directEnergyRate, fuelCapacity, maxUpgradeLevel, nextUpgradeGainPercent, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingType, upgradeCost, upgradeTracks } from './research'
 import type { GameState } from './types'
 import { buildIsland, environmentFor } from '../ui/island'
 import { CYBERPUNK_ENVIRONMENT } from '../ui/pixel/cyberpunk'
@@ -148,7 +148,7 @@ describe('economy v2', () => {
     expect(storagePerBattery(fusion)).toBe(storagePerBattery(thermal))
     expect(thermal.tiles.slice(25, 31).map((tile) => tile?.kind)).toEqual(['pipe', 'exchanger', 'accumulator', 'cooler', 'battery', 'pipe2'])
   })
-  it('unlocks the advanced Thorium network while keeping Turbine II locked', () => { const state = createInitialState(); const thermal = { ...state, credits: 1_000_000_000, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true } }; for (const kind of ['thorium', 'generator2', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thermal, kind)).toBe(false); let thorium = { ...thermal, unlockedTechs: { ...thermal.unlockedTechs, thorium: true } }; for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true); expect(isComponentUnlocked(thorium, 'generator2')).toBe(false); thorium = upgradeBuildingTrack(thorium, 'sales2', 'output'); expect(thorium.sectorEconomies.coast.buildingLevels.sales2).toBe(2); expect(thorium.sectorEconomies.coast.buildingLevels.sales).toBe(1) })
+  it('unlocks the advanced Thorium network while keeping Turbine II locked', () => { const state = createInitialState(); const thermal = { ...state, credits: 1_000_000_000, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true } }; for (const kind of ['thorium', 'generator2', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thermal, kind)).toBe(false); let thorium = { ...thermal, unlockedTechs: { ...thermal.unlockedTechs, thorium: true } }; for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true); for (const kind of ['generator2', 'controller'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(false); thorium = upgradeBuildingTrack(thorium, 'sales2', 'output'); expect(thorium.sectorEconomies.coast.buildingLevels.sales2).toBe(2); expect(thorium.sectorEconomies.coast.buildingLevels.sales).toBe(1) })
   it('unlocks Turbine II and Pipe II only with Fusion and keeps their levels independent from tier I', () => { let state = unlocked(); state = { ...state, unlockedTechs: { ...state.unlockedTechs, fusion: false } }; expect(isComponentUnlocked(state, 'generator')).toBe(true); expect(isComponentUnlocked(state, 'generator2')).toBe(false); expect(isComponentUnlocked(state, 'pipe')).toBe(true); expect(isComponentUnlocked(state, 'pipe2')).toBe(false); state = { ...state, unlockedTechs: { ...state.unlockedTechs, fusion: true } }; expect(isComponentUnlocked(state, 'generator2')).toBe(true); expect(isComponentUnlocked(state, 'pipe2')).toBe(true); state = upgradeBuildingTrack(state, 'generator2', 'output'); state = upgradeBuildingTrack(state, 'pipe2', 'output'); expect(state.sectorEconomies.coast.buildingLevels.generator2).toBe(2); expect(state.sectorEconomies.coast.buildingLevels.generator).toBe(1); expect(state.sectorEconomies.coast.buildingLevels.pipe2).toBe(2); expect(state.sectorEconomies.coast.buildingLevels.pipe).toBe(1) })
   it('adds tier-I and tier-II sales and research without scaling tier I', () => { let state = unlocked(); state = placeTile(state, 25, 'sales'); state = placeTile(state, 26, 'sales2'); state = placeTile(state, 27, 'research'); state = placeTile(state, 28, 'research2'); expect(globalSalesCapacity(state)).toBe(salesPerOffice(state, 'sales') + salesPerOffice(state, 'sales2')); const result = simulateTick(state); expect(result.report.generatedResearch).toBe(researchPerFacility(state, 'research') + researchPerFacility(state, 'research2')) })
   it('damages rather than destroys an overheated reactor', () => { let state = unlocked(); state = placeTile(state, 25, 'core'); state = simulateMany(state, 7); expect(state.tiles[25]).toMatchObject({ kind: 'core', damaged: true, enabled: false }); expect(state.incidents).toBe(1) })
@@ -270,6 +270,79 @@ describe('economy v2', () => {
 describe('storage safety', () => {
   beforeEach(() => { vi.stubGlobal('localStorage', { getItem: vi.fn(() => null), setItem: vi.fn(), removeItem: vi.fn() }) })
   it('keeps the old save key untouched while evolving the v2 model', () => { expect(createInitialState().version).toBe(23) })
+})
+
+describe('controlador de red', () => {
+  const office = COMPONENTS.sales2.salesRate!
+
+  it('multiplica la venta en cadena en vez de sumarla con tope', () => {
+    let state = unlocked()
+    state = placeTile(state, 25, 'sales2')
+    expect(globalSalesCapacity(state)).toBeCloseTo(office)
+    state = placeTile(state, 26, 'controller')
+    expect(globalSalesCapacity(state)).toBeCloseTo(office * 1.05)
+    state = placeTile(state, 27, 'controller')
+    expect(globalSalesCapacity(state)).toBeCloseTo(office * 1.05 * 1.05)
+    // Antes esto se cortaba en +50 %; ahora el sexto sigue multiplicando.
+    for (const index of [28, 29, 30, 11]) state = placeTile(state, index, 'controller')
+    expect(globalSalesCapacity(state)).toBeCloseTo(office * Math.pow(1.05, 6))
+  })
+
+  it('ya no agranda el banco, que se vacia hacia la venta cada segundo', () => {
+    let state = unlocked()
+    state = placeTile(state, 25, 'battery')
+    const before = globalStorageCapacity(state)
+    state = placeTile(state, 26, 'controller')
+    expect(globalStorageCapacity(state)).toBe(before)
+  })
+
+  it('multiplica la vida util de todas las centrales del mapa', () => {
+    let state = unlocked()
+    const base = fuelCapacity(state, 'thorium')
+    expect(base).toBe(COMPONENTS.thorium.fuelCycles)
+    state = placeTile(state, 25, 'controller')
+    state = placeTile(state, 26, 'controller')
+    state = placeTile(state, 27, 'controller')
+    expect(fuelCapacity(state, 'thorium')).toBeCloseTo(base * Math.pow(1.02, 3))
+    // Y alcanza a los molinos y paneles igual que a los reactores.
+    expect(fuelCapacity(state, 'solar')).toBeCloseTo(COMPONENTS.solar.fuelCycles! * Math.pow(1.02, 3))
+  })
+
+  it('conserva la fraccion de vida al construir y vender Controles: no fabrica combustible', () => {
+    let state = unlocked()
+    state = placeTile(state, 25, 'thorium')
+    state = simulateMany(state, 60)
+    const fraction = state.tiles[25]!.fuel / fuelCapacity(state, 'thorium')
+    expect(fraction).toBeGreaterThan(0)
+    expect(fraction).toBeLessThan(1)
+
+    state = placeTile(state, 26, 'controller')
+    expect(state.tiles[25]!.fuel / fuelCapacity(state, 'thorium')).toBeCloseTo(fraction, 10)
+    const conControl = state.tiles[25]!.fuel
+
+    state = sellTile(state, 26)
+    expect(state.tiles[25]!.fuel / fuelCapacity(state, 'thorium')).toBeCloseTo(fraction, 10)
+    expect(state.tiles[25]!.fuel).toBeLessThan(conControl)
+  })
+
+  it('un Control apagado deja de contar en los dos efectos', () => {
+    let state = unlocked()
+    state = placeTile(state, 25, 'sales2')
+    state = placeTile(state, 26, 'controller')
+    expect(globalSalesCapacity(state)).toBeCloseTo(office * 1.05)
+    state = toggleTile(state, 26)
+    expect(globalSalesCapacity(state)).toBeCloseTo(office)
+    expect(fuelCapacity(state, 'thorium')).toBeCloseTo(COMPONENTS.thorium.fuelCycles!)
+  })
+
+  it('no tiene pista de mejora: su potencia esta en cuantos construyes', () => {
+    expect(upgradeTracks('controller')).toEqual([])
+  })
+
+  it('cuesta 1 G y entra con la autorizacion de ensayos', () => {
+    expect(COMPONENTS.controller.cost).toBe(1_000_000_000)
+    expect(COMPONENTS.controller.tech).toBe('testsite')
+  })
 })
 
 function emptyLevels() { return { wind: 1, solar: 1, battery: 1, controller: 1, sales: 1, sales2: 1, research: 1, research2: 1, core: 1, thorium: 1, fusion: 1, exchanger: 1, pipe: 1, pipe2: 1, accumulator: 1, generator: 1, generator2: 1, cooler: 1 } }

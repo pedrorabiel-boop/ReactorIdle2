@@ -1,7 +1,7 @@
 import { OFFLINE_BANDS, offlineProductiveSeconds, TECHNOLOGIES } from '../../game/balance'
 import { COMPONENTS } from '../../game/catalog'
 import { isComponentUnlocked } from '../../game/engine'
-import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../../game/research'
+import { componentCapacity, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../../game/research'
 import type { ComponentKind, GameState } from '../../game/types'
 import { formatDecimal, formatNumber, formatShort } from '../format'
 import { Sprite } from '../pixel/Sprite'
@@ -65,7 +65,8 @@ function stats(game: GameState, kind: ComponentKind): string[] {
   if (definition.storageCapacity) values.push(`+${formatStat(storagePerBattery(game))} E`)
   if (definition.salesRate) values.push(`Vende ${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`)
   if (definition.researchRate) values.push(`${formatStat(researchPerFacility(game, kind as 'research' | 'research2'))} RP/s`)
-  if (definition.controllerBonus) values.push(`+${formatDecimal(definition.controllerBonus * componentMultiplier(game, kind) * 100)}% red`)
+  if (definition.controllerBonus) values.push(`×${formatDecimal(1 + definition.controllerBonus)} venta`)
+  if (definition.controllerAutonomy) values.push(`×${formatDecimal(1 + definition.controllerAutonomy)} vida`)
   if (definition.capacity > 0) values.push(`Tolera ${formatShort(componentCapacity(game, kind))} calor`)
   if (definition.thermalResistance) values.push(`${formatDecimal(thermalResistance(game, kind))} R`)
   if (definition.fuelCycles) values.push(`${formatShort(fuelCapacity(game, kind))} s de vida`)

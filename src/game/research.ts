@@ -14,7 +14,17 @@ export const componentMultiplier = (state: GameState, kind: ComponentKind) => le
 export const capacityMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(effectiveLevel(state, capacityLevel(state, kind)))
 export const autonomyMultiplier = (state: GameState, kind: ComponentKind) => levelMultiplier(effectiveLevel(state, autonomyLevel(state, kind)))
 export const componentCapacity = (state: GameState, kind: ComponentKind) => COMPONENTS[kind].capacity * capacityMultiplier(state, kind)
-export const fuelCapacity = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].fuelCycles ?? 0) * autonomyMultiplier(state, kind)
+/**
+ * Controles encendidos en el mapa abierto.
+ *
+ * Vive aqui y no en `engine` porque la vida util lo necesita y `engine` ya
+ * depende de este modulo: al reves seria un ciclo. Solo mira el mapa activo,
+ * que es el unico desde el que se consulta la vida util.
+ */
+const activeControllers = (state: GameState) => state.tiles.reduce((count, tile) => tile?.kind === 'controller' && tile.enabled && !tile.damaged ? count + 1 : count, 0)
+/** Cada Control multiplica la vida util de las centrales sobre el anterior. */
+export const controllerAutonomyMultiplier = (state: GameState) => Math.pow(1 + (COMPONENTS.controller.controllerAutonomy ?? 0), activeControllers(state))
+export const fuelCapacity = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].fuelCycles ?? 0) * autonomyMultiplier(state, kind) * controllerAutonomyMultiplier(state)
 export const directEnergyRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].directEnergy ?? 0) * componentMultiplier(state, kind) * (state.activeSector === 'desert' && kind === 'solar' ? 1.25 : 1)
 export const productionRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].production ?? 0) * componentMultiplier(state, kind)
 export const conversionRate = (state: GameState, kind: 'generator' | 'generator2' = 'generator') => (COMPONENTS[kind].conversionRate ?? 0) * componentMultiplier(state, kind)
@@ -33,7 +43,9 @@ export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameSt
 export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
   const def = COMPONENTS[kind]
   const tracks: UpgradeTrack[] = []
-  if (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate || def.controllerBonus) tracks.push('output')
+  // El Control no lleva pista de salida: su factor ya se acumula construyendo
+  // mas, y multiplicar la BASE de una cadena exponencial no se puede acotar.
+  if (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate) tracks.push('output')
   if (def.capacity > 0) tracks.push('capacity')
   if (def.fuelCycles) tracks.push('autonomy')
   return tracks

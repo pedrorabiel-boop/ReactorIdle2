@@ -3,7 +3,7 @@ import { isComponentUnlocked, isComponentVisible } from '../game/engine'
 import { canAfford } from '../game/debug'
 import { TECHNOLOGIES } from '../game/balance'
 import type { ComponentKind, GameState, ToolMode } from '../game/types'
-import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../game/research'
+import { componentCapacity, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../game/research'
 import { formatCompact, formatDecimal, formatShort } from './format'
 import { Sprite } from './pixel/Sprite'
 
@@ -43,7 +43,8 @@ function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
   if (def.storageCapacity) stats.push({ icon: 'icon-bolt', value: `+${formatStat(storagePerBattery(game))} E`, label: 'Almacenamiento' })
   if (def.salesRate) stats.push({ icon: 'icon-handshake', value: `${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`, label: 'Potencia de venta' })
   if (def.researchRate) stats.push({ icon: 'icon-flask', value: `${formatStat(researchPerFacility(game, kind as 'research' | 'research2'))} RP/s`, label: 'Investigación' })
-  if (def.controllerBonus) stats.push({ icon: 'icon-bolt', value: `+${formatStat(def.controllerBonus * componentMultiplier(game, kind) * 100)}%`, label: 'Amplificación de red' })
+  if (def.controllerBonus) stats.push({ icon: 'icon-handshake', value: `×${formatDecimal(1 + def.controllerBonus)}`, label: 'Venta de cada oficina del mapa' })
+  if (def.controllerAutonomy) stats.push({ icon: 'icon-clock', value: `×${formatDecimal(1 + def.controllerAutonomy)}`, label: 'Vida útil de cada central del mapa' })
   if (def.capacity > 0) stats.push({ icon: 'icon-health', value: formatShort(componentCapacity(game, kind)), label: 'Tolerancia de calor antes de averiarse' })
   if (def.fuelCycles) stats.push({ icon: 'icon-clock', value: `${formatShort(fuelCapacity(game, kind))} s`, label: 'Vida útil' })
   return stats

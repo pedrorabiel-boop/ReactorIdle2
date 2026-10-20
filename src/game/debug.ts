@@ -15,7 +15,8 @@ export const COMPONENT_NUMERIC_FIELDS: Array<{ key: ComponentNumericKey; label: 
   { key: 'storageCapacity', label: 'Almacenamiento' },
   { key: 'salesRate', label: 'Venta / s' },
   { key: 'researchRate', label: 'RP / s' },
-  { key: 'controllerBonus', label: 'Bono del controlador' },
+  { key: 'controllerBonus', label: 'Control · factor de venta' },
+  { key: 'controllerAutonomy', label: 'Control · factor de vida útil' },
 ]
 
 export const ECONOMY_DEBUG_FIELDS: Array<{ key: DebugEconomyKey; label: string; step?: number }> = [

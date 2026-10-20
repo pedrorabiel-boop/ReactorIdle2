@@ -40,7 +40,7 @@ function impactLabel(track: UpgradeTrack, kind: ComponentKind): string {
 export function UpgradesSheet({ game, onClose, onUpgrade, onUpgradeMax, onToggleHidden }: Props) {
   const [showHidden, setShowHidden] = useState(false)
   const hidden = game.sectorEconomies[game.activeSector].hiddenUpgrades
-  const unlocked = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind))
+  const unlocked = COMPONENT_ORDER.filter((kind) => isComponentUnlocked(game, kind) && isComponentVisible(game, kind) && upgradeTracks(kind).length > 0)
   const kinds = showHidden ? unlocked.filter((kind) => hidden.includes(kind)) : unlocked.filter((kind) => !hidden.includes(kind))
   const maximum = maxUpgradeLevel(game)
 

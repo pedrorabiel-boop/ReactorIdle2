@@ -20,7 +20,7 @@ describe('promoted official balance', () => {
       battery: { cost: 25_000, capacity: 0, storageCapacity: 10_000 },
       research: { cost: 500, capacity: 0, researchRate: 1 },
       research2: { cost: 50_000_000, capacity: 0, researchRate: 500 },
-      controller: { cost: 100_000_000, capacity: 0, controllerBonus: 0.1 },
+      controller: { cost: 1_000_000_000, capacity: 0, controllerBonus: 0.05, controllerAutonomy: 0.02 },
       core: { cost: 1_000_000, capacity: 20_000, production: 7_500, fuelCycles: 200, refuelCost: 1_000_000 },
       thorium: { cost: 100_000_000, capacity: 2_500_000, production: 500_000, fuelCycles: 300, refuelCost: 100_000_000 },
       fusion: { cost: 2_000_000_000, capacity: 100_000_000, production: 10_000_000, fuelCycles: 300, refuelCost: 2_000_000_000 },
@@ -84,7 +84,9 @@ describe('promoted official balance', () => {
     expect(isComponentUnlocked(thermalOnly, 'cooler')).toBe(false)
     expect(isComponentUnlocked(thermalOnly, 'sales2')).toBe(false)
     const thorium = { ...thermalOnly, unlockedTechs: { ...thermalOnly.unlockedTechs, thorium: true } }
-    for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    // El Control se movio al Test Site: ya no entra con el ciclo de torio.
+    expect(isComponentUnlocked(thorium, 'controller')).toBe(false)
     expect(isComponentUnlocked(thorium, 'generator2')).toBe(false)
     expect(isComponentUnlocked(thorium, 'pipe2')).toBe(false)
     const fusion = { ...thorium, unlockedTechs: { ...thorium.unlockedTechs, fusion: true } }

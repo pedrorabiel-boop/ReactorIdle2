@@ -1,7 +1,7 @@
 import { COMPONENTS } from './catalog'
 import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, LIFETIME_ORDER, TECHNOLOGIES, TECH_ORDER } from './balance'
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
-import { componentCapacity, componentMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
+import { componentCapacity, componentMultiplier, controllerAutonomyMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
 import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, superconductorMasses, type ThermalSinkEdge } from './thermal'
 import { buildableFor, neighbourIndices, SECTOR_GRID } from './terrain'
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TechKey, TickReport, Tile } from './types'
@@ -65,11 +65,26 @@ export function placeTile(state: GameState, index: number, kind: ComponentKind):
   const existing = state.tiles[index]
   if (existing) return existing.kind === kind && usesAutonomy(kind) && existing.fuel <= 0 ? refuelTile(state, index) : state
   const tiles = [...state.tiles]; tiles[index] = makeTile(state, kind, index)
-  return { ...state, tiles, credits: spendCredits(state, definition.cost), sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } }
+  const next: GameState = { ...state, tiles, credits: spendCredits(state, definition.cost), sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } }
+  return kind === 'controller' ? syncFuelToControllers(state, next) : next
 }
+/**
+ * Reajusta el combustible de las centrales cuando cambia el numero de Controles.
+ *
+ * Conserva la FRACCION de vida de cada central, igual que la mejora de
+ * autonomia. Por eso construir y vender Controles no fabrica combustible: el
+ * porcentaje restante no se mueve, solo cambia la escala contra la que se lee.
+ */
+function syncFuelToControllers(previous: GameState, next: GameState): GameState {
+  const ratio = controllerAutonomyMultiplier(next) / controllerAutonomyMultiplier(previous)
+  if (!Number.isFinite(ratio) || ratio === 1) return next
+  const tiles = next.tiles.map((tile) => tile && usesAutonomy(tile.kind) ? { ...tile, fuel: tile.fuel * ratio } : tile)
+  return { ...next, tiles, sectorLayouts: { ...next.sectorLayouts, [next.activeSector]: tiles } }
+}
+
 export function demolitionRefund(kind: ComponentKind): number { return usesAutonomy(kind) ? 0 : Math.floor(COMPONENTS[kind].cost * ECONOMY.sellRefund) }
-export function sellTile(state: GameState, index: number): GameState { const tile = state.tiles[index]; if (!tile) return state; const tiles = [...state.tiles]; tiles[index] = null; return { ...state, tiles, credits: state.credits + demolitionRefund(tile.kind), sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } } }
-export function toggleTile(state: GameState, index: number): GameState { const tile = state.tiles[index]; if (!tile || tile.damaged) return state; const tiles = [...state.tiles]; tiles[index] = { ...tile, enabled: !tile.enabled }; return { ...state, tiles, sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } } }
+export function sellTile(state: GameState, index: number): GameState { const tile = state.tiles[index]; if (!tile) return state; const tiles = [...state.tiles]; tiles[index] = null; const next: GameState = { ...state, tiles, credits: state.credits + demolitionRefund(tile.kind), sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } }; return tile.kind === 'controller' ? syncFuelToControllers(state, next) : next }
+export function toggleTile(state: GameState, index: number): GameState { const tile = state.tiles[index]; if (!tile || tile.damaged) return state; const tiles = [...state.tiles]; tiles[index] = { ...tile, enabled: !tile.enabled }; const next: GameState = { ...state, tiles, sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } }; return tile.kind === 'controller' ? syncFuelToControllers(state, next) : next }
 export function refuelPrice(state: GameState, index: number): number | null { const tile = state.tiles[index]; if (!tile || !usesAutonomy(tile.kind)) return null; return tile.fuel <= 0 ? COMPONENTS[tile.kind].refuelCost ?? COMPONENTS[tile.kind].cost : 0 }
 export function refuelTile(state: GameState, index: number): GameState { const tile = state.tiles[index]; if (!tile || !usesAutonomy(tile.kind)) return state; const price = refuelPrice(state, index) ?? 0; if (price <= 0 || !canAfford(state, price)) return state; const tiles = [...state.tiles]; tiles[index] = { ...tile, id: `${tile.kind}-${state.tick}-${index}-manual`, fuel: fuelCapacity(state, tile.kind) }; return { ...state, tiles, credits: spendCredits(state, price), totalFuelSpent: state.totalFuelSpent + price, sectorLayouts: { ...state.sectorLayouts, [state.activeSector]: tiles } } }
 export function repairPrice(state: GameState, index: number): number | null { const tile = state.tiles[index]; return tile?.damaged ? Math.ceil(COMPONENTS[tile.kind].cost * ECONOMY.repairRate) : tile ? 0 : null }
@@ -130,8 +145,16 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
 
 function tilesForSector(state: GameState, sector: SectorKey): Array<Tile | null> { return sector === state.activeSector ? state.tiles : state.sectorLayouts[sector] }
 export function sectorEnergyStored(state: GameState, sector: SectorKey = state.activeSector): number { return state.sectorEconomies[sector].energyStored }
-export function controllerMultiplier(state: GameState, sector: SectorKey = state.activeSector): number { const scoped = { ...state, activeSector: sector }; const count = tilesForSector(state, sector).filter((tile) => tile?.kind === 'controller' && tile.enabled && !tile.damaged).length; const per = (COMPONENTS.controller.controllerBonus ?? 0) * componentMultiplier(scoped, 'controller'); return 1 + Math.min(0.5, count * per) }
-export function sectorStorageCapacity(state: GameState, sector: SectorKey = state.activeSector): number { const scoped = { ...state, activeSector: sector }; const batteries = tilesForSector(state, sector).filter((tile) => tile?.kind === 'battery' && tile.enabled && !tile.damaged).length; return (ECONOMY.baseStorage + batteries * storagePerBattery(scoped)) * controllerMultiplier(state, sector) }
+/**
+ * Factor de venta de los Controles del sector.
+ *
+ * Se multiplican en cadena y no tienen tope: el tope es el suelo. Antes se
+ * sumaban y se cortaban en +50 %, y con eso la pieza no entraba nunca en el
+ * reparto de casillas. El banco ya no recibe nada: se vacia hacia la venta
+ * cada segundo, asi que agrandarlo no era un premio.
+ */
+export function controllerMultiplier(state: GameState, sector: SectorKey = state.activeSector): number { const count = tilesForSector(state, sector).filter((tile) => tile?.kind === 'controller' && tile.enabled && !tile.damaged).length; return Math.pow(1 + (COMPONENTS.controller.controllerBonus ?? 0), count) }
+export function sectorStorageCapacity(state: GameState, sector: SectorKey = state.activeSector): number { const scoped = { ...state, activeSector: sector }; const batteries = tilesForSector(state, sector).filter((tile) => tile?.kind === 'battery' && tile.enabled && !tile.damaged).length; return ECONOMY.baseStorage + batteries * storagePerBattery(scoped) }
 export function sectorSalesCapacity(state: GameState, sector: SectorKey = state.activeSector): number { const scoped = { ...state, activeSector: sector }; const officeCapacity = tilesForSector(state, sector).reduce((sum, tile) => tile && (tile.kind === 'sales' || tile.kind === 'sales2') && tile.enabled && !tile.damaged ? sum + salesPerOffice(scoped, tile.kind) : sum, 0); return (ECONOMY.baseSalesRate + officeCapacity) * controllerMultiplier(state, sector) }
 /** Alias conservado para integraciones antiguas; la capacidad ahora pertenece solo al mapa activo. */
 export const globalStorageCapacity = sectorStorageCapacity
