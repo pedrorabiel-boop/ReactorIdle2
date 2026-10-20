@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { buildIsland } from './island'
 import { buildCoast } from './coast'
-import { fadedProps, placeScenery } from './scenery'
+import { CORAL_PLAN, fadedProps, placeScenery, SWAMP_PLAN } from './scenery'
 import { CYBERPUNK_ENVIRONMENT } from './pixel/cyberpunk'
+import { CORAL_ENVIRONMENT } from './pixel/coral'
 import { SWAMP_PROPS } from './pixel/props'
 import { TERRAIN_UNIT } from './pixel/sprites'
 
-const SOIL = new Set(['d', 'x', 'y', 'N'])
+const SOIL = new Set(['G', 'g', 'D', 'N'])
 
 const swamp = () => {
   const island = buildIsland(10, 8, 'desert')
-  const cells = island.tiles.filter((t) => t.gridIndex !== null).map((t) => [t.x, t.y] as [number, number])
+  const cells = island.tiles.filter((t) => t.kind === 'land').map((t) => [t.x, t.y] as [number, number])
+  const grid = island.tiles.filter((t) => t.gridIndex !== null).map((t) => [t.x, t.y] as [number, number])
   const coast = buildCoast(cells, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, CYBERPUNK_ENVIRONMENT.coast)
-  return { island, coast, buildable: new Set(cells.map(([x, y]) => `${x},${y}`)) }
+  return { island, coast, buildable: new Set(grid.map(([x, y]) => `${x},${y}`)) }
 }
 
 describe('costa organica', () => {
@@ -52,7 +54,7 @@ describe('costa organica', () => {
 describe('reparto del escenario', () => {
   it('no planta el suelo de ningun prop sobre una casilla construible', () => {
     const { island, coast, buildable } = swamp()
-    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    const placed = placeScenery(island, coast, TERRAIN_UNIT, SWAMP_PLAN)
     expect(placed.length).toBeGreaterThan(10)
 
     for (const prop of placed) {
@@ -69,7 +71,7 @@ describe('reparto del escenario', () => {
 
   it('deja que las copas vuelen sobre la grilla, que es cosa de profundidad', () => {
     const { island, coast, buildable } = swamp()
-    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    const placed = placeScenery(island, coast, TERRAIN_UNIT, SWAMP_PLAN)
     // Si ninguna copa volase sobre la grilla no haria falta transparencia, y
     // el reparto estaria siendo mas timido de la cuenta.
     const overhang = placed.filter((p) => p.covers.some((key) => buildable.has(key)))
@@ -78,14 +80,14 @@ describe('reparto del escenario', () => {
 
   it('reparte el mismo escenario en cada partida', () => {
     const a = swamp(), b = swamp()
-    expect(placeScenery(a.island, a.coast, TERRAIN_UNIT)).toEqual(placeScenery(b.island, b.coast, TERRAIN_UNIT))
+    expect(placeScenery(a.island, a.coast, TERRAIN_UNIT, SWAMP_PLAN)).toEqual(placeScenery(b.island, b.coast, TERRAIN_UNIT, SWAMP_PLAN))
   })
 })
 
 describe('transparencia de copa', () => {
   it('al mirar una casilla solo aparta lo que tapa esa casilla', () => {
     const { island, coast, buildable } = swamp()
-    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    const placed = placeScenery(island, coast, TERRAIN_UNIT, SWAMP_PLAN)
     const overhang = placed.filter((p) => p.covers.some((key) => buildable.has(key)))
     expect(overhang.length).toBeGreaterThan(0)
 
@@ -98,7 +100,7 @@ describe('transparencia de copa', () => {
 
   it('con la herramienta armada aparta todo lo que vuela sobre la grilla', () => {
     const { island, coast, buildable } = swamp()
-    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    const placed = placeScenery(island, coast, TERRAIN_UNIT, SWAMP_PLAN)
     const faded = fadedProps(placed, { building: true, buildable, inspected: null })
     const overhang = placed.filter((p) => p.covers.some((key) => buildable.has(key)))
     expect(faded.size).toBe(overhang.length)
@@ -109,7 +111,7 @@ describe('transparencia de copa', () => {
 
   it('no aparta nada cuando no estas tocando el mapa', () => {
     const { island, coast, buildable } = swamp()
-    const placed = placeScenery(island, coast, TERRAIN_UNIT)
+    const placed = placeScenery(island, coast, TERRAIN_UNIT, SWAMP_PLAN)
     expect(fadedProps(placed, { building: false, buildable, inspected: null }).size).toBe(0)
   })
 })

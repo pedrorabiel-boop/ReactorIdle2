@@ -1,64 +1,72 @@
 import { describe, it } from 'vitest'
 import { writeFileSync } from 'node:fs'
-import { PALETTE } from '../ui/pixel/sprites'
 import { SWAMP_COLORS, SWAMP_PROPS } from './swampprops'
+import { CORAL_COLORS, CORAL_PROPS } from './coralprops'
 
 /**
- * Vuelca los props del pantano a un modulo de la app.
+ * Vuelca los props de los biomas a un modulo de la app.
  *
- * Los props se dibujan con sus propias letras, y ocho de ellas chocaban con la
- * paleta de las torres: 'W' es blanco para una torre y corteza en sombra para
- * un manglar. Como el color se resuelve por variable CSS a partir de la letra,
- * compartirlas habria teñido de corteza el blanco de todas las torres. Aqui se
- * reasignan a letras libres antes de salir.
+ * Las letras de los props no chocan con las de las torres porque viven en otro
+ * espacio de nombres (`--pp-X` frente a `--px-X`). Antes compartian uno solo y
+ * hacia falta una tabla de reasignacion: 'T' era marron de tronco para un prop
+ * y marron de puerta para una torre, y el bioma terminaba repintando torres.
+ * Cada bioma puede ahora usar las letras que le convengan.
  */
-const REMAP: Record<string, string> = {
-  W: 'u', C: 'i', c: 'j', v: 'q', n: 'z', G: 'd', g: 'x', D: 'y',
+interface Bank {
+  nombre: string
+  colors: Record<string, string>
+  props: Record<string, { rows: string[]; tiles: number }>
 }
 
-describe('props del pantano', () => {
-  it('los escribe en la app con letras que no chocan', () => {
-    const taken = new Set(Object.keys(PALETTE))
-    for (const to of Object.values(REMAP)) {
-      if (taken.has(to)) throw new Error(`la letra ${to} ya esta en la paleta`)
+function emit(bank: Bank) {
+  const used = new Set<string>()
+  const entries = Object.entries(bank.props).map(([name, prop]) => {
+    for (const row of prop.rows) {
+      if (row.length !== prop.rows.length) throw new Error(`${bank.nombre}/${name}: la rejilla no es cuadrada`)
+      for (const ch of row) if (ch !== '.') used.add(ch)
     }
-
-    const colors: Record<string, string> = {}
-    for (const [ch, color] of Object.entries(SWAMP_COLORS)) colors[REMAP[ch] ?? ch] = color
-
-    const used = new Set<string>()
-    const entries = Object.entries(SWAMP_PROPS).map(([name, prop]) => {
-      const rows = prop.rows.map((row) => [...row].map((ch) => {
-        if (ch === '.') return ch
-        const out = REMAP[ch] ?? ch
-        used.add(out)
-        return out
-      }).join(''))
-      return `  '${name}': { tiles: ${prop.tiles}, rows: [\n${rows.map((r) => `    '${r}',`).join('\n')}\n  ] },`
-    })
-    for (const ch of used) {
-      if (!(ch in colors)) throw new Error(`la letra ${ch} no tiene color`)
-      if (taken.has(ch)) throw new Error(`la letra ${ch} choca con la paleta de torres`)
-    }
-
-    writeFileSync('src/ui/pixel/props.ts', `// GENERADO por \`npm run art\` desde src/art/swampprops.ts. No editar a mano.
-//
-// Props de escenario del pantano. A diferencia de la decoracion vieja, no son
-// sprites de una casilla: el manglar ocupa 4x4 porque su sistema de raices es
-// lo que lo identifica, y a 32 px no cabe.
-
-export interface PropSprite {
-  /** Lado de la huella, en casillas. */
-  tiles: number
-  rows: string[]
+    const body = prop.rows.map((row) => `    '${row}',`).join('\n')
+    return `  '${name}': { tiles: ${prop.tiles}, rows: [\n${body}\n  ] },`
+  })
+  for (const ch of used) {
+    if (!(ch in bank.colors)) throw new Error(`${bank.nombre}: la letra ${ch} no tiene color`)
+  }
+  return { entries }
 }
 
-/** Colores propios del bioma, con letras que no chocan con las de las torres. */
-export const PROP_COLORS: Record<string, string> = ${JSON.stringify(colors, null, 2).replace(/"/g, "'")}
+describe('props de los biomas', () => {
+  it('los escribe en la app', () => {
+    const swamp = emit({ nombre: 'pantano', colors: SWAMP_COLORS, props: SWAMP_PROPS })
+    const coral = emit({ nombre: 'coral', colors: CORAL_COLORS, props: CORAL_PROPS })
+    const dump = (colors: Record<string, string>) => JSON.stringify(colors, null, 2).replace(/"/g, "'")
 
-export const SWAMP_PROPS: Record<string, PropSprite> = {
-${entries.join('\n')}
-}
-`)
+    writeFileSync('src/ui/pixel/props.ts', [
+      '// GENERADO por `npm run art`. No editar a mano.',
+      '//',
+      '// Props de escenario. A diferencia de la decoracion vieja, no son sprites de',
+      '// una casilla: un manglar ocupa 4x4 y un arrecife 3x3, porque lo que los',
+      '// identifica -las raices, los corales- no cabe en 32 px.',
+      '',
+      'export interface PropSprite {',
+      '  /** Lado de la huella, en casillas. */',
+      '  tiles: number',
+      '  rows: string[]',
+      '}',
+      '',
+      '/** Colores del pantano. Salen como --pp-X, aparte de la paleta de torres. */',
+      `export const PROP_COLORS: Record<string, string> = ${dump(SWAMP_COLORS)}`,
+      '',
+      '/** Colores de la isla coral. */',
+      `export const CORAL_COLORS: Record<string, string> = ${dump(CORAL_COLORS)}`,
+      '',
+      'export const SWAMP_PROPS: Record<string, PropSprite> = {',
+      swamp.entries.join('\n'),
+      '}',
+      '',
+      'export const CORAL_PROPS: Record<string, PropSprite> = {',
+      coral.entries.join('\n'),
+      '}',
+      '',
+    ].join('\n'))
   })
 })

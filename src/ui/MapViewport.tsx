@@ -8,6 +8,7 @@ import { TILE, ZOOM_BASE, type Island } from './island'
 import type { Coast } from './coast'
 import { fadedProps, type PlacedProp } from './scenery'
 import { SceneryLayer, Sprite, TerrainLayer } from './pixel/Sprite'
+import type { CoastStyle } from './pixel/sprites'
 
 const JOYSTICK_PAN_SPEED = 4
 const JOYSTICK_KEY_STEP = 24
@@ -24,6 +25,7 @@ interface MapViewportProps {
   /** El control vive en el HUD; aqui solo se aplica el valor. */
   zoom: number
   coast?: Coast
+  coastStyle?: CoastStyle
   scenery?: PlacedProp[]
   onCellPointerDown: (event: PointerEvent<HTMLButtonElement>, index: number) => void
   onCellClick: (index: number) => void
@@ -114,7 +116,7 @@ const Cell = memo(function Cell({ game, tile, index, tour, x, y, armed, toolMode
   )
 })
 
-export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, zoom, coast, scenery, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
+export function MapViewport({ game, island, decoration, armed, toolMode, selectedKind, inspectedIndex, minimalUi = false, zoom, coast, coastStyle, scenery, onCellPointerDown, onCellClick, onGridPointerMove }: MapViewportProps) {
   // Ancla de la guía de inicio: la primera casilla construible que sigue vacía.
   const firstFreeIndex = island.tiles.find((tile) => tile.gridIndex !== null && !game.tiles[tile.gridIndex])?.gridIndex ?? null
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -288,7 +290,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
           desincronizarse del tile: al pasar de 48 a 64 se quedó atrás y dejó
           una banda muerta de 16 px en cada casilla. */}
       <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${mapScale})`, ['--tile' as string]: `${TILE}px` }} onPointerMove={onGridPointerMove}>
-        <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} coast={coast} />
+        <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} coast={coast} coastStyle={coastStyle} />
         {scenery && <SceneryLayer scenery={scenery} tileSize={TILE} faded={faded} />}
         {island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => {
           const index = tile.gridIndex as number

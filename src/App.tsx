@@ -15,8 +15,9 @@ import { Hud } from './ui/Hud'
 import { buildIsland, environmentFor } from './ui/island'
 import { MapViewport } from './ui/MapViewport'
 import { CYBERPUNK_ENVIRONMENT } from './ui/pixel/cyberpunk'
+import { CORAL_ENVIRONMENT } from './ui/pixel/coral'
 import { coastFor } from './ui/coast'
-import { sceneryFor } from './ui/scenery'
+import { CORAL_PLAN, sceneryFor, SWAMP_PLAN } from './ui/scenery'
 import { TERRAIN_UNIT } from './ui/pixel/sprites'
 import { environmentStyle, Sprite, SpriteDefs } from './ui/pixel/Sprite'
 import { ENVIRONMENTS } from './ui/pixel/sprites'
@@ -90,7 +91,10 @@ function App() {
   useEffect(() => { const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as BeforeInstallPromptEvent) }; window.addEventListener('beforeinstallprompt', handler); return () => window.removeEventListener('beforeinstallprompt', handler) }, [])
 
   const environment = environmentFor(game)
-  const environmentDefinition = environment === 'futuristic' ? CYBERPUNK_ENVIRONMENT : ENVIRONMENTS[environment]
+  const environmentDefinition = environment === 'futuristic' ? CYBERPUNK_ENVIRONMENT
+    : environment === 'terrestrial' ? CORAL_ENVIRONMENT
+      : ENVIRONMENTS[environment]
+  const sceneryPlan = environment === 'futuristic' ? SWAMP_PLAN : environment === 'terrestrial' ? CORAL_PLAN : null
   const activeBuildableSet = game.activeSector === 'coast' ? COAST_BUILDABLE_SET : CYBERPUNK_BUILDABLE_SET
   const extraOccupiedIndices = game.tiles.flatMap((tile, index) => tile && !activeBuildableSet.has(index) ? [index] : [])
   const extraOccupiedSignature = extraOccupiedIndices.join(',')
@@ -99,13 +103,13 @@ function App() {
   // pixeles y tres transformadas de distancia.
   const coast = useMemo(() => {
     if (!environmentDefinition.coast) return undefined
-    const cells = island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => [tile.x, tile.y] as [number, number])
+    const cells = island.tiles.filter((tile) => tile.kind === 'land').map((tile) => [tile.x, tile.y] as [number, number])
     return coastFor(game.activeSector, cells, TERRAIN_UNIT, island.cols * TERRAIN_UNIT, island.rows * TERRAIN_UNIT, environmentDefinition.coast)
   }, [island, environmentDefinition, game.activeSector])
 
   const scenery = useMemo(
-    () => coast ? sceneryFor(game.activeSector, island, coast, TERRAIN_UNIT) : undefined,
-    [coast, island, game.activeSector],
+    () => coast && sceneryPlan ? sceneryFor(game.activeSector, island, coast, TERRAIN_UNIT, sceneryPlan) : undefined,
+    [coast, island, game.activeSector, sceneryPlan],
   )
 
   // Gancho de desarrollo: el reparto del escenario es dificil de comprobar a
@@ -166,7 +170,7 @@ function App() {
   function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Distrito Neón adquirido.') }
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
-    <MapViewport game={game} island={island} coast={coast} scenery={scenery} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
+    <MapViewport game={game} island={island} coast={coast} coastStyle={environmentDefinition.coast} scenery={scenery} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
     {!buildFocus && <Hud game={game} zoom={zoom} onZoom={changeZoom} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>

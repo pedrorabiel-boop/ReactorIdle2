@@ -21,13 +21,20 @@ export const CYBERPUNK_ENVIRONMENT: Environment = {
     6: '#21372a', // suelo en sombra
     7: '#a3387a', // resplandor del filo sobre el agua
     8: '#15303a', // halo del agua junto a la orilla
-    // Letras propias de los props del bioma: manglares, helechos, hongos.
-    ...PROP_COLORS,
   },
+  // Letras de los props del bioma: manglares, helechos, hongos.
+  props: PROP_COLORS,
   recolor: { B: 'P', b: 'C', E: 'C', e: 'p', O: 'R', Y: 'C', R: 'P', r: 'p', T: 'D', t: 'G' },
   decoration: 'pylon',
   glow: 'rgba(255,95,200,.26)',
   // Cuánto avanza la tierra hacia las casillas inútiles: un mínimo fijo más un
   // término de ruido, que es lo que produce los entrantes y salientes.
-  coast: { base: 7, amplitude: 22, scale: 46, seed: 1 },
+  coast: {
+    base: 7, amplitude: 22, scale: 46, seed: 1,
+    // Un filo estrecho, no una playa: aquí la orilla es una línea de luz.
+    land: [{ until: 3, slot: '3' }],
+    water: [{ until: 2, slot: '7' }, { until: 5, slot: '8' }],
+    ground: { light: '2', dark: '6', scale: 26, spread: 0.13 },
+    open: { slot: '5', amount: 0.69, stretch: 0.28, sparkle: true },
+  },
 }

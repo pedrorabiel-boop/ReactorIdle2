@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react'
 import { fbm, type Coast } from '../coast'
-import { SWAMP_PROPS } from './props'
+import { CORAL_PROPS, SWAMP_PROPS } from './props'
 import type { PlacedProp } from '../scenery'
-import { ENVIRONMENTS, envCssVars, rowsToRects, SPRITES, spriteBox, terrainRows, toDataUri, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
+import { ENVIRONMENTS, envCssVars, rowsToRects, SPRITES, spriteBox, terrainRows, toDataUri, type Band, type CoastStyle, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
 
 const SYMBOL_PREFIX = 'px-'
 
@@ -46,6 +46,7 @@ interface TerrainLayerProps {
   tileSize: number
   /** Si viene, el terreno se dibuja con costa organica en vez de autotilearse. */
   coast?: Coast
+  coastStyle?: CoastStyle
 }
 
 const terrainCache = new Map<string, { base: string; sparkle: string }>()
@@ -89,16 +90,13 @@ function terrainRects(kind: TerrainKind, neighbors: Neighbors): { base: string; 
  * ambiente se mantiene por variables CSS: 3 es el filo, 7 su resplandor sobre
  * el agua, 8 el halo, 1/2/6 el suelo y 4/5 el agua.
  */
-const COAST_SLOTS = ['4', '5', '8', '7', '3', '1', '2', '6']
-const DEEP = 0, STREAK = 1, HALO = 2, GLOW = 3, RIM = 4, SOIL = 5, SOIL_LIT = 6, SOIL_DARK = 7
-
 const propCache = new Map<string, string>()
 
 /** Define un prop una vez, con un <path> por color igual que el terreno. */
 function propSymbol(name: string): string {
   const cached = propCache.get(name)
   if (cached) return cached
-  const prop = SWAMP_PROPS[name]
+  const prop = SWAMP_PROPS[name] ?? CORAL_PROPS[name]
   const byColor = new Map<string, string[]>()
   prop.rows.forEach((row, y) => {
     let x = 0
@@ -107,7 +105,7 @@ function propSymbol(name: string): string {
       if (ch === '.') { x++; continue }
       let len = 1
       while (x + len < row.length && row[x + len] === ch) len++
-      const key = `var(--px-${ch})`
+      const key = `var(--pp-${ch})`
       if (!byColor.has(key)) byColor.set(key, [])
       byColor.get(key)!.push(`M${x} ${y}h${len}v1h-${len}z`)
       x += len
@@ -119,47 +117,72 @@ function propSymbol(name: string): string {
   return markup
 }
 
-const organicCache = new Map<Coast, string>()
+const organicCache = new Map<Coast, Map<CoastStyle, string>>()
 
-function organicTerrain(coast: Coast): string {
-  const cached = organicCache.get(coast)
+/**
+ * Terreno de costa organica.
+ *
+ * Clasifica cada pixel del mapa contra la distancia al limite entre tierra y
+ * agua y lo saca como un <path> por color, con las tiradas de cada fila. Un
+ * <rect> por tirada costaria cuatro veces mas nodos, y aqui no hay casillas que
+ * deduplicar: ninguna orilla se repite.
+ *
+ * Las franjas vienen del ambiente, no cableadas: el pantano quiere un filo de
+ * tres pixeles y la isla tropical una playa ancha con espuma y bajo.
+ */
+function organicTerrain(coast: Coast, style: CoastStyle): string {
+  const byStyle = organicCache.get(coast) ?? new Map<CoastStyle, string>()
+  const cached = byStyle.get(style)
   if (cached) return cached
+
   const { w, h, land, toEdge } = coast
-  const slot = new Uint8Array(w * h)
+  const slots = [...new Set([
+    ...style.land.map((b) => b.slot), ...style.water.map((b) => b.slot),
+    style.ground.light, style.ground.dark, '1', '4', ...(style.open ? [style.open.slot] : []),
+  ])]
+  const index = new Map(slots.map((slot, i) => [slot, i]))
+  const pick = new Uint8Array(w * h)
+  const bandOf = (bands: Band[], d: number) => bands.find((b) => d < b.until)?.slot
+
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x
+      const d = toEdge[i]
+      let slot: string
       if (land[i]) {
-        if (toEdge[i] < 3) slot[i] = RIM
-        else {
-          const n = fbm(x, y, 26, 5)
-          slot[i] = n > 0.63 ? SOIL_LIT : n < 0.37 ? SOIL_DARK : SOIL
-        }
+        slot = bandOf(style.land, d) ?? (() => {
+          const n = fbm(x, y, style.ground.scale, 5)
+          const edge = style.ground.spread
+          return n > 0.5 + edge ? style.ground.light : n < 0.5 - edge ? style.ground.dark : '1'
+        })()
       } else {
-        const edge = toEdge[i]
-        if (edge < 2) slot[i] = GLOW
-        else if (edge < 5) slot[i] = HALO
-        // Vetas horizontales: el ruido se estira en x y se comprime en y.
-        else slot[i] = fbm(x * 0.28, y * 2.1, 22, 9) > 0.69 ? STREAK : DEEP
+        slot = bandOf(style.water, d)
+          ?? (style.open && fbm(x * style.open.stretch, y * 2.1, 22, 9) > style.open.amount ? style.open.slot : '4')
       }
+      pick[i] = index.get(slot)!
     }
   }
-  const runs: string[][] = COAST_SLOTS.map(() => [])
+
+  const runs: string[][] = slots.map(() => [])
   for (let y = 0; y < h; y++) {
     let x = 0
     while (x < w) {
-      const k = slot[y * w + x]
+      const k = pick[y * w + x]
       let len = 1
-      while (x + len < w && slot[y * w + x + len] === k) len++
+      while (x + len < w && pick[y * w + x + len] === k) len++
       runs[k].push(`M${x} ${y}h${len}v1h-${len}z`)
       x += len
     }
   }
-  const path = (k: number) => runs[k].length ? `<path fill="var(--px-${COAST_SLOTS[k]})" d="${runs[k].join('')}"/>` : ''
-  // El destello del mar va aparte para poder atenuarlo por ambiente.
-  const markup = COAST_SLOTS.map((_, k) => k === STREAK ? '' : path(k)).join('')
-    + (runs[STREAK].length ? `<g class="sea-sparkle">${path(STREAK)}</g>` : '')
-  organicCache.set(coast, markup)
+  const path = (k: number) => runs[k].length ? `<path fill="var(--px-${slots[k]})" d="${runs[k].join('')}"/>` : ''
+  // El destello del mar va aparte cuando el ambiente lo pide, para poder
+  // atenuarlo sin tocar el resto del agua.
+  const dim = style.open?.sparkle ? index.get(style.open.slot) : undefined
+  const markup = slots.map((_, k) => k === dim ? '' : path(k)).join('')
+    + (dim !== undefined && runs[dim].length ? `<g class="sea-sparkle">${path(dim)}</g>` : '')
+
+  byStyle.set(style, markup)
+  organicCache.set(coast, byStyle)
   return markup
 }
 
@@ -172,10 +195,10 @@ function organicTerrain(coast: Coast): string {
  * terreno a 32×32 eso serían más de cien mil nodos, y así son unas pocas
  * decenas de definiciones.
  */
-export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize, coast }: TerrainLayerProps) {
+export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tileSize, coast, coastStyle }: TerrainLayerProps) {
   const markup = useMemo(() => {
     const unit = terrainUnit()
-    if (coast) return organicTerrain(coast)
+    if (coast && coastStyle) return organicTerrain(coast, coastStyle)
     const defs = new Map<string, string>()
     const bases: string[] = []
     const sparkles: string[] = []
@@ -195,7 +218,7 @@ export const TerrainLayer = memo(function TerrainLayer({ tiles, cols, rows, tile
     return `<defs>${[...defs.values()].join('')}</defs>${bases.join('')}`
       + (sparkles.length ? `<g class="sea-sparkle">${sparkles.join('')}</g>` : '')
       + decors.join('')
-  }, [tiles, coast])
+  }, [tiles, coast, coastStyle])
   const unit = terrainUnit()
   return (
     <svg

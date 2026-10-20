@@ -13,13 +13,42 @@ export interface Environment {
   decoration: string
   glow: string
   /**
+   * Colores de los props de escenario. Van aparte de `terrain` y salen como
+   * `--pp-X` en vez de `--px-X`: compartiendo espacio con la paleta de torres,
+   * una letra como 'T' significaba marron de tronco para un prop y marron de
+   * puerta para una torre, y el bioma terminaba repintando las torres.
+   */
+  props?: Record<string, string>
+  /**
    * Si esta, el terreno no se autotilea por casillas: se calcula una mascara de
    * tierra a nivel de pixel sobre todo el mapa y el limite se mueve con ruido.
    * Es la unica forma de que el contorno quede enmaranado en vez de escalonado.
    * El ruido solo anade tierra hacia afuera, nunca quita, asi que toda casilla
    * construible sigue siendo tierra entera.
    */
-  coast?: { base: number; amplitude: number; scale: number; seed: number }
+  coast?: CoastStyle
+}
+
+/** Una franja medida desde la orilla: hasta `until` pixeles, esta ranura. */
+export interface Band { until: number; slot: string }
+
+export interface CoastStyle {
+  /** Cuanto avanza la tierra hacia las casillas inutiles. */
+  base: number
+  amplitude: number
+  scale: number
+  seed: number
+  /** Franjas desde la orilla hacia la tierra; lo que sobra es suelo. */
+  land: Band[]
+  /** Franjas desde la orilla hacia el agua; lo que sobra es mar abierto. */
+  water: Band[]
+  /**
+   * Moteado del suelo. El pantano lo quiere marcado y la isla tropical apenas,
+   * porque ahi el verde plano es parte de la lectura.
+   */
+  ground: { light: string; dark: string; scale: number; spread: number }
+  /** Textura del mar abierto, estirada en x para que salgan vetas. */
+  open?: { slot: string; amount: number; stretch: number; sparkle: boolean }
 }
 
 export const PALETTE = {
@@ -1929,10 +1958,8 @@ export function envCssVars(env: Environment): string {
     const color = ch in env.terrain ? env.terrain[ch] : PALETTE[(env.recolor[ch] ?? ch) as PaletteKey]
     decls.push(`--px-${ch}:${color}`)
   }
-  // Letras que solo existen en este bioma: las de sus props de escenario.
-  for (const [ch, color] of Object.entries(env.terrain)) {
-    if (!(ch in PALETTE)) decls.push(`--px-${ch}:${color}`)
-  }
+  // Los props viven en su propio espacio de nombres.
+  for (const [ch, color] of Object.entries(env.props ?? {})) decls.push(`--pp-${ch}:${color}`)
   return decls.join(';')
 }
 
