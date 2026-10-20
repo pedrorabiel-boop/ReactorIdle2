@@ -2,7 +2,14 @@ import type { GameState, SectorKey } from '../game/types'
 import { buildableFor, cellPosition } from '../game/terrain'
 import type { EnvironmentKey, Neighbors, TerrainKind } from './pixel/sprites'
 
-export const TILE = 48 // 16 px lógicos × 3
+export const TILE = 64 // 32 px de arte × 2
+
+/**
+ * El tile pasó de 48 a 64 px al doblar la resolución del arte. Este factor
+ * devuelve el encuadre por defecto al que tenia antes, para que el zoom que ve
+ * el jugador siga siendo 100 % = la vista de siempre.
+ */
+export const ZOOM_BASE = 48 / 64
 export const WATER_MARGIN = 3 // tiles de agua alrededor de la grilla (los salientes ocupan el primero)
 export const FRAME_DEPTH = 3 // grosor del marco de cactus y montañas del Test Site
 

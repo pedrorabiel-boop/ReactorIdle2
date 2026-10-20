@@ -4,7 +4,7 @@ import { usesAutonomy } from '../game/engine'
 import { componentCapacity, directEnergyRate, fuelCapacity } from '../game/research'
 import type { ComponentKind, GameState, Tile, ToolMode } from '../game/types'
 import { formatDecimal } from './format'
-import { TILE, type Island } from './island'
+import { TILE, ZOOM_BASE, type Island } from './island'
 import { Sprite, TerrainLayer } from './pixel/Sprite'
 
 const JOYSTICK_PAN_SPEED = 4
@@ -117,6 +117,8 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
   const [joystick, setJoystick] = useState({ x: 0, y: 0 })
   const joystickVectorRef = useRef({ x: 0, y: 0 })
   const joystickFrameRef = useRef<number | null>(null)
+  // El zoom del HUD es relativo al encuadre de siempre; esta es la escala real.
+  const mapScale = zoom * ZOOM_BASE
   const previousZoomRef = useRef(zoom)
   const stageRef = useRef<HTMLDivElement>(null)
   // Desplazamiento real del escenario dentro del scroll: cambia con el zoom y
@@ -131,7 +133,7 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     stageOffsetRef.current = { left: stage.offsetLeft, top: stage.offsetTop }
     viewport.style.setProperty('--sea-x', `${stage.offsetLeft}px`)
     viewport.style.setProperty('--sea-y', `${stage.offsetTop}px`)
-    viewport.style.setProperty('--sea-size', `${TILE * zoom}px`)
+    viewport.style.setProperty('--sea-size', `${TILE * mapScale}px`)
   }
   const terrainTiles = useMemo(
     () => island.tiles.map((tile) => {
@@ -208,8 +210,8 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     const viewport = viewportRef.current
     if (!viewport) return
     const { left, top } = stageOffsetRef.current
-    const gridCenterX = left + (island.grid.x + island.grid.cols / 2) * TILE * zoom
-    const gridCenterY = top + (island.grid.y + island.grid.rows / 2) * TILE * zoom
+    const gridCenterX = left + (island.grid.x + island.grid.cols / 2) * TILE * mapScale
+    const gridCenterY = top + (island.grid.y + island.grid.rows / 2) * TILE * mapScale
     viewport.scrollLeft = gridCenterX - viewport.clientWidth / 2
     viewport.scrollTop = gridCenterY - viewport.clientHeight / 2 + 40
   }, [game.activeSector])
@@ -225,8 +227,8 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
     const worldY = (viewport.scrollTop + viewport.clientHeight / 2 - previous.top) / previousZoom
     syncSea()
     const current = stageOffsetRef.current
-    viewport.scrollLeft = current.left + worldX * zoom - viewport.clientWidth / 2
-    viewport.scrollTop = current.top + worldY * zoom - viewport.clientHeight / 2
+    viewport.scrollLeft = current.left + worldX * mapScale - viewport.clientWidth / 2
+    viewport.scrollTop = current.top + worldY * mapScale - viewport.clientHeight / 2
     previousZoomRef.current = zoom
   }, [zoom])
 
@@ -261,8 +263,8 @@ export function MapViewport({ game, island, decoration, armed, toolMode, selecte
 
   return (
     <div className={`viewport ${armed ? 'armed' : ''} mode-${toolMode}`} ref={viewportRef}>
-      <div className="world-stage" data-tour="map" ref={stageRef} style={{ width: island.cols * TILE * zoom, height: island.rows * TILE * zoom }}>
-      <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${zoom})` }} onPointerMove={onGridPointerMove}>
+      <div className="world-stage" data-tour="map" ref={stageRef} style={{ width: island.cols * TILE * mapScale, height: island.rows * TILE * mapScale }}>
+      <div className="world" style={{ width: island.cols * TILE, height: island.rows * TILE, transform: `scale(${mapScale})` }} onPointerMove={onGridPointerMove}>
         <TerrainLayer tiles={terrainTiles} cols={island.cols} rows={island.rows} tileSize={TILE} />
         {island.tiles.filter((tile) => tile.gridIndex !== null).map((tile) => {
           const index = tile.gridIndex as number
