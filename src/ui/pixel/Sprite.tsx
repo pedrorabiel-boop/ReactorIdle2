@@ -1,8 +1,6 @@
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { fbm, type Coast } from '../coast'
 import { ALL_PROPS } from './props'
-import { SWAY_FRAMES, swayFrames } from './sway'
-import type { SceneryPlan } from '../scenery'
 import type { PlacedProp } from '../scenery'
 import { ENVIRONMENTS, envCssVars, PALETTE, rowsToRects, SPRITES, spriteBox, terrainRows, toDataUri, type Band, type PaletteKey, type CoastStyle, type Environment, type EnvironmentKey, type Neighbors, type TerrainKind } from './sprites'
 
@@ -96,42 +94,28 @@ function terrainRects(kind: TerrainKind, neighbors: Neighbors): { base: string; 
  */
 const propCache = new Map<string, string>()
 
-/** Cuanto tarda un ciclo completo de mecido. */
-export const SWAY_SECONDS = 3.2
-
-/**
- * Define un prop una vez, con un <path> por color igual que el terreno.
- *
- * Si se mece, el simbolo lleva las cuatro poses una al lado de otra y la capa
- * de escenario las recorre a saltos: es una hoja de sprites de toda la vida.
- */
-function propSymbol(name: string, sway = 0): string {
-  const key = `${name}:${sway}`
-  const cached = propCache.get(key)
+/** Define un prop una vez, con un <path> por color igual que el terreno. */
+function propSymbol(name: string): string {
+  const cached = propCache.get(name)
   if (cached) return cached
   const prop = ALL_PROPS[name]
-  const frames = sway > 0 ? swayFrames(name, prop, sway) : [prop.rows]
-  const side = prop.rows.length
   const byColor = new Map<string, string[]>()
-  frames.forEach((rows, frame) => {
-    const dx = frame * side
-    rows.forEach((row, y) => {
-      let x = 0
-      while (x < row.length) {
-        const ch = row[x]
-        if (ch === '.') { x++; continue }
-        let len = 1
-        while (x + len < row.length && row[x + len] === ch) len++
-        const fill = `var(--pp-${ch})`
-        if (!byColor.has(fill)) byColor.set(fill, [])
-        byColor.get(fill)!.push(`M${x + dx} ${y}h${len}v1h-${len}z`)
-        x += len
-      }
-    })
+  prop.rows.forEach((row, y) => {
+    let x = 0
+    while (x < row.length) {
+      const ch = row[x]
+      if (ch === '.') { x++; continue }
+      let len = 1
+      while (x + len < row.length && row[x + len] === ch) len++
+      const key = `var(--pp-${ch})`
+      if (!byColor.has(key)) byColor.set(key, [])
+      byColor.get(key)!.push(`M${x} ${y}h${len}v1h-${len}z`)
+      x += len
+    }
   })
-  const markup = `<symbol id="${SYMBOL_PREFIX}prop-${name}" viewBox="0 0 ${side * frames.length} ${side}" width="${side * frames.length}" height="${side}">`
+  const markup = `<symbol id="${SYMBOL_PREFIX}prop-${name}" viewBox="0 0 ${prop.rows[0].length} ${prop.rows.length}">`
     + [...byColor].map(([fill, d]) => `<path fill="${fill}" d="${d.join('')}"/>`).join('') + '</symbol>'
-  propCache.set(key, markup)
+  propCache.set(name, markup)
   return markup
 }
 
@@ -342,16 +326,6 @@ interface SceneryLayerProps {
   tileSize: number
   /** Indices de los props que deben atenuarse ahora mismo. */
   faded: ReadonlySet<number>
-  /** Plan del bioma: de aqui salen que props se mecen y cuales destellan. */
-  plan?: SceneryPlan
-  /** Ancho del mapa en pixeles de arte, para que la racha lo cruce. */
-  width: number
-}
-
-/** Ruido estable por posicion, para desfasar cada prop sin que se note el patron. */
-const jitter = (x: number, y: number) => {
-  const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453
-  return n - Math.floor(n)
 }
 
 /**
@@ -366,59 +340,32 @@ const jitter = (x: number, y: number) => {
  * Las casillas usan `fila * 2 + 1` y los props `fila * 2`, asi que en un empate
  * la torre de esa misma fila queda delante del prop anclado ahi.
  */
-export const SceneryLayer = memo(function SceneryLayer({ scenery, tileSize, faded, plan, width }: SceneryLayerProps) {
+export const SceneryLayer = memo(function SceneryLayer({ scenery, tileSize, faded }: SceneryLayerProps) {
   const unit = terrainUnit()
-  const defs = useMemo(() => {
-    const names = [...new Set(scenery.map((prop) => prop.name))]
-    return names.map((name) => propSymbol(name, plan?.sway?.[name] ?? 0)).join('')
-  }, [scenery, plan])
+  const defs = useMemo(
+    () => [...new Set(scenery.map((prop) => prop.name))].map(propSymbol).join(''),
+    [scenery],
+  )
   const scale = tileSize / unit
-
   return <>
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: defs }} />
-    {scenery.map((prop, i) => {
-      const side = prop.tiles * unit
-      const amount = plan?.sway?.[prop.name] ?? 0
-      const flashes = plan?.flash?.includes(prop.name) ?? false
-      const classes = ['prop']
-      if (faded.has(i)) classes.push('faded')
-      if (flashes) classes.push('flashes')
-      // La racha viaja: el desfase sale de donde esta el prop, mas una pizca de
-      // ruido para que la linea de avance no se lea como una regla.
-      const phase = (prop.x / width) * 0.8 + jitter(prop.x, prop.y) * 0.2
-      return (
-        <svg
-          key={`${prop.name}-${prop.x}-${prop.y}`}
-          className={classes.join(' ')}
-          viewBox={`0 0 ${side} ${side}`}
-          shapeRendering="crispEdges"
-          aria-hidden="true"
-          style={{
-            left: prop.x * scale,
-            top: prop.y * scale,
-            width: prop.tiles * tileSize,
-            height: prop.tiles * tileSize,
-            zIndex: prop.anchor * 2,
-            // Cada destello tarda entre 9 y 11 s, y empieza en un punto
-            // distinto: asi no laten todos a la vez.
-            ...(flashes ? {
-              animationDuration: `${9 + jitter(prop.y, prop.x) * 2}s`,
-              animationDelay: `${-jitter(prop.x * 3, prop.y * 7) * 11}s`,
-            } : {}),
-          }}
-        >
-          {amount > 0 ? (
-            <g
-              className="sway"
-              style={{ animationDelay: `${-phase * SWAY_SECONDS}s`, ['--frames' as string]: `${-side * (SWAY_FRAMES - 1)}px` }}
-            >
-              <use href={`#${SYMBOL_PREFIX}prop-${prop.name}`} />
-            </g>
-          ) : (
-            <use href={`#${SYMBOL_PREFIX}prop-${prop.name}`} />
-          )}
-        </svg>
-      )
-    })}
+    {scenery.map((prop, i) => (
+      <svg
+        key={`${prop.name}-${prop.x}-${prop.y}`}
+        className={faded.has(i) ? 'prop faded' : 'prop'}
+        viewBox={`0 0 ${prop.tiles * unit} ${prop.tiles * unit}`}
+        shapeRendering="crispEdges"
+        aria-hidden="true"
+        style={{
+          left: prop.x * scale,
+          top: prop.y * scale,
+          width: prop.tiles * tileSize,
+          height: prop.tiles * tileSize,
+          zIndex: prop.anchor * 2,
+        }}
+      >
+        <use href={`#${SYMBOL_PREFIX}prop-${prop.name}`} />
+      </svg>
+    ))}
   </>
 })

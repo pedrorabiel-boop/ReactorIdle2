@@ -32,13 +32,6 @@ interface Spread {
 
 export interface SceneryPlan {
   props: Record<string, PropSprite>
-  /**
-   * Props que se mecen con el viento, y cuántos píxeles se desplaza su copa.
-   * Lo pesado se mece menos: un manglar no se mueve como un junco.
-   */
-  sway?: Record<string, number>
-  /** Props que lanzan un destello cada tanto. */
-  flash?: readonly string[]
   /** Letras que son suelo propio del prop y por tanto parte de su base. */
   soil: ReadonlySet<string>
   /** Los grandes, repartidos y separados entre sí. */
@@ -49,8 +42,6 @@ export interface SceneryPlan {
 
 export const SWAMP_PLAN: SceneryPlan = {
   props: SWAMP_PROPS,
-  sway: { fern: 2, 'fern-b': 2, reeds: 2, 'reeds-b': 2, mangrove: 1, 'mangrove-b': 1, 'mangrove-c': 1 },
-  flash: ['glowshroom', 'glowshroom-b', 'crystal', 'crystal-b'],
   soil: new Set(['G', 'g', 'D', 'N']),
   anchored: [{ names: ['mangrove', 'mangrove-b', 'mangrove-c'], on: 'water', chance: 0.5, gap: [6, 5] }],
   scatter: [
@@ -62,7 +53,6 @@ export const SWAMP_PLAN: SceneryPlan = {
 
 export const CORAL_PLAN: SceneryPlan = {
   props: CORAL_PROPS,
-  sway: { palm: 2, 'palm-b': 2, palms: 2, bush: 1, 'bush-b': 1, 'palms-b': 2 },
   // La roca del arrecife es su suelo; las palmeras se apoyan en tierra ajena.
   soil: new Set(['R', 'r']),
   anchored: [
@@ -80,8 +70,6 @@ export const CORAL_PLAN: SceneryPlan = {
 
 export const NUKETOWN_PLAN: SceneryPlan = {
   props: NUKETOWN_PROPS,
-  // En el desierto el aire es más seco: recorrido más corto y más nervioso.
-  sway: { shrub: 2, 'shrub-b': 2, cactus: 1, 'cactus-b': 1 },
   // Nada de estos props trae suelo propio: se apoyan en el terreno del marco,
   // asi que su base es solo lo que pintan por abajo.
   soil: new Set<string>(),

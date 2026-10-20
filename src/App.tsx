@@ -175,7 +175,7 @@ function App() {
   function buySector() { const next = buyDesertSector(gameRef.current); if (next === gameRef.current) { setToast('Aún no cumples los requisitos de expansión.'); return } replaceGame(next); setToast('Distrito Neón adquirido.') }
 
   return <div className={`app env-${environment}`} style={environmentStyle(environmentDefinition)}><SpriteDefs />
-    <MapViewport game={game} island={island} coast={coast} coastStyle={environmentDefinition.coast} env={environmentDefinition} scenery={scenery} sceneryPlan={sceneryPlan} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
+    <MapViewport game={game} island={island} coast={coast} coastStyle={environmentDefinition.coast} env={environmentDefinition} scenery={scenery} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
     {!buildFocus && <Hud game={game} zoom={zoom} onZoom={changeZoom} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
       <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
