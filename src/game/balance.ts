@@ -36,7 +36,7 @@ export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; 
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
   thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, toda la red térmica, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
   fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea el reactor de fusión, la Turbina II y la Tubería II sin alterar la infraestructura existente.', cost: 50_000_000, requires: 'thorium' },
-  expansion: { name: 'Expansión territorial', description: 'Autoriza la compra del Distrito Neón. No requiere otras tecnologías.', cost: 15_000_000 },
+  expansion: { name: 'Expansión territorial', description: 'Autoriza la compra del Manglar. No requiere otras tecnologías.', cost: 15_000_000 },
   testsite: { name: 'Autorización de ensayos', description: 'Abre el Nuclear Test Site, 150 casillas de suelo limpio, y con él el reactor experimental y el Controlador de red.', cost: 100_000_000, requires: 'fusion' },
 }
 export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false, testsite: false }

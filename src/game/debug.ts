@@ -30,7 +30,7 @@ export const ECONOMY_DEBUG_FIELDS: Array<{ key: DebugEconomyKey; label: string; 
   { key: 'prestigeSalesBonus', label: 'Prestigio: bonus de venta', step: 0.05 },
   { key: 'secondIslandCost', label: 'Costo segunda isla' },
   { key: 'maxBuildingLevel', label: 'Nivel máximo · Costa' },
-  { key: 'maxCyberpunkBuildingLevel', label: 'Nivel máximo · Distrito Neón' },
+  { key: 'maxCyberpunkBuildingLevel', label: 'Nivel máximo · Manglar' },
   { key: 'outputGrowth', label: 'Potencia por nivel', step: 0.01 },
   { key: 'upgradeGrowth', label: 'Crecimiento costo mejoras', step: 0.01 },
   { key: 'upgradeBaseMultiplier', label: 'Multiplicador costo mejora', step: 0.1 },
