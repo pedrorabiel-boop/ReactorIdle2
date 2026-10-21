@@ -1,12 +1,12 @@
-import { AUTO_REBUILD_COSTS, ECONOMY, GIFT_TICKS_PER_THERMAL_TECH, TECHNOLOGIES, THERMAL_TECHS, UPGRADE_BASE_COSTS, levelMultiplier } from './balance'
+import { AUTO_REBUILD_COSTS, ECONOMY, GIFT_TICKS_PER_THERMAL_TECH, TECHNOLOGIES, THERMAL_TECHS, UPGRADE_BASE_COSTS, levelMultiplier, sectorBaselineLevel, sectorMaxLevel } from './balance'
 import { COMPONENTS } from './catalog'
 import { canAfford, configuredUpgradeBaseCost, spendCredits } from './debug'
 import type { ComponentKind, GameState, TechKey, UpgradeTrack } from './types'
 
 const economy = (state: GameState) => state.sectorEconomies[state.activeSector]
-const baselineLevel = (state: GameState) => state.activeSector === 'coast' ? 1 : 0
+const baselineLevel = (state: GameState) => sectorBaselineLevel(state.activeSector)
 const effectiveLevel = (state: GameState, level: number) => level - baselineLevel(state) + 1
-export const maxUpgradeLevel = (state: GameState) => state.activeSector === 'coast' ? ECONOMY.maxBuildingLevel : ECONOMY.maxCyberpunkBuildingLevel
+export const maxUpgradeLevel = (state: GameState) => sectorMaxLevel(state.activeSector)
 export const componentLevel = (state: GameState, kind: ComponentKind) => economy(state).buildingLevels[kind] ?? baselineLevel(state)
 export const capacityLevel = (state: GameState, kind: ComponentKind) => economy(state).capacityLevels[kind] ?? baselineLevel(state)
 export const autonomyLevel = (state: GameState, kind: ComponentKind) => economy(state).autonomyLevels[kind] ?? baselineLevel(state)

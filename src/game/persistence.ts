@@ -1,4 +1,4 @@
-import { COMPONENT_ORDER, ECONOMY, TECH_ORDER, emptyAutoRebuilds, emptyBuildingLevels, levelMultiplier, offlineProductiveSeconds } from './balance'
+import { COMPONENT_ORDER, ECONOMY, TECH_ORDER, emptyAutoRebuilds, emptyBuildingLevels, levelMultiplier, offlineProductiveSeconds, sectorBaselineLevel, sectorMaxLevel } from './balance'
 import { COMPONENTS } from './catalog'
 import { applyDebugSettings, normalizeDebugSettings } from './debug'
 import { createInitialState, emptyTickReport, isComponentUnlocked, simulateTick } from './engine'
@@ -86,8 +86,8 @@ export function normalizeGameState(value: unknown): GameState | null {
   const activeTiles = sectorLayouts[activeSector]
   sectorLayouts[activeSector] = activeTiles
   const normalizeLevels = (levels: Record<string, number> | undefined, sector: SectorKey) => {
-    const minimum = sector === 'desert' ? 0 : 1
-    const maximum = sector === 'desert' ? ECONOMY.maxCyberpunkBuildingLevel : ECONOMY.maxBuildingLevel
+    const minimum = sectorBaselineLevel(sector)
+    const maximum = sectorMaxLevel(sector)
     return Object.fromEntries(Object.entries({ ...emptyBuildingLevels(minimum), ...(levels ?? {}) }).map(([kind, level]) => {
       const parsed = Number(level)
       return [kind, Math.max(minimum, Math.min(maximum, Number.isFinite(parsed) ? Math.floor(parsed) : minimum))]

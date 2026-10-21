@@ -1,4 +1,4 @@
-import type { ComponentKind, TechKey, UpgradeTrack } from './types'
+import type { ComponentKind, SectorKey, TechKey, UpgradeTrack } from './types'
 
 export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15, prestigeCostMultiple: 100, prestigeSalesBonus: 1.2 } as const
 /**
@@ -82,5 +82,17 @@ export function resistanceFromCapacityAndFlow(capacity: number, referenceFlow: n
 }
 export function emptyBuildingLevels(initialLevel = 1): Record<ComponentKind, number> { return Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, initialLevel])) as Record<ComponentKind, number> }
 export function emptyAutoRebuilds(): Record<ComponentKind, boolean> { return Object.fromEntries(COMPONENT_ORDER.map((kind) => [kind, false])) as Record<ComponentKind, boolean> }
+/**
+ * Limites de nivel por sector. Fuente unica, y por una razon concreta.
+ *
+ * Estaban escritos dos veces: `research` decia "la costa llega a 10, los demas
+ * a 15" y `persistence` decia "el Manglar llega a 15, los demas a 10". El Test
+ * Site caia en los dos "demas", asi que dejaba subir hasta 15 y al cargar la
+ * partida recortaba a 10: el jugador perdia las mejoras al cerrar el juego.
+ * Mientras la regla viva en un solo sitio no pueden volver a contradecirse.
+ */
+export const sectorBaselineLevel = (sector: SectorKey): number => sector === 'coast' ? 1 : 0
+export const sectorMaxLevel = (sector: SectorKey): number => sector === 'coast' ? ECONOMY.maxBuildingLevel : ECONOMY.maxCyberpunkBuildingLevel
+
 export function milestoneMultiplier(level: number): number { return level >= 10 ? 2.5 : level >= 5 ? 1.5 : 1 }
 export function levelMultiplier(level: number): number { return Math.pow(ECONOMY.outputGrowth, Math.max(0, level - 1)) * milestoneMultiplier(level) }
