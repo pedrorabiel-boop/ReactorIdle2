@@ -4,7 +4,7 @@ import { countKind, isComponentUnlocked, isComponentVisible } from '../../game/e
 import { canAfford, hasInfiniteMoney } from '../../game/debug'
 import { maxUpgradeLevel, nextUpgradeGainPercent, upgradeCost, upgradeLevel, upgradeTracks } from '../../game/research'
 import type { ComponentKind, GameState, UpgradeTrack } from '../../game/types'
-import { formatDecimal, formatNumber } from '../format'
+import { formatCompact, formatDecimal, formatNumber } from '../format'
 import { Sprite } from '../pixel/Sprite'
 import { Sheet } from '../Sheet'
 import { sectorLabel } from '../sectors'
@@ -45,7 +45,7 @@ export function UpgradesSheet({ game, onClose, onUpgrade, onUpgradeMax, onToggle
   const maximum = maxUpgradeLevel(game)
 
   return <Sheet title="Mejoras" eyebrow={`POR TIPO · ${sectorLabel(game.activeSector).toUpperCase()}`} onClose={onClose} className="global-upgrades">
-    <div className="balance frame"><Sprite name="icon-coin" size={22} /><div><strong>₡ {hasInfiniteMoney(game) ? '∞' : formatNumber(game.credits)}</strong><small>Afecta todas las unidades presentes y futuras del tipo, solo en este mapa · máximo Nv.{maximum}.</small></div></div>
+    <div className="balance frame"><Sprite name="icon-coin" size={22} /><div><strong>₡ {hasInfiniteMoney(game) ? '∞' : formatCompact(game.credits)}</strong><small>Afecta todas las unidades presentes y futuras del tipo, solo en este mapa · máximo Nv.{maximum}.</small></div></div>
 
     {hidden.length > 0 && <button type="button" className={`btn frame wide hidden-toggle ${showHidden ? 'on' : ''}`} aria-pressed={showHidden} onClick={() => setShowHidden((current) => !current)}>
       {showHidden ? `Volver a las mejoras activas (${unlocked.length - hidden.length})` : hidden.length === 1 ? 'Ver la torre apartada' : `Ver las ${formatNumber(hidden.length)} torres apartadas`}
@@ -77,7 +77,7 @@ export function UpgradesSheet({ game, onClose, onUpgrade, onUpgradeMax, onToggle
               <button className="upgrade-track frame" disabled={maxed || !affordable} onClick={() => onUpgrade(kind, track)}>
                 <span>{trackLabel(kind, track)} <b>Nv.{level}</b></span>
                 {!maxed && <em>Próximo: +{formatDecimal(impact)}% {impactLabel(track, kind)}</em>}
-                <small>{maxed ? 'MÁX.' : <><Sprite name="icon-coin" size={9} />{formatNumber(cost)}</>}</small>
+                <small>{maxed ? 'MÁX.' : <><Sprite name="icon-coin" size={9} />{formatCompact(cost)}</>}</small>
               </button>
               <button
                 className="upgrade-max frame"

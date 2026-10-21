@@ -4,7 +4,7 @@ import { COMPONENTS } from '../../game/catalog'
 import { pendingAutoRebuilds, pendingTechs } from '../../game/engine'
 import { autoRebuildCost, canUnlockAutoRebuild, canUnlockTech } from '../../game/research'
 import type { ComponentKind, GameState, TechKey } from '../../game/types'
-import { formatDecimal, formatNumber } from '../format'
+import { formatCompact, formatDecimal } from '../format'
 import { Sprite } from '../pixel/Sprite'
 import { Sheet } from '../Sheet'
 
@@ -30,7 +30,7 @@ function ResearchCard({ id, icon, title, description, cost, affordable, open, on
     <span className="upgrade-icon frame"><Sprite name={icon} size={28} /></span>
     <div className="upgrade-main">
       <strong>{title}</strong>
-      <button className="btn frame gold" disabled={!affordable} onClick={onBuy}>{formatNumber(cost)} RP</button>
+      <button className="btn frame gold" disabled={!affordable} onClick={onBuy}>{formatCompact(cost)} RP</button>
     </div>
     <button
       type="button"
@@ -55,7 +55,7 @@ export function ResearchSheet({ game, onClose, onResearch, onAutoRebuild }: Prop
   const doneLicences = LIFETIME_ORDER.filter((kind) => game.autoRebuilds[kind]).length
 
   return <Sheet title="Laboratorio" eyebrow="SIGUIENTE PASO" onClose={onClose} className="lab">
-    <div className="balance frame"><Sprite name="icon-flask" size={22} /><div><strong>{formatDecimal(game.researchPoints)} RP</strong><small>Solo las instalaciones de I+D generan RP.</small></div></div>
+    <div className="balance frame"><Sprite name="icon-flask" size={22} /><div><strong>{formatCompact(game.researchPoints)} RP</strong><small>Solo las instalaciones de I+D generan RP.</small></div></div>
 
     <p className="research-progress">{doneTechs} de {TECH_ORDER.length} tecnologías · {doneLicences} de {LIFETIME_ORDER.length} licencias</p>
 

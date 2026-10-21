@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { COMPONENTS } from '../../game/catalog'
 import { directEnergyRate, fuelCapacity } from '../../game/research'
 import type { GameState } from '../../game/types'
-import { formatDecimal, formatNumber, formatShort } from '../format'
+import { formatCompact, formatDecimal, formatShort } from '../format'
 import { Sprite } from '../pixel/Sprite'
 import { WELCOME_TEXT, WELCOME_TITLE } from '../welcome'
 import type { TutorialSignal, TutorialStep } from './steps'
@@ -62,7 +62,7 @@ function useTargetBox(target: string | undefined): Box | null {
 function WindCard({ game, highlight }: { game: GameState; highlight?: string }) {
   const definition = COMPONENTS.wind
   const rows = [
-    { tour: 'zoom-cost', icon: 'icon-coin', label: 'Precio', value: formatNumber(definition.cost) },
+    { tour: 'zoom-cost', icon: 'icon-coin', label: 'Precio', value: formatCompact(definition.cost) },
     { tour: 'zoom-output', icon: 'icon-bolt', label: 'Productividad', value: `${formatDecimal(directEnergyRate(game, 'wind'))} E/s` },
     { tour: 'zoom-life', icon: 'icon-clock', label: 'Vida útil', value: `${formatShort(fuelCapacity(game, 'wind'))} s` },
   ]

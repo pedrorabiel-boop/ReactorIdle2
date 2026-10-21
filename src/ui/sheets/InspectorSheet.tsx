@@ -3,7 +3,7 @@ import { autonomyLevel, capacityLevel, componentCapacity, componentLevel, fuelCa
 import { demolitionRefund, isReactorKind, usesAutonomy } from '../../game/engine'
 import { canAfford } from '../../game/debug'
 import type { GameState } from '../../game/types'
-import { formatDecimal, formatNumber } from '../format'
+import { formatCompact, formatDecimal } from '../format'
 import { Sprite } from '../pixel/Sprite'
 import { Sheet } from '../Sheet'
 
@@ -16,12 +16,12 @@ export function InspectorSheet({ game, index, refuelPrice, repairPrice, onClose,
   return <Sheet title={def.name} eyebrow="COMPONENTE" onClose={onClose} className="inspector">
     <div className="inspector-head"><span className="portrait frame"><Sprite name={tile.kind} size={48} /></span><p>{def.description}</p></div>
     <div className="readouts">
-      {capacity > 0 && <div className="readout"><div><span>Calor</span><strong>{formatDecimal(tile.heat)} / {formatNumber(capacity)}</strong></div><Bar value={tile.heat} max={capacity} tone="heat" /><small>Flujo último ciclo: {formatDecimal(tile.flow)}</small></div>}
-      {hasAutonomy && <div className="readout"><div><span>{reactor ? 'Autonomía' : 'Vida útil'}</span><strong>{formatNumber(tile.fuel)} / {formatNumber(fuelMax)} s</strong></div><Bar value={tile.fuel} max={fuelMax} tone="fuel" /></div>}
-      {hasAutonomy && <div className="readout"><div><span>Auto rebuild</span><strong>{game.autoRebuilds[tile.kind] ? 'ACTIVO' : 'NO INVESTIGADO'}</strong></div><small>{game.autoRebuilds[tile.kind] ? `Al caducar intentará pagar ₡ ${formatNumber(def.cost)} y continuará.` : 'Se desbloquea por tipo en el Laboratorio.'}</small></div>}
+      {capacity > 0 && <div className="readout"><div><span>Calor</span><strong>{formatDecimal(tile.heat)} / {formatCompact(capacity)}</strong></div><Bar value={tile.heat} max={capacity} tone="heat" /><small>Flujo último ciclo: {formatDecimal(tile.flow)}</small></div>}
+      {hasAutonomy && <div className="readout"><div><span>{reactor ? 'Autonomía' : 'Vida útil'}</span><strong>{formatCompact(tile.fuel)} / {formatCompact(fuelMax)} s</strong></div><Bar value={tile.fuel} max={fuelMax} tone="fuel" /></div>}
+      {hasAutonomy && <div className="readout"><div><span>Auto rebuild</span><strong>{game.autoRebuilds[tile.kind] ? 'ACTIVO' : 'NO INVESTIGADO'}</strong></div><small>{game.autoRebuilds[tile.kind] ? `Al caducar intentará pagar ₡ ${formatCompact(def.cost)} y continuará.` : 'Se desbloquea por tipo en el Laboratorio.'}</small></div>}
       <div className="readout"><div><span>Mejoras globales</span><strong>{tracks.map((track) => `${track === 'output' ? 'Prod.' : track === 'capacity' ? 'Cap.' : 'Vida'} Nv.${track === 'output' ? componentLevel(game, tile.kind) : track === 'capacity' ? capacityLevel(game, tile.kind) : autonomyLevel(game, tile.kind)}`).join(' · ')}</strong></div><small>Se administran para todas las unidades desde la pestaña Mejoras.</small></div>
       {tile.damaged && <div className="readout"><strong className="danger-text">AVERÍA TÉRMICA</strong><small>Repara para vaciar el calor y reactivar la pieza.</small></div>}
     </div>
-    <div className="actions">{tile.damaged ? <button className="btn frame danger" disabled={!canAfford(game, repairPrice)} onClick={onRepair}>Reparar · <Sprite name="icon-coin" size={10} />{formatNumber(repairPrice)}</button> : <button className="btn frame" onClick={onToggle}>{tile.enabled ? 'Apagar' : 'Encender'}</button>}{hasAutonomy && tile.fuel <= 0 && <button className="btn frame gold" disabled={!canAfford(game, refuelPrice)} onClick={onRefuel}>Reconstruir · <Sprite name="icon-coin" size={10} />{formatNumber(refuelPrice)}</button>}<button className="btn frame danger" onClick={onSell}>Demoler · +<Sprite name="icon-coin" size={10} />{formatNumber(demolitionRefund(tile.kind))}</button></div>
+    <div className="actions">{tile.damaged ? <button className="btn frame danger" disabled={!canAfford(game, repairPrice)} onClick={onRepair}>Reparar · <Sprite name="icon-coin" size={10} />{formatCompact(repairPrice)}</button> : <button className="btn frame" onClick={onToggle}>{tile.enabled ? 'Apagar' : 'Encender'}</button>}{hasAutonomy && tile.fuel <= 0 && <button className="btn frame gold" disabled={!canAfford(game, refuelPrice)} onClick={onRefuel}>Reconstruir · <Sprite name="icon-coin" size={10} />{formatCompact(refuelPrice)}</button>}<button className="btn frame danger" onClick={onSell}>Demoler · +<Sprite name="icon-coin" size={10} />{formatCompact(demolitionRefund(tile.kind))}</button></div>
   </Sheet>
 }

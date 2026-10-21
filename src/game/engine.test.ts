@@ -323,9 +323,9 @@ describe('controlador de red', () => {
     state = placeTile(state, 25, 'controller')
     state = placeTile(state, 26, 'controller')
     state = placeTile(state, 27, 'controller')
-    expect(fuelCapacity(state, 'thorium')).toBeCloseTo(base * Math.pow(1.02, 3))
+    expect(fuelCapacity(state, 'thorium')).toBeCloseTo(base * Math.pow(1.015, 3))
     // Y alcanza a los molinos y paneles igual que a los reactores.
-    expect(fuelCapacity(state, 'solar')).toBeCloseTo(COMPONENTS.solar.fuelCycles! * Math.pow(1.02, 3))
+    expect(fuelCapacity(state, 'solar')).toBeCloseTo(COMPONENTS.solar.fuelCycles! * Math.pow(1.015, 3))
   })
 
   it('conserva la fraccion de vida al construir y vender Controles: no fabrica combustible', () => {

@@ -3,7 +3,7 @@ import { controllerMultiplier, sectorEnergyStored, sectorSalesCapacity, sectorSt
 import { controllerAutonomyMultiplier } from '../game/research'
 import { hasInfiniteMoney } from '../game/debug'
 import type { GameState } from '../game/types'
-import { formatCompact, formatDecimal, formatExact, formatNumber } from './format'
+import { formatCompact, formatDecimal, formatMultiplier, formatNumber, formatPlain } from './format'
 import { Sprite } from './pixel/Sprite'
 
 /**
@@ -44,18 +44,18 @@ export function Hud({ game, zoom, onZoom, musicOn, onToggleMusic, onSellEnergy, 
   const credits = hasInfiniteMoney(game) ? '∞' : formatCompact(game.credits)
   const salesCapacity = sectorSalesCapacity(game)
   const exactCopy = exactResource === 'credits'
-    ? `Dinero: ${hasInfiniteMoney(game) ? '∞' : `₡ ${formatExact(game.credits)}`} · Ingreso: ₡ ${formatExact(report.earnedCredits)}/s · Poder total de venta: ${formatExact(salesCapacity)} E/s · Multiplicador de venta: ×${formatDecimal(controllerMultiplier(game))}`
+    ? `Dinero: ${hasInfiniteMoney(game) ? '∞' : `₡ ${formatPlain(game.credits)}`} · Ingreso: ₡ ${formatPlain(report.earnedCredits)}/s · Poder total de venta: ${formatPlain(salesCapacity)} E/s · Multiplicador de venta: ×${formatMultiplier(controllerMultiplier(game))}`
     : exactResource === 'energy'
-      ? `Energía: ${formatExact(stored)} / ${formatExact(capacity)} E · Producción: ${formatExact(report.producedEnergy)}/s · Venta: ${formatExact(report.soldEnergy)} / ${formatExact(salesCapacity)}/s · Multiplicador de autonomía: ×${formatDecimal(controllerAutonomyMultiplier(game))}`
+      ? `Energía: ${formatPlain(stored)} / ${formatPlain(capacity)} E · Producción: ${formatPlain(report.producedEnergy)}/s · Venta: ${formatPlain(report.soldEnergy)} / ${formatPlain(salesCapacity)}/s · Multiplicador de autonomía: ×${formatMultiplier(controllerAutonomyMultiplier(game))}`
       : exactResource === 'research'
-        ? `Investigación: ${formatExact(game.researchPoints)} RP · Producción: ${formatExact(report.generatedResearch)} RP/s`
+        ? `Investigación: ${formatPlain(game.researchPoints)} RP · Producción: ${formatPlain(report.generatedResearch)} RP/s`
         : null
   const toggleExact = (resource: 'credits' | 'energy' | 'research') => setExactResource((current) => current === resource ? null : resource)
   return <header className="hud">
     <div className="hud-row">
-      <button type="button" data-tour="hud-credits" className={`res resource-button frame ${exactResource === 'credits' ? 'on' : ''}`} aria-label={`Créditos ${hasInfiniteMoney(game) ? 'infinitos' : formatExact(game.credits)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'credits'} onClick={() => toggleExact('credits')}><Sprite name="icon-coin" size={18} /><span className="val">{credits}</span><span className="rate">+{formatDecimal(report.earnedCredits)}/s</span></button>
-      <button type="button" data-tour="hud-energy" className={`res resource-button energy-bank frame ${bankState} ${exactResource === 'energy' ? 'on' : ''}`} aria-label={`Energía ${formatExact(stored)} de ${formatExact(capacity)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'energy'} onClick={() => toggleExact('energy')}><Sprite name="icon-bolt" size={18} /><span className="val">{formatNumber(Math.floor(stored))}/{formatNumber(Math.floor(capacity))}</span><span className="rate">{formatDecimal(report.producedEnergy)} prod · {formatDecimal(report.soldEnergy)}/{formatDecimal(salesCapacity)} venta</span></button>
-      <button type="button" data-tour="hud-research" className={`res resource-button frame ${exactResource === 'research' ? 'on' : ''}`} aria-label={`Research ${formatExact(game.researchPoints)} RP; tocar para ver valor exacto`} aria-expanded={exactResource === 'research'} onClick={() => toggleExact('research')}><Sprite name="icon-flask" size={18} /><span className="val">{formatCompact(game.researchPoints)} RP</span><span className="rate">+{formatDecimal(report.generatedResearch)}/s</span></button>
+      <button type="button" data-tour="hud-credits" className={`res resource-button frame ${exactResource === 'credits' ? 'on' : ''}`} aria-label={`Créditos ${hasInfiniteMoney(game) ? 'infinitos' : formatPlain(game.credits)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'credits'} onClick={() => toggleExact('credits')}><Sprite name="icon-coin" size={18} /><span className="val">{credits}</span><span className="rate">+{formatDecimal(report.earnedCredits)}/s</span></button>
+      <button type="button" data-tour="hud-energy" className={`res resource-button energy-bank frame ${bankState} ${exactResource === 'energy' ? 'on' : ''}`} aria-label={`Energía ${formatPlain(stored)} de ${formatPlain(capacity)}; tocar para ver valor exacto`} aria-expanded={exactResource === 'energy'} onClick={() => toggleExact('energy')}><Sprite name="icon-bolt" size={18} /><span className="val">{formatNumber(Math.floor(stored))}/{formatNumber(Math.floor(capacity))}</span><span className="rate">{formatDecimal(report.producedEnergy)} prod · {formatDecimal(report.soldEnergy)}/{formatDecimal(salesCapacity)} venta</span></button>
+      <button type="button" data-tour="hud-research" className={`res resource-button frame ${exactResource === 'research' ? 'on' : ''}`} aria-label={`Research ${formatPlain(game.researchPoints)} RP; tocar para ver valor exacto`} aria-expanded={exactResource === 'research'} onClick={() => toggleExact('research')}><Sprite name="icon-flask" size={18} /><span className="val">{formatCompact(game.researchPoints)} RP</span><span className="rate">+{formatDecimal(report.generatedResearch)}/s</span></button>
     </div>
     {exactCopy && <button type="button" className="hud-exact frame" onClick={() => setExactResource(null)} aria-label={`${exactCopy}; cerrar detalle`}><Marquee text={exactCopy} /></button>}
     <div className="hud-row hud-secondary">
@@ -65,7 +65,7 @@ export function Hud({ game, zoom, onZoom, musicOn, onToggleMusic, onSellEnergy, 
         data-tour="hud-sell"
         disabled={stored <= 0}
         onClick={onSellEnergy}
-        aria-label={`Vender toda la energía almacenada: ${formatExact(stored)} E`}
+        aria-label={`Vender toda la energía almacenada: ${formatPlain(stored)} E`}
       >
         <Sprite name="icon-bolt" size={16} />
         <span className="sell-arrow" aria-hidden="true">→</span>
