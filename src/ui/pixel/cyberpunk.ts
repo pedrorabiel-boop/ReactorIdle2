@@ -28,22 +28,25 @@ export const CYBERPUNK_ENVIRONMENT: Environment = {
   // Letras de los props del bioma: manglares, helechos, hongos.
   props: PROP_COLORS,
   /**
-   * Musgo y oro: la maquinaria lleva años aquí y el pantano se la ha comido.
+   * Musgo y oro: la maquinaria lleva anos aqui y el pantano se la ha comido.
    *
-   * El mapa anterior mandaba azul claro, verde y amarillo a la MISMA ranura de
-   * cian, así que tres funciones distintas acababan del mismo color, y el
-   * naranja al rojo. Aquí no se colapsa ningún par que importe y los tres
-   * reactores vuelven a distinguirse por tono: ámbar el núcleo, verde el torio
-   * y púrpura la fusión.
+   * Esta tabla se escribio mal una vez: el commit que decia aplicar "Musgo y
+   * oro" dejo la de la propuesta 2, que conservaba el purpura, el naranja y un
+   * acento coral. Son dos lecturas distintas y esta es la elegida: los cuerpos
+   * se van a musgo y lo unico que queda encendido es el oro.
+   *
+   * El precio de ser consecuente: el purpura de la fusion tambien se apaga, asi
+   * que los reactores ya no se separan por tono sino por dibujo y por el oro de
+   * sus piezas calientes.
    */
   recolor: {
-    B: 'v', b: 'e', // azules → musgo; el panel solar se lee como panel
-    E: 'E', e: 'e', // verdes se quedan: son lo que separa al torio
-    O: 'O', Y: 'Y', // ámbar y oro: todo lo que está encendido
-    R: 'O', r: 'Y', // el rojo sube a ámbar en vez de apagarse a cobre
-    C: 'c', // cian → coral pálido: el acento propio de las torres de nivel II
-    P: 'P', p: 'p', // púrpura se queda: es la identidad de la fusión
-    T: 'n', t: 'v', // maderas → musgo
+    B: 'n', b: 'v', // azules -> musgo: no queda nada frio
+    E: 'v', e: 'e', // el verde propio baja a musgo; su luz se queda
+    O: 'Y', Y: 'Y', // el naranja sube a oro: un solo acento encendido
+    R: 'O', r: 'Y', // el rojo pasa por ambar hasta el oro
+    C: 'e', // cian -> verde claro, que es el unico claro que admite el bioma
+    P: 'n', p: 'v', // purpura -> musgo
+    T: 'n', t: 'v', // maderas -> musgo
   },
   decoration: 'pylon',
   glow: 'rgba(255,95,200,.26)',
