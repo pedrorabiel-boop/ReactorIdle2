@@ -29,7 +29,7 @@ describe('promoted official balance', () => {
       cooler: { cost: 1_000_000, capacity: 0, coolingRate: 50_000 },
       exchanger: { cost: 50_000_000, capacity: 2_000_000, referenceTransferRate: 200_000 },
       pipe: { cost: 10_000_000, capacity: 200_000, referenceTransferRate: 50_000, thermalResistance: 0.01 },
-      pipe2: { cost: 250_000_000, capacity: 10_000_000, referenceTransferRate: 1_967_347, thermalResistance: 1 },
+      pipe2: { cost: 1_000_000_000, capacity: 10_000_000, referenceTransferRate: 1_967_347, thermalResistance: 1 },
       accumulator: { cost: 250_000_000, capacity: 10_000_000, referenceTransferRate: 100_000 },
     })
     expect(COMPONENTS.exchanger.thermalResistance).toBeCloseTo(2.24071005886228, 12)
@@ -57,7 +57,7 @@ describe('promoted official balance', () => {
       cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
       exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
       pipe: { output: 300_000_000, capacity: 30_000_000, autonomy: 225_000_000 },
-      pipe2: { output: 67_200_000_000, capacity: 57_120_000_000, autonomy: 50_400_000_000 },
+      pipe2: { output: 67_200_000_000, capacity: 1_000_000_000, autonomy: 50_400_000_000 },
       accumulator: { output: 7_500_000_000, capacity: 6_375_000_000, autonomy: 5_625_000_000 },
     })
     const state = createInitialState()

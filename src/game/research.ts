@@ -43,9 +43,18 @@ export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameSt
 export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
   const def = COMPONENTS[kind]
   const tracks: UpgradeTrack[] = []
-  // El Control no lleva pista de salida: su factor ya se acumula construyendo
-  // mas, y multiplicar la BASE de una cadena exponencial no se puede acotar.
-  if (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate) tracks.push('output')
+  // Dos tipos no llevan pista de salida.
+  //
+  // El Control, porque su factor ya se acumula construyendo mas y multiplicar
+  // la BASE de una cadena exponencial no se puede acotar.
+  //
+  // Las tuberias, porque lo que la pista movia era su resistencia, y ahi no
+  // habia nada que ganar: la Tuberia I ya conduce a 0,01 -practicamente
+  // instantanea- y las Tuberia II se igualan entre si por su propia masa, sin
+  // mirar la resistencia. Lo que de verdad las limita es cuanto calor toleran,
+  // y de eso se ocupa la pista de capacidad.
+  const sinSalida = def.kind === 'controller' || def.kind === 'pipe' || def.kind === 'pipe2'
+  if (!sinSalida && (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate)) tracks.push('output')
   if (def.capacity > 0) tracks.push('capacity')
   if (def.fuelCycles) tracks.push('autonomy')
   return tracks
