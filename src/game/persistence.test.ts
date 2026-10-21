@@ -18,6 +18,12 @@ const rico = (sector: SectorKey): GameState => ({
 })
 
 describe('la partida sobrevive a cerrar y abrir', () => {
+  it('cada mapa tiene su propio techo de niveles', () => {
+    expect(sectorMaxLevel('coast')).toBe(10)
+    expect(sectorMaxLevel('desert')).toBe(15)
+    expect(sectorMaxLevel('testsite')).toBe(20)
+  })
+
   /**
    * Esta era la perdida real: `research` dejaba subir el Test Site hasta 15 y
    * `persistence` recortaba a 10 al cargar, asi que el jugador perdia las

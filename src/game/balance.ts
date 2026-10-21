@@ -1,6 +1,6 @@
 import type { ComponentKind, SectorKey, TechKey, UpgradeTrack } from './types'
 
-export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15, prestigeCostMultiple: 100, prestigeSalesBonus: 1.2 } as const
+export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, maxTestSiteBuildingLevel: 20, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15, prestigeCostMultiple: 100, prestigeSalesBonus: 1.2 } as const
 /**
  * Rendimiento de una ausencia por tramos: cuanto más tiempo pasa, menos rinde
  * cada hora. Más allá del último tramo la planta no produce nada.
@@ -92,7 +92,7 @@ export function emptyAutoRebuilds(): Record<ComponentKind, boolean> { return Obj
  * Mientras la regla viva en un solo sitio no pueden volver a contradecirse.
  */
 export const sectorBaselineLevel = (sector: SectorKey): number => sector === 'coast' ? 1 : 0
-export const sectorMaxLevel = (sector: SectorKey): number => sector === 'coast' ? ECONOMY.maxBuildingLevel : ECONOMY.maxCyberpunkBuildingLevel
+export const sectorMaxLevel = (sector: SectorKey): number => sector === 'testsite' ? ECONOMY.maxTestSiteBuildingLevel : sector === 'desert' ? ECONOMY.maxCyberpunkBuildingLevel : ECONOMY.maxBuildingLevel
 
 export function milestoneMultiplier(level: number): number { return level >= 10 ? 2.5 : level >= 5 ? 1.5 : 1 }
 export function levelMultiplier(level: number): number { return Math.pow(ECONOMY.outputGrowth, Math.max(0, level - 1)) * milestoneMultiplier(level) }

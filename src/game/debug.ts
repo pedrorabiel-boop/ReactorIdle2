@@ -31,6 +31,7 @@ export const ECONOMY_DEBUG_FIELDS: Array<{ key: DebugEconomyKey; label: string; 
   { key: 'secondIslandCost', label: 'Costo segunda isla' },
   { key: 'maxBuildingLevel', label: 'Nivel máximo · Costa' },
   { key: 'maxCyberpunkBuildingLevel', label: 'Nivel máximo · Manglar' },
+  { key: 'maxTestSiteBuildingLevel', label: 'Nivel máximo · Test Site' },
   { key: 'outputGrowth', label: 'Potencia por nivel', step: 0.01 },
   { key: 'upgradeGrowth', label: 'Crecimiento costo mejoras', step: 0.01 },
   { key: 'upgradeBaseMultiplier', label: 'Multiplicador costo mejora', step: 0.1 },

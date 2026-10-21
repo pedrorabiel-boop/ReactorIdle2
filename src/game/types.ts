@@ -5,7 +5,7 @@ export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'resea
 export type SectorKey = 'coast' | 'desert' | 'testsite'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
 export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus' | 'controllerAutonomy'
-export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier' | 'prestigeCostMultiple' | 'prestigeSalesBonus'
+export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'maxTestSiteBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier' | 'prestigeCostMultiple' | 'prestigeSalesBonus'
 
 export interface DebugSettings {
   enabled: boolean
