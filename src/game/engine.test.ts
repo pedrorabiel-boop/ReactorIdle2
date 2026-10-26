@@ -3,7 +3,7 @@ import { AUTO_REBUILD_COSTS, BOOST_TICKS_PER_SECOND, ECONOMY, GIFT_TICKS_PER_THE
 import { COMPONENTS } from './catalog'
 import { buyDesertSector, claimContract, createInitialState, demolitionRefund, globalSalesCapacity, globalStorageCapacity, isComponentUnlocked, placeTile, refuelTile, repairTile, sectorEnergyStored, sellStoredEnergy, sellTile, isAutoRebuildActive, simulateMany, simulateSecond, simulateTick, switchSector, toggleTile, totalHeat } from './engine'
 import { importGame, normalizeGameState, simulateOffline } from './persistence'
-import { canUnlockAutoRebuild, canUnlockTech, componentCapacity, componentLevel, conversionRate, coolingRate, directEnergyRate, fuelCapacity, maxUpgradeLevel, nextUpgradeGainPercent, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingType, upgradeCost, upgradeTracks } from './research'
+import { canUnlockAutoRebuild, canUnlockTech, componentCapacity, componentLevel, conversionRate, directEnergyRate, fuelCapacity, maxUpgradeLevel, nextUpgradeGainPercent, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance, unlockAutoRebuild, unlockTech, upgradeBuildingTrack, upgradeBuildingType, upgradeCost, upgradeTracks } from './research'
 import type { GameState } from './types'
 import { buildIsland, environmentFor } from '../ui/island'
 import { CYBERPUNK_ENVIRONMENT } from '../ui/pixel/cyberpunk'
@@ -119,36 +119,31 @@ describe('economy v2', () => {
     state = placeTile(state, 34, 'core')
     state = placeTile(state, 35, 'pipe')
     state = placeTile(state, 36, 'generator')
-    state = placeTile(state, 43, 'cooler')
     const before = totalHeat(state)
     const result = simulateTick(state)
-    const accounted = totalHeat(result.state) + result.report.thermalEnergy + result.report.cooledHeat
+    const accounted = totalHeat(result.state) + result.report.thermalEnergy
     expect(accounted).toBeCloseTo(before + result.report.heatProduction, 6)
   })
   it('never rescales existing infrastructure when Thorium or Fusion unlocks', () => {
     let state = unlocked()
     state = placeTile(state, 25, 'pipe')
     state = placeTile(state, 26, 'exchanger')
-    state = placeTile(state, 27, 'accumulator')
-    state = placeTile(state, 28, 'cooler')
     state = placeTile(state, 29, 'battery')
     state = placeTile(state, 30, 'pipe2')
     const thermal = { ...state, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true, thorium: false, fusion: false } }
     const thorium = { ...thermal, unlockedTechs: { ...thermal.unlockedTechs, thorium: true } }
     const fusion = { ...thorium, unlockedTechs: { ...thorium.unlockedTechs, fusion: true } }
-    for (const kind of ['pipe', 'pipe2', 'exchanger', 'accumulator', 'generator', 'generator2'] as const) {
+    for (const kind of ['pipe', 'pipe2', 'exchanger', 'generator', 'generator2'] as const) {
       expect(componentCapacity(thorium, kind)).toBe(componentCapacity(thermal, kind))
       expect(componentCapacity(fusion, kind)).toBe(componentCapacity(thermal, kind))
     }
     expect(conversionRate(thorium)).toBe(conversionRate(thermal))
     expect(conversionRate(fusion, 'generator2')).toBe(conversionRate(thermal, 'generator2'))
-    expect(coolingRate(thorium)).toBe(coolingRate(thermal))
-    expect(coolingRate(fusion)).toBe(coolingRate(thermal))
     expect(storagePerBattery(thorium)).toBe(storagePerBattery(thermal))
     expect(storagePerBattery(fusion)).toBe(storagePerBattery(thermal))
-    expect(thermal.tiles.slice(25, 31).map((tile) => tile?.kind)).toEqual(['pipe', 'exchanger', 'accumulator', 'cooler', 'battery', 'pipe2'])
+    expect(thermal.tiles.slice(25, 31).map((tile) => tile?.kind)).toEqual(['pipe', 'exchanger', undefined, undefined, 'battery', 'pipe2'])
   })
-  it('unlocks the advanced Thorium network while keeping Turbine II locked', () => { const state = createInitialState(); const thermal = { ...state, credits: 1_000_000_000, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true } }; for (const kind of ['thorium', 'generator2', 'cooler', 'pipe', 'exchanger', 'accumulator', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thermal, kind)).toBe(false); let thorium = { ...thermal, unlockedTechs: { ...thermal.unlockedTechs, thorium: true } }; for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true); for (const kind of ['generator2', 'controller'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(false); thorium = upgradeBuildingTrack(thorium, 'sales2', 'output'); expect(thorium.sectorEconomies.coast.buildingLevels.sales2).toBe(2); expect(thorium.sectorEconomies.coast.buildingLevels.sales).toBe(1) })
+  it('unlocks the advanced Thorium network while keeping Turbine II locked', () => { const state = createInitialState(); const thermal = { ...state, credits: 1_000_000_000, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true } }; for (const kind of ['thorium', 'generator2', 'pipe', 'exchanger', 'controller', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thermal, kind)).toBe(false); let thorium = { ...thermal, unlockedTechs: { ...thermal.unlockedTechs, thorium: true } }; for (const kind of ['thorium', 'pipe', 'exchanger', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true); for (const kind of ['generator2', 'controller'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(false); thorium = upgradeBuildingTrack(thorium, 'sales2', 'output'); expect(thorium.sectorEconomies.coast.buildingLevels.sales2).toBe(2); expect(thorium.sectorEconomies.coast.buildingLevels.sales).toBe(1) })
   it('unlocks Turbine II and Pipe II only with Fusion and keeps their levels independent from tier I', () => { let state = unlocked(); state = { ...state, unlockedTechs: { ...state.unlockedTechs, fusion: false } }; expect(isComponentUnlocked(state, 'generator')).toBe(true); expect(isComponentUnlocked(state, 'generator2')).toBe(false); expect(isComponentUnlocked(state, 'pipe')).toBe(true); expect(isComponentUnlocked(state, 'pipe2')).toBe(false); state = { ...state, unlockedTechs: { ...state.unlockedTechs, fusion: true } }; expect(isComponentUnlocked(state, 'generator2')).toBe(true); expect(isComponentUnlocked(state, 'pipe2')).toBe(true); state = upgradeBuildingTrack(state, 'generator2', 'output'); state = upgradeBuildingTrack(state, 'pipe2', 'capacity'); expect(state.sectorEconomies.coast.buildingLevels.generator2).toBe(2); expect(state.sectorEconomies.coast.buildingLevels.generator).toBe(1); expect(state.sectorEconomies.coast.capacityLevels.pipe2).toBe(2); expect(state.sectorEconomies.coast.capacityLevels.pipe).toBe(1) })
   it('adds tier-I and tier-II sales and research without scaling tier I', () => { let state = unlocked(); state = placeTile(state, 25, 'sales'); state = placeTile(state, 26, 'sales2'); state = placeTile(state, 27, 'research'); state = placeTile(state, 28, 'research2'); expect(globalSalesCapacity(state)).toBe(salesPerOffice(state, 'sales') + salesPerOffice(state, 'sales2')); const result = simulateTick(state); expect(result.report.generatedResearch).toBe(researchPerFacility(state, 'research') + researchPerFacility(state, 'research2')) })
   it('damages rather than destroys an overheated reactor', () => { let state = unlocked(); state = placeTile(state, 25, 'core'); state = simulateMany(state, 7); expect(state.tiles[25]).toMatchObject({ kind: 'core', damaged: true, enabled: false }); expect(state.incidents).toBe(1) })
@@ -225,7 +220,15 @@ describe('economy v2', () => {
     expect(maxUpgradeLevel(state)).toBe(10)
   })
   it('uses the promoted first wind upgrade without raising its impact', () => { const state = createInitialState(); expect(upgradeCost(state, 'wind')).toBe(30); expect(nextUpgradeGainPercent(state, 'wind', 'output')).toBeCloseTo(35) })
-  it('turns a conductor output upgrade into lower thermal resistance', () => { const state = rich(); const before = thermalResistance(state, 'exchanger'); const upgraded = upgradeBuildingTrack(state, 'exchanger', 'output'); expect(before / thermalResistance(upgraded, 'exchanger')).toBeCloseTo(1.35) })
+  it('keeps a resistance level bought before the track was retired', () => {
+    // Ninguna pieza vende ya conductividad, pero se prometio que un nivel
+    // comprado se conserva. Esto es lo unico que sostiene la division en
+    // `thermalResistance`; si se borra, esos jugadores pierden lo que pagaron.
+    const state = rich()
+    const base = thermalResistance(state, 'pipe')
+    const viejo = { ...state, sectorEconomies: { ...state.sectorEconomies, coast: { ...state.sectorEconomies.coast, buildingLevels: { ...state.sectorEconomies.coast.buildingLevels, pipe: 2 } } } }
+    expect(base / thermalResistance(viejo, 'pipe')).toBeCloseTo(1.35)
+  })
   it('upgrades autonomy for current and future units on the active map', () => { let state = rich(); state = placeTile(state, 25, 'wind'); state = placeTile(state, 26, 'wind'); const before = fuelCapacity(state, 'wind'); state = upgradeBuildingTrack(state, 'wind', 'autonomy'); const after = fuelCapacity(state, 'wind'); expect(after).toBeGreaterThan(before); expect(state.tiles[25]?.fuel).toBeCloseTo(after); expect(state.tiles[26]?.fuel).toBeCloseTo(after); state = placeTile(state, 27, 'wind'); expect(state.tiles[27]?.fuel).toBeCloseTo(after) })
   it('applies the stronger five and ten level milestones', () => { expect(levelMultiplier(5)).toBeCloseTo(Math.pow(1.35, 4) * 1.5); expect(levelMultiplier(10)).toBeCloseTo(Math.pow(1.35, 9) * 2.5) })
   it('requires expansion research and money—but no other technology—to buy the desert', () => { let state = rich(); expect(buyDesertSector(state)).toBe(state); state = { ...createInitialState(), unlockedTechs: { ...createInitialState().unlockedTechs, expansion: true }, credits: ECONOMY.secondIslandCost }; state = buyDesertSector(state); expect(state.ownedSectors.desert).toBe(true); expect(state.unlockedTechs.fusion).toBe(false) })
@@ -276,8 +279,6 @@ describe('tuberias termicas', () => {
     expect(upgradeTracks('pipe')).toEqual(['capacity'])
     expect(upgradeTracks('pipe2')).toEqual(['capacity'])
     // El intercambiador y el deposito conservan la suya: ahi si pesa.
-    expect(upgradeTracks('exchanger')).toEqual(['output', 'capacity'])
-    expect(upgradeTracks('accumulator')).toEqual(['output', 'capacity'])
   })
 
   it('no deja comprar la vía retirada ni por la puerta de atras', () => {
@@ -365,4 +366,4 @@ describe('controlador de red', () => {
   })
 })
 
-function emptyLevels() { return { wind: 1, solar: 1, battery: 1, controller: 1, sales: 1, sales2: 1, research: 1, research2: 1, core: 1, thorium: 1, fusion: 1, exchanger: 1, pipe: 1, pipe2: 1, accumulator: 1, generator: 1, generator2: 1, cooler: 1 } }
+function emptyLevels() { return { wind: 1, solar: 1, battery: 1, controller: 1, sales: 1, sales2: 1, research: 1, research2: 1, core: 1, thorium: 1, fusion: 1, exchanger: 1, pipe: 1, pipe2: 1, generator: 1, generator2: 1 } }

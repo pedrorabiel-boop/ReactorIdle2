@@ -156,23 +156,6 @@ export const ART: Record<string, string[]> = {
     c.rect(14, 15, 17, 18, 'W')
   }),
 
-  cooler: draw((c) => {
-    // Torre de tiro: ancha arriba, estrecha en la cintura, ancha en la base.
-    // La cintura va mas marcada que antes, que parecia un jarron.
-    for (let y = 5; y <= 28; y++) {
-      const t = (y - 5) / 23
-      // Boca estrecha, base ancha y la cintura marcada entre las dos. Simetrico
-      // quedaba como una copa; el perfil real se ensancha hacia abajo.
-      const half = (8 + 4 * t) - Math.sin(Math.min(1, t * 1.3) * Math.PI) * 4.5
-      c.rect(Math.round(16 - half), y, Math.round(16 + half - 1), y, 'L')
-    }
-    c.rect(3, 29, 28, 30, 'D')
-    // Boca y sombra interior.
-    c.rect(8, 5, 23, 7, 'D')
-    c.rect(9, 6, 22, 7, 'G')
-    // Vapor saliendo.
-    for (const [x, y, r] of [[11, 4, 2.2], [17, 3, 2.6], [23, 5, 1.8]] as const) c.ellipse(x, y, r, r * 0.8, 'W')
-  }),
 
   exchanger: draw((c) => {
     chassis(c, 1, 1, 30, 30, 'L', 'D')
@@ -214,19 +197,6 @@ export const ART: Record<string, string[]> = {
     c.ellipse(15.5, 15.5, 1.6, 1.6, 'C')
   }),
 
-  accumulator: draw((c) => {
-    c.rect(7, 28, 11, 30, 'D')
-    c.rect(20, 28, 24, 30, 'D')
-    // Tres anillos apilados, como un tanque a presion.
-    for (let i = 0; i < 3; i++) {
-      const y = 1 + i * 9
-      c.rect(3, y, 28, y + 7, 'R')
-      c.rect(5, y + 1, 9, y + 6, 'r')
-      c.rect(3, y + 7, 28, y + 7, 'K')
-    }
-    c.rect(2, 1, 2, 27, 'R')
-    c.rect(29, 1, 29, 27, 'R')
-  }),
 
   // Vuelve a ser la casita de siempre -el camion se va-: moneda arriba, techo
   // a dos aguas, muros claros, dos ventanas con su cruceta y puerta de madera.

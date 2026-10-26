@@ -1,7 +1,7 @@
 import { OFFLINE_BANDS, offlineProductiveSeconds, TECHNOLOGIES } from '../../game/balance'
 import { COMPONENTS } from '../../game/catalog'
 import { isComponentUnlocked } from '../../game/engine'
-import { componentCapacity, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../../game/research'
+import { componentCapacity, conversionRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../../game/research'
 import type { ComponentKind, GameState } from '../../game/types'
 import { formatDecimal, formatMultiplier, formatNumber, formatShort } from '../format'
 import { Sprite } from '../pixel/Sprite'
@@ -13,7 +13,7 @@ const CATEGORIES: Array<{ title: string; description: string; kinds: ComponentKi
   { title: 'Energía térmica', description: 'Generan calor durante su vida útil. Necesitan una red capaz de transportarlo y convertirlo.', kinds: ['core', 'thorium', 'fusion'] },
   { title: 'Torres de conversión', description: 'Reciben calor y lo transforman en energía. No retransmiten el calor hacia otras torres.', kinds: ['generator', 'generator2'] },
   { title: 'Tuberías', description: 'Conectan las fuentes térmicas con las turbinas y determinan cómo fluye el calor por la planta.', kinds: ['pipe', 'pipe2'] },
-  { title: 'Control térmico', description: 'Almacenan, redistribuyen o disipan calor para estabilizar las redes más exigentes.', kinds: ['exchanger', 'accumulator', 'cooler'] },
+  { title: 'Control térmico', description: 'Enciende la red de superconductores para que rinda más de lo que suman sus piezas.', kinds: ['exchanger'] },
   { title: 'Comercio e infraestructura', description: 'Almacenan y venden energía o amplifican la capacidad económica del mapa.', kinds: ['sales', 'sales2', 'battery', 'controller'] },
   { title: 'Investigación', description: 'Generan los puntos de investigación necesarios para acceder a tecnologías más avanzadas.', kinds: ['research', 'research2'] },
 ]
@@ -28,14 +28,12 @@ const MANUAL_DESCRIPTIONS: Record<ComponentKind, string> = {
   generator: 'Tecnología básica de conversión. Recibe calor, transforma hasta su capacidad por tick y almacena solamente el excedente que no logra procesar.',
   generator2: 'Conversor avanzado capaz de procesar una demanda térmica muy superior. Es la contraparte natural de las redes y reactores de Fusión.',
   pipe: 'Conductor pasivo que crea un gradiente de temperatura desde el reactor hacia las turbinas. Diseña caminos adecuados para aprovechar mejor cada fuente.',
-  pipe2: 'Superconductor de Fusión. Cada grupo de Tuberías II que se tocan entre sí funciona como una sola pieza: el calor que entra por un punto se reparte al instante por toda la masa, sin importar su forma. Cuantas más conectes, más frío mantienes el reactor y más calor tolera el conjunto antes de averiarse.',
-  exchanger: 'Nodo de distribución con mayor capacidad que una tubería convencional. Recibe, amortigua y redistribuye calor entre varios ramales de una red compleja.',
-  accumulator: 'Gran depósito térmico que conserva el calor excedente para entregarlo nuevamente a la red. Ayuda a estabilizar diferencias entre producción y conversión.',
-  cooler: 'Disipa el calor de las piezas adyacentes. Instálalo en puntos críticos para reducir la acumulación y evitar averías por sobrecalentamiento.',
+  pipe2: 'Superconductor de Fusión. Cada grupo de Tuberías II que se tocan entre sí funciona como una sola pieza: el calor que entra por un punto se reparte al instante por toda la masa. Y si la red tiene un Intercambiador pegado, cada turbina en contacto multiplica su conversión por cada tubería del grupo, así que conviene una red grande antes que varias sueltas.',
+  exchanger: 'La llave de la red. Pégalo a un grupo de Tuberías II y esa red se enciende: cada turbina en contacto multiplica su conversión por cada tubería que forme la red, así que una red grande rinde más que dos pequeñas. Basta uno por red; el segundo no añade nada, y si lo quitas o lo apagas la red entera se apaga.',
   sales: 'Funcionarios dedicados a comercializar automáticamente la energía producida en su mapa antes de que el excedente llegue al banco energético.',
   sales2: 'Una oficina especializada con mayor potencial comercial. Permite vender automáticamente redes de energía mucho más productivas.',
   battery: 'Amplía el banco energético del mapa. Guarda la energía que no puede venderse en el momento y evita que una parte valiosa de la producción se desperdicie.',
-  controller: 'Coordina la infraestructura empresarial del mapa. Cada unidad amplifica la capacidad de almacenamiento y la potencia de venta, hasta alcanzar su límite.',
+  controller: 'Coordina la red comercial del mapa. Cada unidad multiplica la potencia de venta de todas tus oficinas y la vida útil de todas tus centrales, y se multiplican entre sí: no hay tope, el límite es el suelo que puedas dedicarles.',
   research: 'Instalación de investigación y desarrollo. Reúne especialistas que producen RP para descubrir reactores, turbinas e infraestructura más avanzada.',
   research2: 'Centro científico especializado y más productivo. Genera investigación a un ritmo acelerado para sostener la siguiente etapa tecnológica del país.',
 }
@@ -61,7 +59,6 @@ function stats(game: GameState, kind: ComponentKind): string[] {
   if (definition.directEnergy) values.push(`${formatStat(directEnergyRate(game, kind))} E/s`)
   if (definition.production) values.push(`${formatStat(productionRate(game, kind))} calor/s`)
   if (definition.conversionRate) values.push(`${formatStat(conversionRate(game, kind as 'generator' | 'generator2'))} E/s`)
-  if (definition.coolingRate) values.push(`Disipa ${formatStat(coolingRate(game))}/s`)
   if (definition.storageCapacity) values.push(`+${formatStat(storagePerBattery(game))} E`)
   if (definition.salesRate) values.push(`Vende ${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`)
   if (definition.researchRate) values.push(`${formatStat(researchPerFacility(game, kind as 'research' | 'research2'))} RP/s`)

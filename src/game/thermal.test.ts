@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
-import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, drainHeatByResistance, equalizeSuperconductors, getThermalTopology, pullHeatForConversion, superconductorMasses } from './thermal'
+import { absorbHeatIntoSinks, clearThermalTopologyCache, diffuseThermalNetwork, equalizeSuperconductors, getThermalTopology, pullHeatForConversion, superconductorMasses } from './thermal'
 import type { ComponentKind, Tile } from './types'
 
 let nextTileId = 0
@@ -14,7 +14,7 @@ describe('resistive thermal graph', () => {
   beforeEach(() => { clearThermalTopologyCache(); nextTileId = 0 })
 
   it('keeps derived storage-node resistance and the promoted pipe tuning', () => {
-    for (const kind of ['exchanger', 'accumulator'] as const) {
+    for (const kind of ['exchanger'] as const) {
       const definition = COMPONENTS[kind]
       const resistance = definition.thermalResistance!
       const fullGradientTransfer = definition.capacity / 2 * (1 - Math.exp(-1 / (resistance * 2)))
@@ -67,23 +67,6 @@ describe('resistive thermal graph', () => {
     expect(totalHeat(tiles)).toBeCloseTo(100, 8)
   })
 
-  it('delivers more heat through two parallel routes than through a dead-end branch', () => {
-    const parallel = Array.from({ length: 16 }, () => null) as Array<Tile | null>
-    parallel[4] = makeTile('core', 100)
-    for (const index of [0, 1, 2, 3, 8, 9, 10, 11]) parallel[index] = makeTile()
-    diffuseThermalNetwork(parallel, getThermalTopology(parallel, 4, 4), capacityAt, resistanceAt)
-    const parallelDelivered = drainHeatByResistance(parallel, [3, 11], 100, capacityAt, resistanceAt)
-
-    const bottleneck = Array.from({ length: 16 }, () => null) as Array<Tile | null>
-    bottleneck[4] = makeTile('core', 100)
-    for (const index of [0, 1, 2, 3, 8, 9, 10, 14]) bottleneck[index] = makeTile()
-    diffuseThermalNetwork(bottleneck, getThermalTopology(bottleneck, 4, 4), capacityAt, resistanceAt)
-    const bottleneckDelivered = drainHeatByResistance(bottleneck, [3], 100, capacityAt, resistanceAt)
-
-    expect(parallelDelivered).toBeGreaterThan(bottleneckDelivered)
-    expect(totalHeat(parallel) + parallelDelivered).toBeCloseTo(100, 8)
-    expect(totalHeat(bottleneck) + bottleneckDelivered).toBeCloseTo(100, 8)
-  })
 
   it('moves more heat through lower resistance without changing total heat', () => {
     const lowResistance = [makeTile('pipe', 100), makeTile()]

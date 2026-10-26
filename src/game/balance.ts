@@ -40,7 +40,7 @@ export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; 
   testsite: { name: 'Autorización de ensayos', description: 'Abre el Nuclear Test Site, 150 casillas de suelo limpio, y con él el reactor experimental y el Controlador de red.', cost: 100_000_000, requires: 'fusion' },
 }
 export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false, testsite: false }
-export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'planck', 'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'pipe2', 'accumulator']
+export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'planck', 'generator', 'generator2', 'exchanger', 'pipe', 'pipe2']
 export const LIFETIME_ORDER: ComponentKind[] = ['wind', 'solar', 'core', 'thorium', 'fusion', 'planck']
 export const AUTO_REBUILD_COSTS: Partial<Record<ComponentKind, number>> = {
   wind: 15,
@@ -65,11 +65,9 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   planck: { output: 900_000_000_000, capacity: 450_000_000_000, autonomy: 600_000_000_000 },
   generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
   generator2: { output: 500_000_000, capacity: 200_000_000, autonomy: 33_750_000 },
-  cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
   exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
   pipe: { output: 300_000_000, capacity: 30_000_000, autonomy: 225_000_000 },
   pipe2: { output: 67_200_000_000, capacity: 1_000_000_000, autonomy: 50_400_000_000 },
-  accumulator: { output: 7_500_000_000, capacity: 6_375_000_000, autonomy: 5_625_000_000 },
 }
 /**
  * Convierte la antigua relación capacidad/caudal en resistencia por nodo.

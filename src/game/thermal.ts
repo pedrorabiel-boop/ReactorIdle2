@@ -1,7 +1,7 @@
 import { neighbourIndices } from './terrain'
 import type { ComponentKind, SectorKey, Tile } from './types'
 
-const THERMAL_CARRIERS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'planck', 'exchanger', 'pipe', 'pipe2', 'accumulator'])
+const THERMAL_CARRIERS = new Set<ComponentKind>(['core', 'thorium', 'fusion', 'planck', 'exchanger', 'pipe', 'pipe2'])
 const CACHE_LIMIT = 64
 const MIN_RESISTANCE = 0.000_001
 const EPSILON = 0.000_000_1
@@ -420,39 +420,3 @@ export function pullHeatForConversion(
   return { totalMoved, received }
 }
 
-/** Distributes a converter/cooler demand among all adjacent sources by potential and conductance. */
-export function drainHeatByResistance(
-  tiles: Array<Tile | null>,
-  sourceIndices: number[],
-  requested: number,
-  capacityAt: (index: number) => number,
-  resistanceAt: (index: number) => number,
-): number {
-  let remaining = Math.max(0, requested)
-  let drained = 0
-  let active = sourceIndices.filter((index) => (tiles[index]?.heat ?? 0) > EPSILON)
-
-  while (remaining > EPSILON && active.length > 0) {
-    const weights = active.map((index) => {
-      const tile = tiles[index]!
-      const capacity = capacityAt(index)
-      const potential = capacity > 0 ? tile.heat / capacity : 0
-      return Math.max(EPSILON, potential / Math.max(MIN_RESISTANCE, resistanceAt(index)))
-    })
-    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0)
-    let movedThisPass = 0
-    for (let i = 0; i < active.length; i += 1) {
-      const tile = tiles[active[i]]!
-      const amount = Math.min(tile.heat, remaining * weights[i] / totalWeight)
-      tile.heat -= amount
-      tile.flow += amount
-      drained += amount
-      movedThisPass += amount
-    }
-    remaining -= movedThisPass
-    if (movedThisPass <= EPSILON) break
-    active = active.filter((index) => (tiles[index]?.heat ?? 0) > EPSILON)
-  }
-
-  return drained
-}

@@ -57,7 +57,7 @@ describe('repaleta de los biomas', () => {
     // de torre con un digito saldria del color del suelo y la repaleta no
     // podria tocarlo. Hoy no pasa; esto lo mantiene asi.
     const torres = ['wind', 'solar', 'battery', 'controller', 'core', 'thorium', 'fusion', 'planck',
-      'generator', 'generator2', 'cooler', 'exchanger', 'pipe', 'pipe2', 'accumulator',
+      'generator', 'generator2', 'exchanger', 'pipe', 'pipe2',
       'sales', 'sales2', 'research', 'research2', 'insulator']
     for (const torre of torres) {
       expect(SPRITES[torre].join('')).not.toMatch(/[0-9]/)

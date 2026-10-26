@@ -1,10 +1,10 @@
-export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'sales2' | 'research' | 'research2' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'pipe2' | 'accumulator' | 'generator' | 'generator2' | 'cooler' | 'planck'
+export type ComponentKind = 'wind' | 'solar' | 'battery' | 'controller' | 'sales' | 'sales2' | 'research' | 'research2' | 'core' | 'thorium' | 'fusion' | 'exchanger' | 'pipe' | 'pipe2' | 'generator' | 'generator2' | 'planck'
 export type ToolMode = 'build' | 'demolish' | 'inspect'
 export type TechKey = 'solar' | 'thermal' | 'thorium' | 'fusion' | 'expansion' | 'testsite'
 export type ContractKind = 'renewable' | 'energy' | 'thermal' | 'sales' | 'research'
 export type SectorKey = 'coast' | 'desert' | 'testsite'
 export type UpgradeTrack = 'output' | 'capacity' | 'autonomy'
-export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'coolingRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus' | 'controllerAutonomy'
+export type ComponentNumericKey = 'cost' | 'capacity' | 'directEnergy' | 'production' | 'referenceTransferRate' | 'thermalResistance' | 'conversionRate' | 'fuelCycles' | 'refuelCost' | 'storageCapacity' | 'salesRate' | 'researchRate' | 'controllerBonus' | 'controllerAutonomy' | 'networkBonus'
 export type DebugEconomyKey = 'baseStorage' | 'baseSalesRate' | 'energyPrice' | 'sellRefund' | 'repairRate' | 'maxOfflineSeconds' | 'secondIslandCost' | 'maxBuildingLevel' | 'maxCyberpunkBuildingLevel' | 'maxTestSiteBuildingLevel' | 'outputGrowth' | 'upgradeGrowth' | 'upgradeBaseMultiplier' | 'prestigeCostMultiple' | 'prestigeSalesBonus'
 
 export interface DebugSettings {
@@ -23,8 +23,8 @@ export interface EnergyContract { id: string; kind: ContractKind; title: string;
 
 export interface ComponentDefinition {
   kind: ComponentKind; name: string; shortName: string; description: string; icon: string; cost: number; capacity: number; tech?: TechKey
-  directEnergy?: number; production?: number; referenceTransferRate?: number; thermalResistance?: number; conversionRate?: number; coolingRate?: number; fuelCycles?: number
-  refuelCost?: number; storageCapacity?: number; salesRate?: number; researchRate?: number; controllerBonus?: number; controllerAutonomy?: number
+  directEnergy?: number; production?: number; referenceTransferRate?: number; thermalResistance?: number; conversionRate?: number; fuelCycles?: number
+  refuelCost?: number; storageCapacity?: number; salesRate?: number; researchRate?: number; controllerBonus?: number; controllerAutonomy?: number; networkBonus?: number
 }
 
 export interface Tile { id: string; kind: ComponentKind; heat: number; enabled: boolean; damaged: boolean; flow: number; fuel: number; autoRefuel: boolean }
@@ -51,6 +51,6 @@ export interface GameState {
 
 export interface TickReport {
   producedEnergy: number; directEnergy: number; thermalEnergy: number; storedEnergy: number; wastedEnergy: number; soldEnergy: number
-  earnedCredits: number; generatedResearch: number; cooledHeat: number; incidents: number; refuelCost: number; repairCost: number
+  earnedCredits: number; generatedResearch: number; incidents: number; refuelCost: number; repairCost: number
   storageCapacity: number; salesCapacity: number; conversionCapacity: number; heatProduction: number
 }

@@ -9,7 +9,6 @@ export const COMPONENT_NUMERIC_FIELDS: Array<{ key: ComponentNumericKey; label: 
   { key: 'production', label: 'Calor generado / s' },
   { key: 'thermalResistance', label: 'Resistencia térmica' },
   { key: 'conversionRate', label: 'Conversión / s' },
-  { key: 'coolingRate', label: 'Enfriamiento / s' },
   { key: 'fuelCycles', label: 'Vida útil / s' },
   { key: 'refuelCost', label: 'Costo de reconstrucción' },
   { key: 'storageCapacity', label: 'Almacenamiento' },
@@ -17,6 +16,7 @@ export const COMPONENT_NUMERIC_FIELDS: Array<{ key: ComponentNumericKey; label: 
   { key: 'researchRate', label: 'RP / s' },
   { key: 'controllerBonus', label: 'Control · factor de venta' },
   { key: 'controllerAutonomy', label: 'Control · factor de vida útil' },
+  { key: 'networkBonus', label: 'Tubería II · factor por red' },
 ]
 
 export const ECONOMY_DEBUG_FIELDS: Array<{ key: DebugEconomyKey; label: string; step?: number }> = [

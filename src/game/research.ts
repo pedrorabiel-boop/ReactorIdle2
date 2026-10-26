@@ -28,7 +28,6 @@ export const fuelCapacity = (state: GameState, kind: ComponentKind) => (COMPONEN
 export const directEnergyRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].directEnergy ?? 0) * componentMultiplier(state, kind) * (state.activeSector === 'desert' && kind === 'solar' ? 1.25 : 1)
 export const productionRate = (state: GameState, kind: ComponentKind) => (COMPONENTS[kind].production ?? 0) * componentMultiplier(state, kind)
 export const conversionRate = (state: GameState, kind: 'generator' | 'generator2' = 'generator') => (COMPONENTS[kind].conversionRate ?? 0) * componentMultiplier(state, kind)
-export const coolingRate = (state: GameState) => (COMPONENTS.cooler.coolingRate ?? 0) * componentMultiplier(state, 'cooler')
 export const thermalResistance = (state: GameState, kind: ComponentKind) => {
   const baseline = COMPONENTS.pipe.thermalResistance ?? 1
   const resistance = COMPONENTS[kind].thermalResistance
@@ -40,21 +39,28 @@ export const researchPerFacility = (state: GameState, kind: 'research' | 'resear
 export const autoRebuildCost = (state: GameState, kind: ComponentKind) => state.debug.enabled ? state.debug.autoRebuildCosts[kind] ?? Number.POSITIVE_INFINITY : AUTO_REBUILD_COSTS[kind] ?? Number.POSITIVE_INFINITY
 export function canUnlockAutoRebuild(state: GameState, kind: ComponentKind): boolean { return Boolean(COMPONENTS[kind].fuelCycles) && !state.autoRebuilds[kind] && state.researchPoints >= autoRebuildCost(state, kind) }
 export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameState { const cost = autoRebuildCost(state, kind); return canUnlockAutoRebuild(state, kind) ? { ...state, researchPoints: state.researchPoints - cost, autoRebuilds: { ...state.autoRebuilds, [kind]: true } } : state }
+/**
+ * Piezas que no se mejoran: lo suyo no es un numero que suba.
+ *
+ * El Control, porque su factor ya se acumula construyendo mas y multiplicar la
+ * BASE de una cadena exponencial no se puede acotar. El Intercambiador, porque
+ * su papel es encender la red: una llave no se afila, o esta puesta o no.
+ */
+const SIN_MEJORAS = new Set<ComponentKind>(['controller', 'exchanger'])
+
 export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
   const def = COMPONENTS[kind]
   const tracks: UpgradeTrack[] = []
-  // Dos tipos no llevan pista de salida.
+  if (SIN_MEJORAS.has(kind)) return tracks
+  // Las tuberias no llevan pista de salida.
   //
-  // El Control, porque su factor ya se acumula construyendo mas y multiplicar
-  // la BASE de una cadena exponencial no se puede acotar.
-  //
-  // Las tuberias, porque lo que la pista movia era su resistencia, y ahi no
+  // Lo que la pista movia era su resistencia, y ahi no
   // habia nada que ganar: la Tuberia I ya conduce a 0,01 -practicamente
   // instantanea- y las Tuberia II se igualan entre si por su propia masa, sin
   // mirar la resistencia. Lo que de verdad las limita es cuanto calor toleran,
   // y de eso se ocupa la pista de capacidad.
-  const sinSalida = def.kind === 'controller' || def.kind === 'pipe' || def.kind === 'pipe2'
-  if (!sinSalida && (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.coolingRate || def.storageCapacity || def.salesRate || def.researchRate)) tracks.push('output')
+  const sinSalida = def.kind === 'pipe' || def.kind === 'pipe2'
+  if (!sinSalida && (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.storageCapacity || def.salesRate || def.researchRate)) tracks.push('output')
   if (def.capacity > 0) tracks.push('capacity')
   if (def.fuelCycles) tracks.push('autonomy')
   return tracks

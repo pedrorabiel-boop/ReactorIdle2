@@ -3,7 +3,7 @@ import { isComponentUnlocked, isComponentVisible } from '../game/engine'
 import { canAfford } from '../game/debug'
 import { TECHNOLOGIES } from '../game/balance'
 import type { ComponentKind, GameState, ToolMode } from '../game/types'
-import { componentCapacity, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../game/research'
+import { componentCapacity, conversionRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from '../game/research'
 import { formatCompact, formatDecimal, formatMultiplier, formatShort } from './format'
 import { Sprite } from './pixel/Sprite'
 
@@ -38,13 +38,15 @@ function cardStats(game: GameState, kind: ComponentKind): CardStat[] {
   if (def.directEnergy) stats.push({ icon: 'icon-bolt', value: `${formatStat(directEnergyRate(game, kind))} E/s`, label: 'Energía generada' })
   if (def.production) stats.push({ icon: 'icon-flame', value: `${formatStat(productionRate(game, kind))}/s`, label: 'Calor generado' })
   if (def.conversionRate) stats.push({ icon: 'icon-bolt', value: `${formatStat(conversionRate(game, kind as 'generator' | 'generator2'))} E/s`, label: 'Energía transformada' })
-  if (def.coolingRate) stats.push({ icon: 'icon-flame', value: `−${formatStat(coolingRate(game))}/s`, label: 'Calor disipado' })
   if (def.thermalResistance) stats.push({ icon: 'icon-flame', value: `${formatDecimal(thermalResistance(game, kind))} R`, label: 'Resistencia térmica' })
   if (def.storageCapacity) stats.push({ icon: 'icon-bolt', value: `+${formatStat(storagePerBattery(game))} E`, label: 'Almacenamiento' })
   if (def.salesRate) stats.push({ icon: 'icon-handshake', value: `${formatStat(salesPerOffice(game, kind as 'sales' | 'sales2'))} E/s`, label: 'Potencia de venta' })
   if (def.researchRate) stats.push({ icon: 'icon-flask', value: `${formatStat(researchPerFacility(game, kind as 'research' | 'research2'))} RP/s`, label: 'Investigación' })
   if (def.controllerBonus) stats.push({ icon: 'icon-handshake', value: `×${formatMultiplier(1 + def.controllerBonus)}`, label: 'Venta de cada oficina del mapa' })
   if (def.controllerAutonomy) stats.push({ icon: 'icon-clock', value: `×${formatMultiplier(1 + def.controllerAutonomy)}`, label: 'Vida útil de cada central del mapa' })
+  if (def.networkBonus) stats.push({ icon: 'icon-bolt', value: `×${formatMultiplier(1 + def.networkBonus)}`, label: 'Conversión de las turbinas pegadas, por cada Tubería II de la red con intercambiador' })
+  // El intercambiador no lleva numero propio: lo suyo es encender la red.
+  if (kind === 'exchanger') stats.push({ icon: 'icon-bolt', value: 'LLAVE', label: 'Enciende el bono de la red de Tuberías II a la que se pegue' })
   if (def.capacity > 0) stats.push({ icon: 'icon-health', value: formatShort(componentCapacity(game, kind)), label: 'Tolerancia de calor antes de averiarse' })
   if (def.fuelCycles) stats.push({ icon: 'icon-clock', value: `${formatShort(fuelCapacity(game, kind))} s`, label: 'Vida útil' })
   return stats

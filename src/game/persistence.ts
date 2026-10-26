@@ -83,6 +83,21 @@ export function normalizeGameState(value: unknown): GameState | null {
       }
     })
   }
+  // El enfriador y el deposito salieron del juego. Una partida vieja puede
+  // tenerlos construidos: se retiran del mapa y se devuelve lo mismo que habria
+  // dado demolerlos, porque el jugador los pago. Los precios van aqui a mano
+  // porque el catalogo ya no los tiene.
+  const RETIRADAS: Record<string, number> = { cooler: 1_000_000, accumulator: 250_000_000 }
+  let devuelto = 0
+  for (const sector of ['coast', 'desert', 'testsite'] as SectorKey[]) {
+    sectorLayouts[sector] = sectorLayouts[sector].map((tile) => {
+      const precio = tile ? RETIRADAS[tile.kind] : undefined
+      if (precio === undefined) return tile
+      devuelto += Math.floor(precio * ECONOMY.sellRefund)
+      return null
+    })
+  }
+
   const activeTiles = sectorLayouts[activeSector]
   sectorLayouts[activeSector] = activeTiles
   const normalizeLevels = (levels: Record<string, number> | undefined, sector: SectorKey) => {
@@ -111,7 +126,8 @@ export function normalizeGameState(value: unknown): GameState | null {
   const unlockedTechs = Object.fromEntries(TECH_ORDER.map((key) => [key, Boolean(source.unlockedTechs[key] || (key === 'thorium' && source.version < 15 && source.unlockedTechs.automation))])) as GameState['unlockedTechs']
   // La velocidad dejo de ser una opcion. Sin esto, una partida guardada a 2x
   // o 4x se quedaba ahi para siempre, sin boton con que bajarla.
-  const normalized = { ...source, version: 23, speed: 1 as const, prestiges: Math.max(0, Math.floor(Number(source.prestiges) || 0)), autoRebuildPaused: Boolean(source.autoRebuildPaused), giftTicks: Math.max(0, Number(source.giftTicks) || 0), boostActive: Boolean(source.boostActive), showFlowNumbers: source.showFlowNumbers !== false, tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0), researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
+  const selectedKind: ComponentKind = COMPONENTS[source.selectedKind as ComponentKind] ? source.selectedKind : 'wind'
+  const normalized = { ...source, version: 23, speed: 1 as const, selectedKind, prestiges: Math.max(0, Math.floor(Number(source.prestiges) || 0)), autoRebuildPaused: Boolean(source.autoRebuildPaused), giftTicks: Math.max(0, Number(source.giftTicks) || 0), boostActive: Boolean(source.boostActive), showFlowNumbers: source.showFlowNumbers !== false, tiles: activeTiles, sectorLayouts, sectorEconomies, sectorReports, unlockedTechs, autoRebuilds: { ...emptyAutoRebuilds(), ...(source.autoRebuilds ?? {}) }, credits: Math.max(0, Number(source.credits) || 0) + devuelto, researchPoints: Math.max(0, Number(source.researchPoints) || 0), lastReport: source.lastReport ?? emptyTickReport(), debug }
   const clean = normalized as Record<string, any>
   delete clean.energyStored; delete clean.buildingLevels; delete clean.capacityLevels; delete clean.autonomyLevels
   return normalized as GameState

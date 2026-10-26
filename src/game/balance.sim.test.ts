@@ -26,16 +26,13 @@ describe('promoted official balance', () => {
       fusion: { cost: 2_000_000_000, capacity: 100_000_000, production: 10_000_000, fuelCycles: 300, refuelCost: 2_000_000_000 },
       generator: { cost: 50_000, capacity: 4_000, thermalResistance: 0, conversionRate: 1_875 },
       generator2: { cost: 150_000_000, capacity: 3_000_000, thermalResistance: 0, conversionRate: 900_000 },
-      cooler: { cost: 1_000_000, capacity: 0, coolingRate: 50_000 },
-      exchanger: { cost: 50_000_000, capacity: 2_000_000, referenceTransferRate: 200_000 },
+      exchanger: { cost: 1_000_000_000, capacity: 2_000_000, referenceTransferRate: 200_000 },
       pipe: { cost: 10_000_000, capacity: 200_000, referenceTransferRate: 50_000, thermalResistance: 0.01 },
       pipe2: { cost: 1_000_000_000, capacity: 10_000_000, referenceTransferRate: 1_967_347, thermalResistance: 1 },
-      accumulator: { cost: 250_000_000, capacity: 10_000_000, referenceTransferRate: 100_000 },
     })
     expect(COMPONENTS.exchanger.thermalResistance).toBeCloseTo(2.24071005886228, 12)
     expect(COMPONENTS.pipe.thermalResistance).toBe(0.01)
     expect(COMPONENTS.pipe2.thermalResistance).toBe(1)
-    expect(COMPONENTS.accumulator.thermalResistance).toBeCloseTo(24.7491582262546, 12)
   })
 
   it('matches every base upgrade price and the promoted scaling', () => {
@@ -54,11 +51,9 @@ describe('promoted official balance', () => {
       planck: { output: 900_000_000_000, capacity: 450_000_000_000, autonomy: 600_000_000_000 },
       generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
       generator2: { output: 500_000_000, capacity: 200_000_000, autonomy: 33_750_000 },
-      cooler: { output: 30_000_000, capacity: 25_500_000, autonomy: 22_500_000 },
       exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
       pipe: { output: 300_000_000, capacity: 30_000_000, autonomy: 225_000_000 },
       pipe2: { output: 67_200_000_000, capacity: 1_000_000_000, autonomy: 50_400_000_000 },
-      accumulator: { output: 7_500_000_000, capacity: 6_375_000_000, autonomy: 5_625_000_000 },
     })
     const state = createInitialState()
     expect(upgradeCost(state, 'solar', 'output')).toBe(80_000)
@@ -81,10 +76,9 @@ describe('promoted official balance', () => {
     const thermalOnly = { ...state, unlockedTechs: { ...state.unlockedTechs, solar: true, thermal: true } }
     expect(isComponentUnlocked(thermalOnly, 'core')).toBe(true)
     expect(isComponentUnlocked(thermalOnly, 'generator')).toBe(true)
-    expect(isComponentUnlocked(thermalOnly, 'cooler')).toBe(false)
     expect(isComponentUnlocked(thermalOnly, 'sales2')).toBe(false)
     const thorium = { ...thermalOnly, unlockedTechs: { ...thermalOnly.unlockedTechs, thorium: true } }
-    for (const kind of ['thorium', 'cooler', 'pipe', 'exchanger', 'accumulator', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    for (const kind of ['thorium', 'pipe', 'exchanger', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
     // El Control se movio al Test Site: ya no entra con el ciclo de torio.
     expect(isComponentUnlocked(thorium, 'controller')).toBe(false)
     expect(isComponentUnlocked(thorium, 'generator2')).toBe(false)

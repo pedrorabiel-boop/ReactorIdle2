@@ -80,3 +80,39 @@ describe('la partida sobrevive a cerrar y abrir', () => {
     expect(vuelta.sectorLayouts.desert[8]?.kind).toBe('solar')
   })
 })
+
+describe('partidas con las piezas retiradas', () => {
+  /**
+   * El enfriador y el deposito salieron del juego. Una partida guardada con
+   * ellos puestos no puede reventar al abrirse, y lo pagado se devuelve.
+   */
+  const conPiezaVieja = (kind: string) => {
+    const state: any = { ...createInitialState(), credits: 1_000 }
+    state.sectorLayouts.coast[25] = { id: `${kind}-viejo`, kind, heat: 0, enabled: true, damaged: false, flow: 0, fuel: 0, autoRefuel: false }
+    state.tiles = state.sectorLayouts.coast
+    return state
+  }
+
+  it('las quita del mapa en vez de romperse', () => {
+    for (const kind of ['cooler', 'accumulator']) {
+      const vuelta = guardarYCargar(conPiezaVieja(kind))
+      expect(vuelta, kind).not.toBeNull()
+      expect(vuelta?.sectorLayouts.coast[25], kind).toBeNull()
+    }
+  })
+
+  it('devuelve lo mismo que habria dado demolerlas', () => {
+    expect(guardarYCargar(conPiezaVieja('cooler'))?.credits).toBe(1_000 + Math.floor(1_000_000 * 0.85))
+    expect(guardarYCargar(conPiezaVieja('accumulator'))?.credits).toBe(1_000 + Math.floor(250_000_000 * 0.85))
+  })
+
+  it('si la pieza elegida era una retirada, vuelve al molino', () => {
+    const state: any = { ...createInitialState(), selectedKind: 'cooler' }
+    expect(guardarYCargar(state)?.selectedKind).toBe('wind')
+  })
+
+  it('una partida sin ellas no cambia de dinero', () => {
+    const state = { ...createInitialState(), credits: 777 }
+    expect(guardarYCargar(state)?.credits).toBe(777)
+  })
+})

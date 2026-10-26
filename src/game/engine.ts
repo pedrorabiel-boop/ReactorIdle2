@@ -1,8 +1,8 @@
 import { COMPONENTS } from './catalog'
 import { BOOST_TICKS_PER_SECOND, ECONOMY, EMPTY_TECHS, emptyAutoRebuilds, emptyBuildingLevels, LIFETIME_ORDER, TECHNOLOGIES, TECH_ORDER } from './balance'
 import { applyDebugSettings, canAfford, createDefaultDebugSettings, hasInfiniteMoney, normalizeDebugSettings, spendCredits } from './debug'
-import { componentCapacity, componentMultiplier, controllerAutonomyMultiplier, conversionRate, coolingRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
-import { absorbHeatIntoSinks, diffuseThermalNetwork, drainHeatByResistance, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, superconductorMasses, type ThermalSinkEdge } from './thermal'
+import { componentCapacity, componentMultiplier, controllerAutonomyMultiplier, conversionRate, directEnergyRate, fuelCapacity, productionRate, researchPerFacility, salesPerOffice, storagePerBattery, thermalResistance } from './research'
+import { absorbHeatIntoSinks, diffuseThermalNetwork, getThermalTopology, isThermalCarrier, equalizeSuperconductors, pullHeatForConversion, superconductorMasses, type ThermalSinkEdge } from './thermal'
 import { buildableFor, neighbourIndices, SECTOR_GRID } from './terrain'
 import type { ComponentKind, ContractKind, EnergyContract, GameState, SectorEconomy, SectorKey, TechKey, TickReport, Tile } from './types'
 
@@ -11,7 +11,7 @@ const CONVERTERS = new Set<ComponentKind>(['generator', 'generator2'])
 const DIRECT = new Set<ComponentKind>(['wind', 'solar'])
 const LIFETIME_PRODUCERS = new Set<ComponentKind>(['wind', 'solar', 'core', 'thorium', 'fusion', 'planck'])
 
-export function emptyTickReport(): TickReport { return { producedEnergy: 0, directEnergy: 0, thermalEnergy: 0, storedEnergy: 0, wastedEnergy: 0, soldEnergy: 0, earnedCredits: 0, generatedResearch: 0, cooledHeat: 0, incidents: 0, refuelCost: 0, repairCost: 0, storageCapacity: ECONOMY.baseStorage, salesCapacity: ECONOMY.baseSalesRate, conversionCapacity: 0, heatProduction: 0 } }
+export function emptyTickReport(): TickReport { return { producedEnergy: 0, directEnergy: 0, thermalEnergy: 0, storedEnergy: 0, wastedEnergy: 0, soldEnergy: 0, earnedCredits: 0, generatedResearch: 0, incidents: 0, refuelCost: 0, repairCost: 0, storageCapacity: ECONOMY.baseStorage, salesCapacity: ECONOMY.baseSalesRate, conversionCapacity: 0, heatProduction: 0 } }
 
 export function createContract(completed: number, maxResearchReward = Number.POSITIVE_INFINITY): EnergyContract {
   const kinds: ContractKind[] = ['renewable', 'sales', 'research', 'thermal', 'energy']
@@ -118,10 +118,66 @@ export function toggleUpgradeVisibility(state: GameState, kind: ComponentKind): 
 
 export function claimTestSite(state: GameState): GameState { if (state.ownedSectors.testsite || !state.unlockedTechs.testsite) return state; return { ...state, ownedSectors: { ...state.ownedSectors, testsite: true } } }
 
-interface SectorResult { tiles: GameState['tiles']; directEnergy: number; thermalEnergy: number; research: number; cooledHeat: number; incidents: number; refuelCost: number; heatProduction: number; conversionCapacity: number; credits: number }
+/**
+ * Reparto de las masas de superconductor: de cada casilla a la red que la
+ * contiene, y el tamaño de cada red.
+ */
+function superconductorIndex(tiles: Array<Tile | null>, masses: number[][], rows: number, cols: number, sector: SectorKey) {
+  const massOf = new Map<number, number>()
+  masses.forEach((mass, id) => { for (const index of mass) massOf.set(index, id) })
+  // Una red solo se enciende si tiene un intercambiador pegado a alguna de sus
+  // tuberias. Uno basta: es la llave de la red, no un acumulador, asi que el
+  // segundo no suma nada. Y no cuenta como tuberia: no engorda la red.
+  const conLlave = masses.map((mass) => mass.some((index) => adjacentIndices(index, rows, cols, sector).some((neighbour) => {
+    const vecino = tiles[neighbour]
+    return vecino?.kind === 'exchanger' && vecino.enabled && !vecino.damaged
+  })))
+  return { massOf, sizes: masses.map((mass) => mass.length), conLlave }
+}
+
+/**
+ * Lo que la red de superconductores multiplica a una turbina pegada a ella.
+ *
+ * Cada Tuberia II de la masa cuenta, asi que el factor crece con el tamaño de
+ * la red y una red grande rinde mas que dos pequeñas con las mismas turbinas:
+ * a x1,05, una de 20 da 2,65 frente a 1,63 de dos de 10.
+ *
+ * Si la turbina toca dos masas distintas, se suman sus tamaños: esta en
+ * contacto con las dos de verdad, y el calor de una no pasa a la otra. Contar
+ * solo la mayor haria que la segunda red no valiera nada.
+ *
+ * Solo cuentan las redes que tengan un intercambiador pegado. Una red sin el
+ * no multiplica nada, por muchas tuberias que tenga.
+ */
+function networkFactor(index: number, reparto: ReturnType<typeof superconductorIndex>, rows: number, cols: number, sector: SectorKey) {
+  const bonus = COMPONENTS.pipe2.networkBonus ?? 0
+  const vistas = new Set<number>()
+  let tuberias = 0      // tuberias de redes encendidas
+  let dormidas = 0      // tuberias de redes sin intercambiador, para poder avisar
+  for (const neighbour of adjacentIndices(index, rows, cols, sector)) {
+    const id = reparto.massOf.get(neighbour)
+    if (id === undefined || vistas.has(id)) continue
+    vistas.add(id)
+    if (reparto.conLlave[id]) tuberias += reparto.sizes[id]
+    else dormidas += reparto.sizes[id]
+  }
+  const factor = bonus > 0 && tuberias > 0 ? Math.pow(1 + bonus, tuberias) : 1
+  return { factor, tuberias, dormidas }
+}
+
+/** Estado de red de una turbina concreta del mapa abierto, para la interfaz. */
+export function converterNetwork(state: GameState, index: number): { factor: number; tuberias: number; dormidas: number } {
+  const tile = state.tiles[index]
+  if (!tile || !CONVERTERS.has(tile.kind)) return { factor: 1, tuberias: 0, dormidas: 0 }
+  const { rows, cols } = SECTOR_GRID[state.activeSector]
+  const masses = superconductorMasses(state.tiles, rows, cols, state.activeSector)
+  return networkFactor(index, superconductorIndex(state.tiles, masses, rows, cols, state.activeSector), rows, cols, state.activeSector)
+}
+
+interface SectorResult { tiles: GameState['tiles']; directEnergy: number; thermalEnergy: number; research: number; incidents: number; refuelCost: number; heatProduction: number; conversionCapacity: number; credits: number }
 function simulateSector(state: GameState, tilesInput: GameState['tiles'], creditsInput: number): SectorResult {
   const { rows, cols } = SECTOR_GRID[state.activeSector]
-  const tiles = tilesInput.map((tile) => tile ? { ...tile, flow: 0 } : null); let credits = creditsInput; let directEnergy = 0; let thermalEnergy = 0; let research = 0; let cooledHeat = 0; let incidents = 0; let refuelCost = 0; let heatProduction = 0; let conversionCapacity = 0
+  const tiles = tilesInput.map((tile) => tile ? { ...tile, flow: 0 } : null); let credits = creditsInput; let directEnergy = 0; let thermalEnergy = 0; let research = 0; let incidents = 0; let refuelCost = 0; let heatProduction = 0; let conversionCapacity = 0
   for (const tile of tiles) { if (!tile || !tile.enabled || tile.damaged) continue; if (DIRECT.has(tile.kind)) { if (tile.fuel <= 0) { const price = COMPONENTS[tile.kind].refuelCost ?? COMPONENTS[tile.kind].cost; if (!isAutoRebuildActive(state, tile.kind) || (!hasInfiniteMoney(state) && credits < price)) continue; tile.id = `${tile.kind}-${state.tick}-auto`; tile.fuel = fuelCapacity(state, tile.kind); if (!hasInfiniteMoney(state)) credits -= price; refuelCost += price } const amount = directEnergyRate(state, tile.kind); directEnergy += amount; tile.flow = amount; tile.fuel = Math.max(0, tile.fuel - 1) } if (tile.kind === 'research' || tile.kind === 'research2') research += researchPerFacility(state, tile.kind) }
   for (const tile of tiles) { if (!tile || !tile.enabled || tile.damaged || !REACTORS.has(tile.kind)) continue; if (tile.fuel <= 0) { const price = COMPONENTS[tile.kind].refuelCost ?? COMPONENTS[tile.kind].cost; if (!isAutoRebuildActive(state, tile.kind) || (!hasInfiniteMoney(state) && credits < price)) continue; tile.id = `${tile.kind}-${state.tick}-auto`; tile.fuel = fuelCapacity(state, tile.kind); if (!hasInfiniteMoney(state)) credits -= price; refuelCost += price } const amount = productionRate(state, tile.kind); tile.heat += amount; tile.fuel = Math.max(0, tile.fuel - 1); heatProduction += amount }
   const capacityAt = (index: number) => { const tile = tiles[index]; return tile ? componentCapacity(state, tile.kind) : 0 }
@@ -132,15 +188,17 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
   for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; for (const source of adjacentIndices(index, rows, cols, state.activeSector)) if (isThermalCarrier(tiles[source])) generatorEdges.push({ source, sink: index }) }
   const conversionDemand = new Map<number, number>()
   const conversionReserve = new Map<number, number>()
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; const rate = conversionRate(state, tile.kind as 'generator' | 'generator2'); conversionCapacity += rate; conversionReserve.set(index, Math.min(rate, componentCapacity(state, tile.kind))); const stored = Math.min(tile.heat, rate); tile.heat -= stored; tile.flow += stored; thermalEnergy += stored; conversionDemand.set(index, rate - stored) }
+  // Las masas se reparten antes de convertir: la red decide cuanto rinde cada
+  // turbina pegada a ella, y el reparto no cambia durante el tick.
   const masses = superconductorMasses(tiles, rows, cols, state.activeSector)
+  const reparto = superconductorIndex(tiles, masses, rows, cols, state.activeSector)
+  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || !CONVERTERS.has(tile.kind) || !tile.enabled || tile.damaged) continue; const rate = conversionRate(state, tile.kind as 'generator' | 'generator2') * networkFactor(index, reparto, rows, cols, state.activeSector).factor; conversionCapacity += rate; conversionReserve.set(index, Math.min(rate, componentCapacity(state, tile.kind))); const stored = Math.min(tile.heat, rate); tile.heat -= stored; tile.flow += stored; thermalEnergy += stored; conversionDemand.set(index, rate - stored) }
   const pulled = pullHeatForConversion(tiles, generatorEdges, (index) => conversionDemand.get(index) ?? 0, masses)
   thermalEnergy += pulled.totalMoved
   absorbHeatIntoSinks(tiles, generatorEdges, (index) => conversionReserve.get(index) ?? 0, resistanceAt)
   equalizeSuperconductors(tiles, rows, cols, state.activeSector)
-  for (let index = 0; index < tiles.length; index += 1) { const tile = tiles[index]; if (!tile || tile.kind !== 'cooler' || !tile.enabled || tile.damaged) continue; const sources = adjacentIndices(index, rows, cols, state.activeSector).filter((i) => isThermalCarrier(tiles[i])); const moved = drainHeatByResistance(tiles, sources, coolingRate(state), capacityAt, resistanceAt); cooledHeat += moved; tile.flow += moved }
   for (const tile of tiles) { if (!tile || tile.damaged || componentCapacity(state, tile.kind) <= 0) continue; if (tile.heat > componentCapacity(state, tile.kind)) { tile.damaged = true; tile.enabled = false; incidents += 1 } }
-  return { tiles, directEnergy, thermalEnergy, research, cooledHeat, incidents, refuelCost, heatProduction, conversionCapacity, credits }
+  return { tiles, directEnergy, thermalEnergy, research, incidents, refuelCost, heatProduction, conversionCapacity, credits }
 }
 
 function tilesForSector(state: GameState, sector: SectorKey): Array<Tile | null> { return sector === state.activeSector ? state.tiles : state.sectorLayouts[sector] }
@@ -184,7 +242,7 @@ export function simulateTick(state: GameState): { state: GameState; report: Tick
     // Las oficinas venden primero. Solo la energía que supera su potencia de venta intenta entrar al banco local.
     const sold = Math.min(available, salesCapacity); const unsold = available - sold
     const energyStored = Math.min(storageCapacity, unsold); const wasted = Math.max(0, unsold - storageCapacity); const earned = sold * ECONOMY.energyPrice * prestigeMultiplier(state)
-    const report: TickReport = { producedEnergy: produced, directEnergy: result.directEnergy, thermalEnergy: result.thermalEnergy, storedEnergy: Math.max(0, energyStored - sectorEconomies[sector].energyStored), wastedEnergy: wasted, soldEnergy: sold, earnedCredits: earned, generatedResearch: result.research, cooledHeat: result.cooledHeat, incidents: result.incidents, refuelCost: result.refuelCost, repairCost: 0, storageCapacity, salesCapacity, conversionCapacity: result.conversionCapacity, heatProduction: result.heatProduction }
+    const report: TickReport = { producedEnergy: produced, directEnergy: result.directEnergy, thermalEnergy: result.thermalEnergy, storedEnergy: Math.max(0, energyStored - sectorEconomies[sector].energyStored), wastedEnergy: wasted, soldEnergy: sold, earnedCredits: earned, generatedResearch: result.research, incidents: result.incidents, refuelCost: result.refuelCost, repairCost: 0, storageCapacity, salesCapacity, conversionCapacity: result.conversionCapacity, heatProduction: result.heatProduction }
     sectorEconomies[sector] = { ...sectorEconomies[sector], energyStored }; sectorReports[sector] = report; credits += earned
     for (const key of Object.keys(aggregate) as Array<keyof TickReport>) aggregate[key] += report[key]
   }
