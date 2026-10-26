@@ -65,7 +65,7 @@ export const UPGRADE_BASE_COSTS: Record<ComponentKind, Record<UpgradeTrack, numb
   planck: { output: 900_000_000_000, capacity: 450_000_000_000, autonomy: 600_000_000_000 },
   generator: { output: 150_000, capacity: 90_000, autonomy: 33_750_000 },
   generator2: { output: 500_000_000, capacity: 200_000_000, autonomy: 33_750_000 },
-  exchanger: { output: 1_500_000_000, capacity: 1_275_000_000, autonomy: 1_125_000_000 },
+  exchanger: { output: 1_500_000_000, capacity: 5_000_000_000, autonomy: 1_125_000_000 },
   pipe: { output: 300_000_000, capacity: 30_000_000, autonomy: 225_000_000 },
   pipe2: { output: 67_200_000_000, capacity: 1_000_000_000, autonomy: 50_400_000_000 },
 }

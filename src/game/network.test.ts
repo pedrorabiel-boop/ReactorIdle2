@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { COMPONENTS } from './catalog'
 import { converterNetwork, createInitialState, placeTile, sellTile, simulateTick, toggleTile } from './engine'
-import { upgradeBuildingTrack, upgradeTracks } from './research'
+import { componentCapacity, upgradeBuildingTrack, upgradeCost, upgradeTracks } from './research'
 import type { ComponentKind, GameState } from './types'
 
 const K = 1 + (COMPONENTS.pipe2.networkBonus ?? 0)
@@ -94,16 +94,42 @@ describe('el intercambiador como llave', () => {
     expect(COMPONENTS.exchanger.cost).toBe(COMPONENTS.pipe2.cost)
   })
 
-  it('no se mejora: o está puesto o no', () => {
-    expect(upgradeTracks('exchanger')).toEqual([])
-    // Y no se cuela por la puerta de atrás, igual que las tuberías.
+  it('solo se le sube la tolerancia: encender la red no es un número que suba', () => {
+    expect(upgradeTracks('exchanger')).toEqual(['capacity'])
     const state = abierto()
-    for (const track of ['output', 'capacity', 'autonomy'] as const) {
+    // La tolerancia sí se compra, y la primera cuesta 5 G.
+    expect(upgradeCost(state, 'exchanger', 'capacity')).toBe(5_000_000_000)
+    const subido = upgradeBuildingTrack(state, 'exchanger', 'capacity')
+    expect(componentCapacity(subido, 'exchanger')).toBeGreaterThan(componentCapacity(state, 'exchanger'))
+    // Las otras dos siguen cerradas, también por la puerta de atrás.
+    for (const track of ['output', 'autonomy'] as const) {
       expect(upgradeBuildingTrack(state, 'exchanger', track), track).toBe(state)
     }
   })
 
   it('la Tubería II sí conserva su tolerancia: no se queda sin nada que subir', () => {
     expect(upgradeTracks('pipe2')).toEqual(['capacity'])
+  })
+})
+
+describe('la llave no puede ser el eslabón débil', () => {
+  /**
+   * La difusión nivela calor ABSOLUTO entre vecinos sin mirar la capacidad del
+   * destino, así que el intercambiador carga tanto calor como la tubería que
+   * toca. Cuando toleraba 2 M contra los 10 M de la Tubería II, reventaba
+   * siempre primero: a cualquier nivel aguantaba un quinto, y para igualarla
+   * hacían falta seis niveles más de los que el mapa permite.
+   */
+  it('tolera lo mismo que la Tubería II que enciende, a cualquier nivel', () => {
+    expect(COMPONENTS.exchanger.capacity).toBe(COMPONENTS.pipe2.capacity)
+    const state = abierto()
+    for (const nivel of [1, 5, 10]) {
+      const subido = { ...state, sectorEconomies: { ...state.sectorEconomies, coast: { ...state.sectorEconomies.coast, capacityLevels: { ...state.sectorEconomies.coast.capacityLevels, exchanger: nivel, pipe2: nivel } } } }
+      expect(componentCapacity(subido, 'exchanger'), `nivel ${nivel}`).toBe(componentCapacity(subido, 'pipe2'))
+    }
+  })
+
+  it('conduce igual que antes: subir la tolerancia no la hizo más lenta', () => {
+    expect(COMPONENTS.exchanger.thermalResistance).toBeCloseTo(2.24071005886228, 12)
   })
 })

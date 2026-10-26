@@ -40,13 +40,10 @@ export const autoRebuildCost = (state: GameState, kind: ComponentKind) => state.
 export function canUnlockAutoRebuild(state: GameState, kind: ComponentKind): boolean { return Boolean(COMPONENTS[kind].fuelCycles) && !state.autoRebuilds[kind] && state.researchPoints >= autoRebuildCost(state, kind) }
 export function unlockAutoRebuild(state: GameState, kind: ComponentKind): GameState { const cost = autoRebuildCost(state, kind); return canUnlockAutoRebuild(state, kind) ? { ...state, researchPoints: state.researchPoints - cost, autoRebuilds: { ...state.autoRebuilds, [kind]: true } } : state }
 /**
- * Piezas que no se mejoran: lo suyo no es un numero que suba.
- *
- * El Control, porque su factor ya se acumula construyendo mas y multiplicar la
- * BASE de una cadena exponencial no se puede acotar. El Intercambiador, porque
- * su papel es encender la red: una llave no se afila, o esta puesta o no.
+ * El Control no se mejora: su factor ya se acumula construyendo mas, y
+ * multiplicar la BASE de una cadena exponencial no se puede acotar.
  */
-const SIN_MEJORAS = new Set<ComponentKind>(['controller', 'exchanger'])
+const SIN_MEJORAS = new Set<ComponentKind>(['controller'])
 
 export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
   const def = COMPONENTS[kind]
@@ -59,7 +56,10 @@ export function upgradeTracks(kind: ComponentKind): UpgradeTrack[] {
   // instantanea- y las Tuberia II se igualan entre si por su propia masa, sin
   // mirar la resistencia. Lo que de verdad las limita es cuanto calor toleran,
   // y de eso se ocupa la pista de capacidad.
-  const sinSalida = def.kind === 'pipe' || def.kind === 'pipe2'
+  // El Intercambiador tampoco vende conductividad: encender la red no es un
+  // numero que suba. Lo que si necesita es aguantar el calor de la red que
+  // enciende, y de eso se ocupa la pista de capacidad.
+  const sinSalida = def.kind === 'pipe' || def.kind === 'pipe2' || def.kind === 'exchanger'
   if (!sinSalida && (def.directEnergy || def.production || def.referenceTransferRate || def.thermalResistance || def.conversionRate || def.storageCapacity || def.salesRate || def.researchRate)) tracks.push('output')
   if (def.capacity > 0) tracks.push('capacity')
   if (def.fuelCycles) tracks.push('autonomy')
