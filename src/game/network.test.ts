@@ -94,6 +94,10 @@ describe('el intercambiador como llave', () => {
     expect(COMPONENTS.exchanger.cost).toBe(COMPONENTS.pipe2.cost)
   })
 
+  it('solo se desbloquea con el Test Site, el último mapa', () => {
+    expect(COMPONENTS.exchanger.tech).toBe('testsite')
+  })
+
   it('solo se le sube la tolerancia: encender la red no es un número que suba', () => {
     expect(upgradeTracks('exchanger')).toEqual(['capacity'])
     const state = abierto()

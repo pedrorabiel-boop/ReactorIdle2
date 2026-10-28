@@ -1,6 +1,6 @@
 import type { ComponentKind, SectorKey, TechKey, UpgradeTrack } from './types'
 
-export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, maxTestSiteBuildingLevel: 20, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15, prestigeCostMultiple: 100, prestigeSalesBonus: 1.2 } as const
+export const ECONOMY = { startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, maxTestSiteBuildingLevel: 20, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15, prestigeCostMultiple: 100, prestigeSalesBonus: 1.2 } as const
 /**
  * Rendimiento de una ausencia por tramos: cuanto más tiempo pasa, menos rinde
  * cada hora. Más allá del último tramo la planta no produce nada.
@@ -34,10 +34,10 @@ export const TECH_ORDER: TechKey[] = ['solar', 'thermal', 'thorium', 'fusion', '
 export const TECHNOLOGIES: Record<TechKey, { name: string; description: string; cost: number; requires?: TechKey }> = {
   solar: { name: 'Captación solar', description: 'Desbloquea paneles solares y baterías de red.', cost: 150 },
   thermal: { name: 'Ingeniería térmica', description: 'Desbloquea el núcleo térmico y la turbina generadora.', cost: 60_000, requires: 'solar' },
-  thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, toda la red térmica, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
+  thorium: { name: 'Ciclo de torio', description: 'Desbloquea Torio, las tuberías, Oficina II e I+D II.', cost: 300_000, requires: 'thermal' },
   fusion: { name: 'Confinamiento de fusión', description: 'Desbloquea el reactor de fusión, la Turbina II y la Tubería II sin alterar la infraestructura existente.', cost: 50_000_000, requires: 'thorium' },
-  expansion: { name: 'Expansión territorial', description: 'Autoriza la compra del Manglar. No requiere otras tecnologías.', cost: 15_000_000 },
-  testsite: { name: 'Autorización de ensayos', description: 'Abre el Nuclear Test Site, 150 casillas de suelo limpio, y con él el reactor experimental y el Controlador de red.', cost: 100_000_000, requires: 'fusion' },
+  expansion: { name: 'Expansión territorial', description: 'Abre el Manglar, 72 casillas repartidas en dos siluetas. No requiere otras tecnologías.', cost: 15_000_000 },
+  testsite: { name: 'Autorización de ensayos', description: 'Abre el Nuclear Test Site, 150 casillas de suelo limpio, y con él el reactor experimental, el Controlador de red y el Intercambiador.', cost: 100_000_000, requires: 'fusion' },
 }
 export const EMPTY_TECHS: Record<TechKey, boolean> = { solar: false, thermal: false, thorium: false, fusion: false, expansion: false, testsite: false }
 export const COMPONENT_ORDER: ComponentKind[] = ['wind', 'solar', 'sales', 'sales2', 'battery', 'research', 'research2', 'controller', 'core', 'thorium', 'fusion', 'planck', 'generator', 'generator2', 'exchanger', 'pipe', 'pipe2']

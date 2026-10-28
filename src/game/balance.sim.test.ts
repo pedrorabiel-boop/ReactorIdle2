@@ -6,7 +6,7 @@ import { nextUpgradeGainPercent, upgradeCost } from './research'
 
 describe('promoted official balance', () => {
   it('matches every global value from the promoted Debug profile', () => {
-    expect(ECONOMY).toMatchObject({ startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, secondIslandCost: 1_000_000_000, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, maxTestSiteBuildingLevel: 20, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 })
+    expect(ECONOMY).toMatchObject({ startingCredits: 1, baseStorage: 20, baseSalesRate: 0, energyPrice: 1, sellRefund: 0.85, repairRate: 0.35, maxOfflineSeconds: 14_400, maxBuildingLevel: 10, maxCyberpunkBuildingLevel: 15, maxTestSiteBuildingLevel: 20, outputGrowth: 1.35, upgradeGrowth: 2.2, upgradeBaseMultiplier: 15 })
     expect(Object.fromEntries(Object.entries(TECHNOLOGIES).map(([key, technology]) => [key, technology.cost]))).toEqual({ solar: 150, thermal: 60_000, thorium: 300_000, fusion: 50_000_000, expansion: 15_000_000, testsite: 100_000_000 })
     expect(AUTO_REBUILD_COSTS).toEqual({ wind: 15, solar: 3_000, core: 150_000, thorium: 9_000_000, fusion: 60_000_000, planck: 400_000_000 })
   })
@@ -78,9 +78,9 @@ describe('promoted official balance', () => {
     expect(isComponentUnlocked(thermalOnly, 'generator')).toBe(true)
     expect(isComponentUnlocked(thermalOnly, 'sales2')).toBe(false)
     const thorium = { ...thermalOnly, unlockedTechs: { ...thermalOnly.unlockedTechs, thorium: true } }
-    for (const kind of ['thorium', 'pipe', 'exchanger', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
-    // El Control se movio al Test Site: ya no entra con el ciclo de torio.
-    expect(isComponentUnlocked(thorium, 'controller')).toBe(false)
+    for (const kind of ['thorium', 'pipe', 'sales2', 'research2'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(true)
+    // El Control y el Intercambiador viven en el Test Site: no entran con torio.
+    for (const kind of ['controller', 'exchanger'] as const) expect(isComponentUnlocked(thorium, kind)).toBe(false)
     expect(isComponentUnlocked(thorium, 'generator2')).toBe(false)
     expect(isComponentUnlocked(thorium, 'pipe2')).toBe(false)
     const fusion = { ...thorium, unlockedTechs: { ...thorium.unlockedTechs, fusion: true } }
