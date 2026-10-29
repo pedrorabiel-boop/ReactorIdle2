@@ -33,7 +33,7 @@ import { useTutorial } from './ui/tutorial/useTutorial'
 
 interface BeforeInstallPromptEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
 interface HistoryEntry { tiles: GameState['tiles']; creditAdjustment: number; label: string }
-interface BuildStroke { pointerId: number; visited: Set<number>; beforeTiles: GameState['tiles']; spent: number; placed: number }
+interface BuildStroke { pointerId: number; mode: 'build' | 'demolish'; visited: Set<number>; beforeTiles: GameState['tiles']; spent: number; placed: number }
 const MAX_UNDO_STEPS = 20
 
 function App() {
@@ -135,12 +135,39 @@ function App() {
   function closeSheet() { setActiveTab(null); setInspectedIndex(null); setBuildFocus(false); setGame((current) => current.toolMode === 'inspect' ? current : ({ ...current, toolMode: 'inspect' })) }
   function inspect(index: number) { setInspectedIndex(index); setActiveTab('inspector') }
   function chooseComponent(kind: ComponentKind) { if (!isComponentUnlocked(gameRef.current, kind)) { setToast('Esta pieza requiere investigación previa.'); return } setGame((current) => ({ ...current, selectedKind: kind, toolMode: 'build' })); setBuildFocus(true) }
-  function chooseTool(toolMode: ToolMode) { setGame((current) => ({ ...current, toolMode })) }
+  /**
+   * Demoler entra en foco igual que elegir una pieza.
+   *
+   * No es cosmetico: el foco es lo que deja al trazo tomar el puntero. Sin el,
+   * demoler dependia del `click`, que el navegador no manda si el dedo se
+   * mueve un pelo -de ahi el toque que a veces no hacia nada- y ademas no
+   * habia forma de arrastrar. Con foco aparece el joystick, asi que mover el
+   * mapa sigue siendo posible sin demoler lo que se roza.
+   */
+  function chooseTool(toolMode: ToolMode) { setGame((current) => ({ ...current, toolMode })); setBuildFocus(toolMode === 'demolish') }
   function interact(index: number) { const current = gameRef.current; const tile = current.tiles[index]; if (!buildPanelOpenRef.current) { if (tile) inspect(index); return } if (!armedRef.current) return; if (current.toolMode === 'demolish') { if (tile) commit((state) => sellTile(state, index), 'Demolición'); return } if (tile) { const expired = usesAutonomy(tile.kind) && tile.fuel <= 0; if (!expired) return; if (tile.kind !== current.selectedKind) { setToast(`La casilla contiene ${COMPONENTS[tile.kind].shortName} caducada. Reconstruye el mismo tipo o demuélela.`); return } if (!canAfford(current, COMPONENTS[tile.kind].cost)) { setToast('Créditos insuficientes para reconstruir.'); return } commit((state) => placeTile(state, index, state.selectedKind), 'Reconstrucción'); return } const def = COMPONENTS[current.selectedKind]; if (!isComponentUnlocked(current, current.selectedKind)) return; if (!canAfford(current, def.cost)) { setToast('Créditos insuficientes.'); return } commit((state) => placeTile(state, index, state.selectedKind), 'Construcción') }
-  function placeDuringStroke(index: number) { const stroke = strokeRef.current; if (!stroke || stroke.visited.has(index)) return; stroke.visited.add(index); const current = gameRef.current; const def = COMPONENTS[current.selectedKind]; const existing = current.tiles[index]; const rebuildable = existing?.kind === current.selectedKind && usesAutonomy(existing.kind) && existing.fuel <= 0; if ((existing && !rebuildable) || !isComponentUnlocked(current, current.selectedKind) || !canAfford(current, def.cost)) return; const next = placeTile(current, index, current.selectedKind); if (next === current) return; stroke.spent += hasInfiniteMoney(current) ? 0 : def.cost; stroke.placed += 1; replaceGame(next) }
-  function startBuildStroke(event: ReactPointerEvent<HTMLButtonElement>, index: number) { const current = gameRef.current; if (!buildFocusRef.current || !armedRef.current || current.toolMode !== 'build' || event.button !== 0) return; ignoreClickRef.current = true; event.preventDefault(); strokeRef.current = { pointerId: event.pointerId, visited: new Set(), beforeTiles: current.tiles, spent: 0, placed: 0 }; placeDuringStroke(index) }
-  function continueBuildStroke(event: ReactPointerEvent<HTMLDivElement>) { const stroke = strokeRef.current; if (!stroke || stroke.pointerId !== event.pointerId) return; event.preventDefault(); const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-cell-index]'); const index = Number(target?.dataset.cellIndex); if (Number.isInteger(index)) placeDuringStroke(index) }
-  function finishBuildStroke(pointerId: number) { const stroke = strokeRef.current; if (!stroke || stroke.pointerId !== pointerId) return; strokeRef.current = null; if (stroke.placed) pushHistory({ tiles: stroke.beforeTiles, creditAdjustment: stroke.spent, label: stroke.placed > 1 ? 'Trazado' : 'Construcción' }); setTimeout(() => { ignoreClickRef.current = false }, 0) }
+  function applyDuringStroke(index: number) {
+    const stroke = strokeRef.current; if (!stroke || stroke.visited.has(index)) return
+    stroke.visited.add(index)
+    const current = gameRef.current
+    if (stroke.mode === 'demolish') {
+      if (!current.tiles[index]) return
+      const next = sellTile(current, index); if (next === current) return
+      // Negativo: demoler devuelve dinero, y deshacer tiene que quitarlo.
+      stroke.spent += current.credits - next.credits
+      stroke.placed += 1; replaceGame(next); return
+    }
+    const def = COMPONENTS[current.selectedKind]
+    const existing = current.tiles[index]
+    const rebuildable = existing?.kind === current.selectedKind && usesAutonomy(existing.kind) && existing.fuel <= 0
+    if ((existing && !rebuildable) || !isComponentUnlocked(current, current.selectedKind) || !canAfford(current, def.cost)) return
+    const next = placeTile(current, index, current.selectedKind); if (next === current) return
+    stroke.spent += hasInfiniteMoney(current) ? 0 : def.cost
+    stroke.placed += 1; replaceGame(next)
+  }
+  function startBuildStroke(event: ReactPointerEvent<HTMLButtonElement>, index: number) { const current = gameRef.current; const mode = current.toolMode; if (!buildFocusRef.current || !armedRef.current || (mode !== 'build' && mode !== 'demolish') || event.button !== 0) return; ignoreClickRef.current = true; event.preventDefault(); strokeRef.current = { pointerId: event.pointerId, mode, visited: new Set(), beforeTiles: current.tiles, spent: 0, placed: 0 }; applyDuringStroke(index) }
+  function continueBuildStroke(event: ReactPointerEvent<HTMLDivElement>) { const stroke = strokeRef.current; if (!stroke || stroke.pointerId !== event.pointerId) return; event.preventDefault(); const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-cell-index]'); const index = Number(target?.dataset.cellIndex); if (Number.isInteger(index)) applyDuringStroke(index) }
+  function finishBuildStroke(pointerId: number) { const stroke = strokeRef.current; if (!stroke || stroke.pointerId !== pointerId) return; strokeRef.current = null; if (stroke.placed) pushHistory({ tiles: stroke.beforeTiles, creditAdjustment: stroke.spent, label: stroke.mode === 'demolish' ? (stroke.placed > 1 ? 'Demolición múltiple' : 'Demolición') : (stroke.placed > 1 ? 'Trazado' : 'Construcción') }); setTimeout(() => { ignoreClickRef.current = false }, 0) }
   function handleCellClick(index: number) { if (ignoreClickRef.current) { ignoreClickRef.current = false; return } interact(index) }
 
   async function installApp() { if (!installPrompt) { setToast('En iPhone: Compartir → Agregar a inicio. En Android: menú → Instalar app.'); return } await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null) }
@@ -178,9 +205,15 @@ function App() {
     <MapViewport game={game} island={island} coast={coast} coastStyle={environmentDefinition.coast} env={environmentDefinition} scenery={scenery} decoration={environmentDefinition.decoration} armed={armed} toolMode={game.toolMode} selectedKind={game.selectedKind} inspectedIndex={inspectedIndex} minimalUi={buildFocus} zoom={zoom} onCellPointerDown={startBuildStroke} onCellClick={handleCellClick} onGridPointerMove={continueBuildStroke} />
     {!buildFocus && <Hud game={game} zoom={zoom} onZoom={changeZoom} musicOn={musicOn} onToggleMusic={toggleMusic} onSellEnergy={sellEnergy} onToggleBoost={toggleBoost} onOpenMenu={() => openTab('menu')} />}
     {buildFocus && <div className="build-toolbar">
-      <button className="build-back frame" onClick={closeSheet} aria-label="Terminar construcción">✓ Terminar</button>
-      <div className="build-budget frame" aria-label={`Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`}>
-        <span><small>PRECIO</small><strong><Sprite name="icon-coin" size={13} />{formatNumber(COMPONENTS[game.selectedKind].cost)}</strong></span>
+      <button className="build-back frame" onClick={closeSheet} aria-label={game.toolMode === 'demolish' ? 'Terminar demolición' : 'Terminar construcción'}>✓ Terminar</button>
+      {/* Demoliendo, el precio de la pieza elegida no viene a cuento; lo que
+          importa es saber en qué modo estás, porque la bandeja ya no se ve. */}
+      <div className="build-budget frame" aria-label={game.toolMode === 'demolish'
+        ? `Modo demoler; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`
+        : `Precio ${COMPONENTS[game.selectedKind].cost} créditos; saldo ${hasInfiniteMoney(game) ? 'infinito' : formatNumber(game.credits)} créditos`}>
+        {game.toolMode === 'demolish'
+          ? <span><small>MODO</small><strong className="danger-text">DEMOLER</strong></span>
+          : <span><small>PRECIO</small><strong><Sprite name="icon-coin" size={13} />{formatNumber(COMPONENTS[game.selectedKind].cost)}</strong></span>}
         <i aria-hidden="true" />
         <span><small>SALDO</small><strong><Sprite name="icon-coin" size={13} />{hasInfiniteMoney(game) ? '∞' : formatNumber(game.credits)}</strong></span>
       </div>
