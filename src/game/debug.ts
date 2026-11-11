@@ -28,6 +28,7 @@ export const ECONOMY_DEBUG_FIELDS: Array<{ key: DebugEconomyKey; label: string; 
   { key: 'maxOfflineSeconds', label: 'Máximo offline / s' },
   { key: 'prestigeCostMultiple', label: 'Prestigio: veces el reactor' },
   { key: 'prestigeSalesBonus', label: 'Prestigio: bonus de venta', step: 0.05 },
+  { key: 'prestigeResearchBonus', label: 'Prestigio: bonus de investigación', step: 0.05 },
   { key: 'maxBuildingLevel', label: 'Nivel máximo · Costa' },
   { key: 'maxCyberpunkBuildingLevel', label: 'Nivel máximo · Manglar' },
   { key: 'maxTestSiteBuildingLevel', label: 'Nivel máximo · Test Site' },

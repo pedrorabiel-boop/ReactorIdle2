@@ -95,6 +95,16 @@ export function switchSector(state: GameState, sector: SectorKey): GameState { i
 export function buyDesertSector(state: GameState): GameState { if (state.ownedSectors.desert || !state.unlockedTechs.expansion) return state; return { ...state, ownedSectors: { ...state.ownedSectors, desert: true } } }
 /** Cada prestigio multiplica de forma permanente lo que rinde cada venta. */
 export const prestigeMultiplier = (state: GameState) => Math.pow(ECONOMY.prestigeSalesBonus, state.prestiges)
+/**
+ * Y tambien lo que rinde la investigacion, que es el otro muro del reinicio.
+ *
+ * El dinero volvia enseguida con el bono de venta, pero los puntos para abrir
+ * el Manglar y el Test Site no: habia que dejar un mapa lleno de I+D al maximo
+ * corriendo varios minutos, y ahi se paraba la partida por mucho prestigio que
+ * llevaras. Va al mismo ritmo que el de venta, asi que un reinicio adelanta
+ * las dos monedas por igual y ninguna se queda marcando el paso.
+ */
+export const prestigeResearchMultiplier = (state: GameState) => Math.pow(ECONOMY.prestigeResearchBonus, state.prestiges)
 /** Dinero necesario para reiniciar: un multiplo del reactor mas potente. */
 export const prestigeThreshold = () => COMPONENTS.planck.cost * ECONOMY.prestigeCostMultiple
 export const canPrestige = (state: GameState) => state.credits >= prestigeThreshold()
@@ -198,7 +208,7 @@ function simulateSector(state: GameState, tilesInput: GameState['tiles'], credit
   absorbHeatIntoSinks(tiles, generatorEdges, (index) => conversionReserve.get(index) ?? 0, resistanceAt)
   equalizeSuperconductors(tiles, rows, cols, state.activeSector)
   for (const tile of tiles) { if (!tile || tile.damaged || componentCapacity(state, tile.kind) <= 0) continue; if (tile.heat > componentCapacity(state, tile.kind)) { tile.damaged = true; tile.enabled = false; incidents += 1 } }
-  return { tiles, directEnergy, thermalEnergy, research, incidents, refuelCost, heatProduction, conversionCapacity, credits }
+  return { tiles, directEnergy, thermalEnergy, research: research * prestigeResearchMultiplier(state), incidents, refuelCost, heatProduction, conversionCapacity, credits }
 }
 
 function tilesForSector(state: GameState, sector: SectorKey): Array<Tile | null> { return sector === state.activeSector ? state.tiles : state.sectorLayouts[sector] }

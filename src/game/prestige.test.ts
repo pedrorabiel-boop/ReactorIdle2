@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ECONOMY } from './balance'
 import { COMPONENTS } from './catalog'
-import { canPrestige, createInitialState, pendingAutoRebuilds, pendingTechs, performPrestige, placeTile, prestigeMultiplier, prestigeThreshold, sellStoredEnergy, toggleUpgradeVisibility } from './engine'
+import { canPrestige, createInitialState, pendingAutoRebuilds, pendingTechs, performPrestige, placeTile, prestigeMultiplier, prestigeResearchMultiplier, prestigeThreshold, sellStoredEnergy, simulateTick, toggleUpgradeVisibility } from './engine'
 import { upgradeBuildingTrack, upgradeBuildingTrackMax, upgradeLevel, maxUpgradeLevel } from './research'
 import type { GameState } from './types'
 
@@ -107,5 +107,44 @@ describe('lab sheet contents', () => {
     const owned = { ...state, autoRebuilds: { ...state.autoRebuilds, wind: true } }
     expect(pendingAutoRebuilds(owned)).not.toContain('wind')
     expect(pendingAutoRebuilds(owned).length).toBe(before.length - 1)
+  })
+})
+
+describe('el prestigio también acelera la investigación', () => {
+  /**
+   * Antes solo multiplicaba la venta, asi que el dinero volvia enseguida tras
+   * un reinicio pero los puntos para abrir el Manglar y el Test Site no: habia
+   * que dejar un mapa lleno de I+D al maximo corriendo varios minutos, y la
+   * partida se paraba ahi por mucho prestigio que llevaras.
+   */
+  const conIDyPrestigios = (prestiges: number) => {
+    let state = { ...createInitialState(), credits: 1e12, prestiges }
+    state = placeTile(state, 25, 'research')
+    state = placeTile(state, 26, 'research')
+    return state
+  }
+  const rpPorTick = (prestiges: number) => simulateTick(conIDyPrestigios(prestiges)).report.generatedResearch
+
+  it('multiplica los puntos por 1,2 en cada reinicio', () => {
+    expect(ECONOMY.prestigeResearchBonus).toBe(1.2)
+    const base = rpPorTick(0)
+    expect(base).toBeGreaterThan(0)
+    for (const n of [1, 3, 7, 20]) {
+      expect(rpPorTick(n), `${n} prestigios`).toBeCloseTo(base * Math.pow(1.2, n), 6)
+    }
+  })
+
+  it('avanza al mismo ritmo que el de venta: un reinicio adelanta las dos monedas', () => {
+    for (const prestiges of [0, 1, 10, 25]) {
+      const state = { ...createInitialState(), prestiges }
+      expect(prestigeResearchMultiplier(state), `${prestiges} prestigios`).toBeCloseTo(prestigeMultiplier(state), 9)
+    }
+    expect(prestigeResearchMultiplier({ ...createInitialState(), prestiges: 0 })).toBe(1)
+  })
+
+  it('los puntos acumulados crecen de verdad en la partida, no solo en el informe', () => {
+    const sin = simulateTick(conIDyPrestigios(0)).state.researchPoints
+    const con = simulateTick(conIDyPrestigios(5)).state.researchPoints
+    expect(con).toBeCloseTo(sin * Math.pow(1.2, 5), 6)
   })
 })
